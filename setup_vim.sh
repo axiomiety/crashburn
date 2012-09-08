@@ -1,5 +1,6 @@
 # get .vimrc
 # get solarized colour scheme
-https://raw.github.com/axiomiety/setup/master/.vimrc
 
 mkdir -p ~/.vim/colors
+wget https://raw.github.com/altercation/vim-colors-solarized/master/colors/solarized.vim -O ~/.vim/colors/solarized.vim
+cp .vimrc ~
