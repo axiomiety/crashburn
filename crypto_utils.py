@@ -39,8 +39,19 @@ def b64_file_to_bytes(filename):
   data = ''.join([l.strip() for l in lines])
   return bytes(binascii.a2b_base64(data.encode('ascii')))
 
-def pad(b, length):
+def pad2(b, blocksize=16):
   ''' a PKCS#7 padding implementation '''
+  pad_length = blocksize
+  if len(b) % blocksize:
+    pad_length = blocksize - (len(b) % blocksize)
+  
+  return b + bytes((pad_length,))*pad_length
+
+def unpad2(b):
+  pad_length = b[-1]
+  return b[:-pad_length]
+
+def pad(b, length):
   assert(isinstance(b, bytes))
   assert(len(b) <= length)
 
@@ -173,6 +184,10 @@ class HelpersTest(unittest.TestCase):
     self.assertEqual( self.b1, pad(self.b1, len(self.b1)) )
     self.assertEqual( self.b1 + bytes((1,)), pad(self.b1, len(self.b1)+1) )
     self.assertEqual( bytes('ice ice baby\x02\x02', 'ascii'), pad(self.b1, len(self.b1)+2) )
+
+  def test_pad2(self):
+    self.assertEqual( bytes('ice ice baby\x02\x02', 'ascii'), pad2(self.b1, len(self.b1)+2) )
+    self.assertEqual( self.b1, unpad2(pad2(self.b1)))
 
   def test_fill_key(self):
     self.assertEqual( b'ice', fill_key(b'ice', b'ice') )
