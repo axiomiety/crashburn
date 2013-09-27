@@ -9,15 +9,18 @@
     </style>
   </head>
   <body>
-    <canvas id="myCanvas" width="600" height="400" tabindex="1"></canvas>
+    <canvas id="gameCanvas" width="600" height="400" tabindex="1"></canvas>
+    <canvas id="infoCanvas" width="400" height="200"></canvas>
     <script>
     /*
     collision detection is hard. so we're taking the easy (easier?) way out by
     making sure our world is a series of squares
     */
     
-    var canvasElem = document.getElementById("myCanvas");
+    var canvasElem = document.getElementById("gameCanvas");
     var canvas = canvasElem.getContext("2d");
+    var infoCanvasElem = document.getElementById("infoCanvas");
+    var infoCanvas = infoCanvasElem.getContext("2d");
     var game_on = false;
     
     var CONSTS = {
@@ -27,6 +30,8 @@
       movement_offset:    10,
       grid_square_width:    10,
       tail_growth:      5,
+      info_canvas_height:   canvasElem.height,
+      info_canvas_width:    canvasElem.width,
     };
     
     var Utils = (function() {
@@ -82,12 +87,6 @@
       return I;
     }
     
-    function Block(I) {
-      I = I || {};
-      I.grid_coordinate = 0;
-      return I;
-    }
-    
     var player = {
       color: "#00A",
       tail_grid_coordinates: [],
@@ -134,6 +133,7 @@
       pt = Utils.grid_coordinate_to_cartesian(this.head_grid_coordinate);
       canvas.fillRect(pt.x, pt.y, CONSTS.grid_square_width, CONSTS.grid_square_width);
       },
+      score: -1, // bit of a hack because we update score when we draw the apple - so the first draw -> score of 0
     };
         
     function doKeyDown(event) {
@@ -150,12 +150,14 @@
           break;
       }
     }
+
     canvasElem.addEventListener( "keydown", doKeyDown, false);
     canvasElem.addEventListener( "mousedown", function(event) {game_on = !game_on;}, false);
     var interval_id;
+
     function game_over() {
-      canvas.fillStyle = "#00FF00";
-      canvas.fillText("Game Over", 180, 180);
+      canvas.fillStyle = "#000";
+      canvas.fillText("Game Over", 220, 220);
       clearInterval(interval_id);
     }
     
@@ -167,6 +169,12 @@
       }
     }
     
+    function draw_score() {
+      infoCanvas.clearRect(0, 0, CONSTS.info_canvas_width, CONSTS.info_canvas_height);
+      infoCanvas.fillStyle = "#000";
+      infoCanvas.fillText("Score: " + player.score, 40, 50);
+    }
+    
     function draw() {
       canvas.clearRect(0, 0, CONSTS.canvas_width, CONSTS.canvas_height);
       draw_walls();
@@ -174,19 +182,17 @@
       if (apple == null) {
         apple = new Apple();
         apple.generate();
+        player.score += 1;
+        /* we only redraw the score when an apple gets eaten */
+        draw_score();
       }
       apple.draw();
       player.draw();
     }
     var FPS = 30;
-    interval_id = setInterval(
-      function() {
-        if (game_on) {
-        //update();
-        draw();
-        }
-      },
-      1000/FPS);
+    canvas.fillStyle = "#000";
+    canvas.fillText("Click To Start", 220, 220);
+    interval_id = setInterval( function() { if (game_on) { draw(); } }, 1000/FPS);
     </script>
   </body>
 </html>
