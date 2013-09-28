@@ -14,7 +14,12 @@
     <script>
     /*
     collision detection is hard. so we're taking the easy (easier?) way out by
-    making sure our world is a series of squares
+    making sure our world is a series of squares. What this means is that we represent
+    our world using a single-dimension array but arrange things as such:
+      [ 0 | 1 | 2 | 3
+        4 | 5 | 6 | 7
+        8 | 9 | 10| 11]
+    and each component takes up exactly one square
     */
     
     var canvasElem = document.getElementById("gameCanvas");
@@ -22,6 +27,7 @@
     var infoCanvasElem = document.getElementById("infoCanvas");
     var infoCanvas = infoCanvasElem.getContext("2d");
     var game_on = false;
+    var apple, interval_id = null;
     
     var CONSTS = {
       canvas_height:      canvasElem.height,
@@ -39,7 +45,7 @@
       ut.direction = {left: 1, up: 2, right: 3, down: 4};
       ut.keys = {left: 37, up: 38, right: 39, down: 40};
       ut.collision_detected = function (g) {
-        // compute all the walls
+        // check we're not colliding with the walls
         for (w in walls) {
           if (g == walls[w]) { return true; }
         }
@@ -48,8 +54,11 @@
         }
         return false; 
       };
+      // convert actual width/height into grid units
       ut.grid_width = CONSTS.canvas_width/CONSTS.grid_square_width;
       ut.grid_height = CONSTS.canvas_height/CONSTS.grid_square_width;
+      ut.grid_length = ut.grid_width * ut.grid_height;
+      // convert a gird coordinate into an (x,y) coordinate
       ut.grid_coordinate_to_cartesian = function (g) {
         col = Math.floor(g/ut.grid_width);
         row = g % ut.grid_width;
@@ -58,18 +67,16 @@
       return ut;
     }());
     
-    var grid = new Array( Utils.grid_width * Utils.grid_height );
     var walls = new Array();
     // top wall
     for (var i = 0; i < Utils.grid_width; i++) { walls.push(i) };
-    // side walls top left and bottom right will be filled by top/bototm walls
+    // side walls top left and bottom right will be filled by top/bottom walls
     for (var i = 1; i < Utils.grid_height; i++) { walls.push(i*Utils.grid_width); walls.push(i*Utils.grid_width-1); };
     // bottom wall
-    for (var i = 0; i <= Utils.grid_width; i++) { walls.push(grid.length-i); };
-    
-    var apple = null;
+    for (var i = 0; i <= Utils.grid_width; i++) { walls.push(Utils.grid_length-i); };
     
     function Apple(I) {
+      // generate() should be part of some init function
       I = I || {};
       I.coord = 0;
       I.generate = function () {
@@ -88,6 +95,9 @@
     }
     
     var player = {
+      /* this is pretty rough. I originally split the tail and head up
+         as I was experimenting with things but this is probably no longer
+         necessary */
       color: "#00A",
       tail_grid_coordinates: [],
       tail_length: 20,
@@ -125,17 +135,19 @@
         }
       },
       draw: function() {
-      canvas.fillStyle = this.color;
-      for (t in this.tail_grid_coordinates) {
-        pt = Utils.grid_coordinate_to_cartesian(this.tail_grid_coordinates[t]);
+        // we draw the player in two steps - once using the tail and another using the head
+        canvas.fillStyle = this.color;
+        for (t in this.tail_grid_coordinates) {
+          pt = Utils.grid_coordinate_to_cartesian(this.tail_grid_coordinates[t]);
+          canvas.fillRect(pt.x, pt.y, CONSTS.grid_square_width, CONSTS.grid_square_width);
+        }
+        pt = Utils.grid_coordinate_to_cartesian(this.head_grid_coordinate);
         canvas.fillRect(pt.x, pt.y, CONSTS.grid_square_width, CONSTS.grid_square_width);
-      }
-      pt = Utils.grid_coordinate_to_cartesian(this.head_grid_coordinate);
-      canvas.fillRect(pt.x, pt.y, CONSTS.grid_square_width, CONSTS.grid_square_width);
       },
       score: -1, // bit of a hack because we update score when we draw the apple - so the first draw -> score of 0
     };
         
+    // the only keys we care about are left/right/up/down arrows
     function doKeyDown(event) {
       key = event.keyCode;
       switch (event.keyCode)
@@ -151,14 +163,14 @@
       }
     }
 
+    // event handlers
     canvasElem.addEventListener( "keydown", doKeyDown, false);
     canvasElem.addEventListener( "mousedown", function(event) {game_on = !game_on;}, false);
-    var interval_id;
 
     function game_over() {
       canvas.fillStyle = "#000";
       canvas.fillText("Game Over", 220, 220);
-      clearInterval(interval_id);
+      clearInterval(interval_id); // this stops the game loop
     }
     
     function draw_walls() {
@@ -170,20 +182,21 @@
     }
     
     function draw_score() {
+      // clear the info canvas
       infoCanvas.clearRect(0, 0, CONSTS.info_canvas_width, CONSTS.info_canvas_height);
       infoCanvas.fillStyle = "#000";
       infoCanvas.fillText("Score: " + player.score, 40, 50);
     }
     
-    function draw() {
+    function game_iteration() {
+      player.update();
       canvas.clearRect(0, 0, CONSTS.canvas_width, CONSTS.canvas_height);
       draw_walls();
-      player.update();
       if (apple == null) {
         apple = new Apple();
         apple.generate();
-        player.score += 1;
-        /* we only redraw the score when an apple gets eaten */
+        player.score += 1; // the apple was eaten! (yeah it's a bit of a hack)
+        // we only redraw the score when an apple gets eaten
         draw_score();
       }
       apple.draw();
@@ -192,7 +205,7 @@
     var FPS = 30;
     canvas.fillStyle = "#000";
     canvas.fillText("Click To Start", 220, 220);
-    interval_id = setInterval( function() { if (game_on) { draw(); } }, 1000/FPS);
+    interval_id = setInterval( function() { if (game_on) { game_iteration(); } }, 1000/FPS);
     </script>
   </body>
 </html>
