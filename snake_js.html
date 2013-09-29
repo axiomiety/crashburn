@@ -189,7 +189,6 @@
     }
     
     function game_iteration() {
-      player.update();
       canvas.clearRect(0, 0, CONSTS.canvas_width, CONSTS.canvas_height);
       draw_walls();
       if (apple == null) {
@@ -201,6 +200,7 @@
       }
       apple.draw();
       player.draw();
+      player.update(); // if this is at the top, we'll clear the 'game over' screen :-/
     }
     var FPS = 30;
     canvas.fillStyle = "#000";
