@@ -1,3 +1,6 @@
+# poll?
+# compress periodically?
+
 import  urllib.request
 import  json
 from    xml.etree       import ElementTree

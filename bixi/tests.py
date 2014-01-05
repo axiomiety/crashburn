@@ -1,6 +1,9 @@
 import  unittest
 import  listener
 
+class DistanceMatrixTest(unittest.TestCase):
+  pass
+
 class ParserTest(unittest.TestCase):
   
   @classmethod
