@@ -25,13 +25,14 @@ PFILE_BATCHLOADER     = 'batchloader.pickle'
 class DistanceMatrix(object):
 
   def __init__(self, loadDistanceMatrix=False):
-    self.locations = self.getLocations()
+    self.locations = DistanceMatrix.getLocations()
     if loadDistanceMatrix:
-      self.matrix = self.getDistanceMatrix()
+      self.matrix = DistanceMatrix.getDistanceMatrix()
     else:
       self.matrix = defaultdict(dict)
 
-  def getLocations(self, cached=True):
+  @staticmethod
+  def getLocations(cached=True):
     if cached and os.path.isfile(PFILE_LOCATIONS): # read from local pickle file
       with open(PFILE_LOCATIONS, 'rb') as f:
         locations = pickle.load(f)
@@ -44,26 +45,51 @@ class DistanceMatrix(object):
     
     return locations  
       
-  def getDistanceMatrix(self, cached=True):
-    if cached:
+  @staticmethod
+  def getDistanceMatrix(cached=True):
+    if cached and os.path.isfile(PFILE_DISTANCE_MATRIX):
       with open(PFILE_DISTANCE_MATRIX, 'rb') as f:
         return picke.load(f)
     else:
-      self.locationsMap = {loc.id: loc for loc in self.locations}
-      # unfortunately dist(A,B) is not necessarily the same as dist(B,A)
-      perms = list(permutations(self.locationsMap.keys(), 2))
-      # the free Distance Matrix only allows a certain number of requests per day
-      # we need to be able to batch those up so we can leave where we left off
-      status = dict()
-      ist = dict()
-      if os.path.isfile(PFILE_BATCHLOADER):
-        with open(PFILE_BATCHLOADER, 'wb') as f:
-          ist = pickle.load(f)  
-      
-      status['remaining_location_pairs'] = ist.get('remaining_location_pairs', perms)
-      
-      dm[a.id][b.id] = fetch(gen_url(a, b))
+      raise Exception('dynamic loading of the distance matrix is not supported')
+
+  @staticmethod
+  def _batchLoadDistanceMatrix(batchsize=100):
+    locations = DistanceMatrix.getLocations()
+    locationsMap = {loc.id: loc for loc in locations}
+    # unfortunately dist(A,B) is not necessarily the same as dist(B,A)
+    perms = list(permutations(locationsMap.keys(), 2))
+    # the free Distance Matrix only allows a certain number of requests per day
+    # we need to be able to batch those up so we can leave where we left off
+    status = dict()
+    ist = defaultdict(dict)
+    ist['distance_matrix'] = defaultdict(dict)
+    if os.path.isfile(PFILE_BATCHLOADER): # we started processing
+      with open(PFILE_BATCHLOADER, 'rb') as f:
+        ist = pickle.load(f)  
     
+    remaining_location_pairs = ist.get('remaining_location_pairs', perms)
+    logging.info('remaining location pairs prior: %s' % len(remaining_location_pairs))
+    while(batchsize):
+      (aid, bid) = remaining_location_pairs.pop()
+      a = locationsMap[aid]
+      b = locationsMap[bid]
+      ist['distance_matrix'][a.id][b.id] = DistanceMatrix.fetch(DistanceMatrix.gen_url(a, b))
+      batchsize = batchsize-1
+    logging.info('remaining location pairs after: %s' % len(remaining_location_pairs))
+
+    with open(PFILE_BATCHLOADER, 'wb') as f:
+      # update status & save progress
+      ist['remaining_location_pairs'] = remaining_location_pairs
+      pickle.dump(ist, f)
+
+    if not remaining_location_pairs: # we're done!
+      logging.info('finished building location matrix!')
+      with open(PFILE_DISTANCE_MATRIX) as f:
+        pickle.dump(ist['distance_matrix'], f)
+
+    return ist
+
   @staticmethod
   def fetch(url):
     '''
