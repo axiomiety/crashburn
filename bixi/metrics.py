@@ -54,7 +54,7 @@ class DistanceMatrix(object):
       raise Exception('dynamic loading of the distance matrix is not supported')
 
   @staticmethod
-  def _batchLoadDistanceMatrix(batchsize=100):
+  def _batchLoadDistanceMatrix(batchsize=100, dryrun=False):
     locations = DistanceMatrix.getLocations()
     locationsMap = {loc.id: loc for loc in locations}
     # unfortunately dist(A,B) is not necessarily the same as dist(B,A)
@@ -74,14 +74,22 @@ class DistanceMatrix(object):
       (aid, bid) = remaining_location_pairs.pop()
       a = locationsMap[aid]
       b = locationsMap[bid]
-      ist['distance_matrix'][a.id][b.id] = DistanceMatrix.fetch(DistanceMatrix.gen_url(a, b))
-      batchsize = batchsize-1
+      o = DistanceMatrix.fetch(DistanceMatrix.gen_url(a, b))
+      if o:
+        ist['distance_matrix'][a.id][b.id] = o
+        batchsize = batchsize-1
+      else:
+        logging.error('no data returned for %s and %b' % (a , b))
+        # we abort and push the pair back
+        remaining_location_pairs.add((aid, bid))
+        batchsize=False
     logging.info('remaining location pairs after: %s' % len(remaining_location_pairs))
 
-    with open(PFILE_BATCHLOADER, 'wb') as f:
-      # update status & save progress
-      ist['remaining_location_pairs'] = remaining_location_pairs
-      pickle.dump(ist, f)
+    if not dryrun:
+      with open(PFILE_BATCHLOADER, 'wb') as f:
+        # update status & save progress
+        ist['remaining_location_pairs'] = remaining_location_pairs
+        pickle.dump(ist, f)
 
     if not remaining_location_pairs: # we're done!
       logging.info('finished building location matrix!')
@@ -105,7 +113,7 @@ class DistanceMatrix(object):
         e = dr['rows'][0]['elements'][0]
         return e['duration']['value'] # time is what we're after
 
-    #TODO: log this as an error!
+    logging.error('status not OK: %s' % dr['status'])
     return None
 
   @staticmethod
