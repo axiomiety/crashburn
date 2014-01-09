@@ -26,10 +26,11 @@ class DistanceMatrix(object):
 
   def __init__(self, loadDistanceMatrix=False):
     self.locations = DistanceMatrix.getLocations()
-    if loadDistanceMatrix:
-      self.matrix = DistanceMatrix.getDistanceMatrix()
-    else:
-      self.matrix = defaultdict(dict)
+    self.matrix = DistanceMatrix.getDistanceMatrix()
+
+  def getDistance(self, locA, locB):
+    if locA.id in self.matrix and locB.id in self.matrix:
+      return self.matrix[locA.id][locB.id]
 
   @staticmethod
   def getLocations(cached=True):
@@ -79,9 +80,9 @@ class DistanceMatrix(object):
         ist['distance_matrix'][a.id][b.id] = o
         batchsize = batchsize-1
       else:
-        logging.error('no data returned for %s and %b' % (a , b))
+        logging.error('no data returned for %s and %s' % (a , b))
         # we abort and push the pair back
-        remaining_location_pairs.add((aid, bid))
+        remaining_location_pairs.append((aid, bid))
         batchsize=False
     logging.info('remaining location pairs after: %s' % len(remaining_location_pairs))
 
