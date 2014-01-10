@@ -1,8 +1,42 @@
 import  unittest
 import  listener
+import  metrics
+from    mock      import Mock, patch
 
 class DistanceMatrixTest(unittest.TestCase):
-  pass
+ 
+  locations = [metrics.Location(id=1,name='north pole',lat=0.1,long=-1.1),
+               metrics.Location(id=2,name='east pole',lat=9.1,long=-7.7),
+               metrics.Location(id=3,name='south pole',lat=9.1,long=-2.3)]
+
+  @patch('builtins.open')
+  @patch('os.path.isfile')
+  @patch('metrics.DistanceMatrix.getLocations')
+  @patch('metrics.DistanceMatrix.fetch')
+  @patch('metrics.DistanceMatrix.gen_url')
+  def test_batchLoadDistanceMatrix(self, gen_url, fetch, getLocations, os_path_isfile, builtins_open):
+    
+    # bit messy, but it allows us to mock quite a few unpickling/file reading bit
+    from io import BytesIO
+    import pickle
+    b = BytesIO()
+    o = {'remaining_location_pairs': [(2,3)], 'distance_matrix': {1: {2: 555}}}
+    builtins_open.return_value      = b
+    builtins_open.__exit__          = Mock(return_value=True)
+    pickle.dump(o, b)
+    b.seek(0)
+    os_path_isfile.return_value     = True
+
+    fetch.return_value              = None
+    gen_url.return_value            = ''
+    getLocations.return_value       = self.locations
+
+    #TODO: would be nice to be able to run with dryrun=False but
+    # it causes issues as it's reading from a closed file
+    # maybe there's a better way to do this
+    dm = metrics.DistanceMatrix._batchLoadDistanceMatrix(dryrun=True)
+    gen_url.assert_called_with(self.locations[1], self.locations[2])
+    self.assertEqual(dm, o)
 
 class ParserTest(unittest.TestCase):
   
