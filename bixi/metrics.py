@@ -50,7 +50,7 @@ class DistanceMatrix(object):
   def getDistanceMatrix(cached=True):
     if cached and os.path.isfile(PFILE_DISTANCE_MATRIX):
       with open(PFILE_DISTANCE_MATRIX, 'rb') as f:
-        return picke.load(f)
+        return pickle.load(f)
     else:
       raise Exception('dynamic loading of the distance matrix is not supported')
 
@@ -71,7 +71,7 @@ class DistanceMatrix(object):
     
     remaining_location_pairs = ist.get('remaining_location_pairs', perms)
     logging.info('remaining location pairs prior: %s' % len(remaining_location_pairs))
-    while(batchsize):
+    while(batchsize and remaining_location_pairs):
       (aid, bid) = remaining_location_pairs.pop()
       a = locationsMap[aid]
       b = locationsMap[bid]
@@ -94,7 +94,7 @@ class DistanceMatrix(object):
 
     if not remaining_location_pairs: # we're done!
       logging.info('finished building location matrix!')
-      with open(PFILE_DISTANCE_MATRIX) as f:
+      with open(PFILE_DISTANCE_MATRIX, 'wb') as f:
         pickle.dump(ist['distance_matrix'], f)
 
     return ist
