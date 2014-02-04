@@ -48,7 +48,7 @@ def is_prime(n):
       return True
 
 def next_prime(p):
-  # p is prime, and p > 2 => all p's will be odd
+  # assumes p is prime, and p > 2 => all p's will be odd
   candidate = p + 2
   while not is_prime(candidate):
     candidate += 2
@@ -61,7 +61,30 @@ def get_nth_prime(n):
       last_known_prime = PRIMES[-1]
       PRIMES.append(next_prime(last_known_prime))
   return PRIMES[n-1] # 0-based index
-        
+
+def get_rand_relative_prime(p):
+  from fractions import gcd # why re-invent the wheel? says the guy re-implementing a version of RSA
+  from random import randint
+  while True:
+    candidate = randint(3, p-1) # start from 3
+    if gcd(p, candidate) == 1:
+      return candidate
+
+# https://en.wikibooks.org/wiki/Algorithm_Implementation/Mathematics/Extended_Euclidean_algorithm
+def egcd(a, b):
+  x,y, u,v = 0,1, 1,0
+  while a != 0:
+      q, r = b//a, b%a
+      m, n = x-u*q, y-v*q
+      b,a, x,y, u,v = a,r, u,v, m,n
+  return b, x, y
+
+def modinv(a, m):
+  g, x, y = egcd(a, m)
+  if g != 1:
+      return None  # modular inverse does not exist
+  else:
+      return x % m
 
 class RSA(object):
   '''an over-simplified RSA look-alike'''
@@ -73,11 +96,16 @@ class RSA(object):
   RANDINT_MAX = 100
 
   @staticmethod
-
-  @staticmethod
-  def gen_pair():
+  def gen_pair(p=None, q=None):
     from random import randint
-    (n1, n2) = randint(RANDINT_MIN, RANDINT_MAX), randint(RANDINT_MIN, RANDINT_MAX)
+    n1, n2 = randint(RSA.RANDINT_MIN, RSA.RANDINT_MAX), randint(RSA.RANDINT_MIN, RSA.RANDINT_MAX)
+    p, q = p or get_nth_prime(n1), q or get_nth_prime(n2)
+    n = p*q
+    phi = (p-1)*(q-1)
+    # we now need a number e < phi such that gcd(phi, e) = 1
+    e = get_rand_relative_prime(phi)
+    d = modinv(e, phi)
+    return [(e,n), (d,n)]
 
 class TestUtils(unittest.TestCase):
   
@@ -97,6 +125,14 @@ class TestUtils(unittest.TestCase):
     p = get_nth_prime(12345)
     self.assertEqual( p, 132241 )
     self.assertEqual( len(PRIMES), 12345 )
+
+  def test_get_rand_relative_prime(self):
+    p = 20
+    prime_factors = [2, 5]
+    num_rounds = 10
+    while num_rounds:
+      self.assertFalse( get_rand_relative_prime(p) in prime_factors )
+      num_rounds -= 1
 
 if __name__ == '__main__':
   unittest.main()
