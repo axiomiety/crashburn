@@ -91,21 +91,43 @@ class RSA(object):
 
   # sources:
   # http://content.hccfl.edu/pollock/AUnixSec/PublicKeyDemo.htm
-
-  RANDINT_MIN = 10
-  RANDINT_MAX = 100
+  # http://courses.engr.illinois.edu/ece390/archive/mp/f98/mp2/mp2.html
+  
+  # 1st prime is 2, 31st is 127. 127*2 < 2**8-1
+  RANDINT_MIN = 1
+  RANDINT_MAX = 31
 
   @staticmethod
-  def gen_pair(p=None, q=None):
+  def gen_pair(p=None, q=None, e=None, bits=8):
     from random import randint
-    n1, n2 = randint(RSA.RANDINT_MIN, RSA.RANDINT_MAX), randint(RSA.RANDINT_MIN, RSA.RANDINT_MAX)
-    p, q = p or get_nth_prime(n1), q or get_nth_prime(n2)
-    n = p*q
+    n = 2**bits
+    if p == q == e == None:
+      while int.bit_length(n) != bits:
+        n1, n2 = randint(RSA.RANDINT_MIN, RSA.RANDINT_MAX), randint(RSA.RANDINT_MIN, RSA.RANDINT_MAX)
+        p, q = get_nth_prime(n1), get_nth_prime(n2)
+        n = p*q
     phi = (p-1)*(q-1)
     # we now need a number e < phi such that gcd(phi, e) = 1
-    e = get_rand_relative_prime(phi)
+    e = e or get_rand_relative_prime(phi)
     d = modinv(e, phi)
     return [(e,n), (d,n)]
+  
+  @staticmethod
+  def apply(k, n, msg, showHex=True):
+    '''this only works if n is exactly 8bit long'''
+    m = bytes(msg, 'ascii')
+    import binascii
+    m_as_bytes = binascii.hexlify(m)
+    if showHex:
+      print(m_as_bytes)
+    ap = []
+    for b in m_as_bytes:
+      # TODO: this is not efficient for large k - there are better ways to do this!
+      ap.append( (b**k) % n )
+    r = bytes(ap)
+    if showHex:
+      print(r)
+    return r
 
 class TestUtils(unittest.TestCase):
   
