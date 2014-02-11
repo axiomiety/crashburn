@@ -90,18 +90,24 @@ class ThreadedTCPRequestHandler(socketserver.BaseRequestHandler):
   def handle(self):
     if not ThreadedTCPRequestHandler.init:
       self._handshake()
-    data = self.request.recv(4)
-    (ver, cmd, rsv, atyp) = struct.unpack('!BBBB', data)
-    print('SOCKS => ver=%s; cmd=%s; rsv=%s; atyp=%s' % (ver, CMD[cmd], rsv, ATYP[atyp]))
-    addr, port = self.getAddrPortPair(atyp)
-    print('addr=%s;port=%s' % (addr, port))
+      (ver, cmd, rsv, atyp) = struct.unpack('!BBBB', self.request.recv(4))
+      print('SOCKS => ver=%s; cmd=%s; rsv=%s; atyp=%s' % (ver, CMD[cmd], rsv, ATYP[atyp]))
+      addr, port = self.getAddrPortPair(atyp)
+      print('addr=%s;port=%s' % (addr, port))
+      # create socket to destn
+      response=b'\x05\x00\x00\x03\x01\x81\xa8\x00\x01\x00\x00'
+      self.request.sendall(response)
+    d = self.request.recv(100)
+    print(d)
 
 class ThreadedTCPServer(socketserver.ThreadingMixIn, socketserver.TCPServer):
   pass
 
-def main():
-  HOST, PORT = 'localhost', 8123
+def main(port):
+  port = port or 8123
+  HOST, PORT = 'localhost', port
 
+  socketserver.TCPServer.allow_reuse_address = True
   server = ThreadedTCPServer((HOST, PORT), ThreadedTCPRequestHandler)
   ip, port = server.server_address
 
@@ -115,7 +121,8 @@ def main():
   #server.shutdown()
   
 if __name__ == '__main__':
-  main()
+  import sys
+  main(int(sys.argv[1]))
 
 ########
 # testing via curl:
