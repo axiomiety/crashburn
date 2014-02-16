@@ -58,6 +58,7 @@ import socket
 import threading
 import socketserver
 import struct
+import select
 
 class ThreadedTCPRequestHandler(socketserver.BaseRequestHandler):
   allow_reuse_address = True
@@ -97,8 +98,31 @@ class ThreadedTCPRequestHandler(socketserver.BaseRequestHandler):
       # create socket to destn
       response=b'\x05\x00\x00\x03\x01\x81\xa8\x00\x01\x00\x00'
       self.request.sendall(response)
-    d = self.request.recv(100)
-    print(d)
+
+    self._bridge(addr, port)
+
+  def _bridge(self, addr, port):
+    
+    remote = socket.create_connection((addr, port))
+    try:
+      fdset = [self.request, remote]
+      while True:
+        print('_bridge loop')
+        r, w, e = select.select(fdset, [], [])
+        if self.request in r:
+          data = self.request.recv(4096)
+          if len(data) <= 0:
+            break
+          remote.sendall(data)
+        if remote in r:
+          data = remote.recv(4096)
+          if len(data) <= 0:
+            break
+          self.request.sendall(data)
+    finally:
+      print(' +++ closing')
+      remote.close()
+      self.request.close()
 
 class ThreadedTCPServer(socketserver.ThreadingMixIn, socketserver.TCPServer):
   pass
