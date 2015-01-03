@@ -7,11 +7,12 @@ PREREQUISITES:
   python3-crypto
 '''
 import  binascii
+import  base64
 import  random
 import  unittest
 from    collections import  Counter
 
-def is_using_ECB(raw, blocksize):
+def is_using_ECB(raw, blocksize=16):
   indexes = range(0,len(raw), blocksize)
   d = []
   for (start,end) in zip(indexes, indexes[1:]):
@@ -31,37 +32,33 @@ def generate_random_key(length=3):
 def generate_random_AES_key():
   return generate_random_key(length=16) # well, can be 16, 24, 32
 
+def cycle_key(key):
+  idx = 0
+  while True:
+    yield ord(key[idx%len(key)])
+    idx += 1
+
 def b64_file_to_bytes(filename):
 
   with open(filename, 'rU') as f:
     lines = f.readlines()
 
-  data = ''.join([l.strip() for l in lines])
-  return bytes(binascii.a2b_base64(data.encode('ascii')))
+  # decodestring only works on byte strings - which we get by calling str.encode
+  return base64.decodestring(''.join(l.strip() for l in lines).encode())
 
-def pad2(b, blocksize=16):
+def pad(b, blocksize=16):
   ''' a PKCS#7 padding implementation '''
   pad_length = blocksize
   if len(b) % blocksize:
     pad_length = blocksize - (len(b) % blocksize)
-  
+    
   return b + bytes((pad_length,))*pad_length
 
-def unpad2(b):
+def unpad(b, blocksize=16):
+  assert(len(b) % blocksize == 0)
   pad_length = b[-1]
+  assert(b[-pad_length:] == bytes((pad_length,))*pad_length)
   return b[:-pad_length]
-
-def pad(b, length):
-  assert(isinstance(b, bytes))
-  assert(len(b) <= length)
-
-  pad_length = length - len(b)
-  assert(pad_length < 256) # as we're padding with bytes
-  if pad_length:
-    padding = bytes((pad_length,))*pad_length
-    return b + padding
-  else:
-    return b
 
 def fill_key(k, txt):
   p = len(txt)//len(k)
@@ -106,11 +103,52 @@ def get_blocks(data, size=16):
 
   return blocks
 
+def xor_bytearrays(x,y):
+  return bytes([a^b for (a,b) in zip(x,y)])
+
 def xor_encrypt(k, txt, pad=True):
   assert( isinstance(k, bytes) )
   assert( isinstance(txt, bytes) )
   kk = fill_key(k, txt) if pad else k
   return bytes([a^b for (a,b) in zip(kk, txt)])
+
+def aes_crypt_ctr(k, txt, counter_cb):
+  # increments the counter for each 16 bytes
+  # counter_cb returns a 16 bytes array
+  assert( isinstance(k, bytes) )
+  assert( isinstance(txt, bytes) )
+  from Crypto.Cipher import AES
+  mode = AES.MODE_ECB
+  cr = AES.new(k, mode)
+  p = bytearray()
+  for block in get_blocks(txt):
+    c = cr.encrypt(counter_cb())
+    enc = xor_encrypt(c, block)
+    p.extend(enc)
+  return bytes(p)
+
+MODE_DECRYPT = 0
+MODE_ENCRYPT = 1
+
+def aes_manual_cbc(k, txt, iv, mode=MODE_DECRYPT):
+  assert( isinstance(k, bytes) )
+  assert( isinstance(txt, bytes) )
+  assert( isinstance(iv, bytes) )
+  assert( len(iv) == 16 )
+  
+  from Crypto.Cipher import AES
+  cr = AES.new(k, AES.MODE_ECB)
+  prev_block = iv
+  d = bytearray()
+  for block in get_blocks(txt, size=16):
+    if mode == MODE_ENCRYPT:
+      prev_block = cr.encrypt(xor_bytearrays(prev_block, block))
+      d.extend(prev_block)
+    else:
+      d.extend(xor_bytearrays(cr.decrypt(block), prev_block))
+      prev_block = block
+
+  return unpad(d)
 
 def aes_encrypt_cbc(k, txt, iv):
   assert( isinstance(k, bytes) )
@@ -126,13 +164,12 @@ def aes_encrypt_cbc(k, txt, iv):
   cr = AES.new(k, mode)
 
   prev_block = iv
-  blocks = get_blocks(txt, size=16)
-  enc = bytearray()
-  for block in blocks:
-    prev_block = cr.encrypt(xor_encrypt(prev_block, block, pad=False))
-    enc.extend(prev_block)
+  d = bytearray()
+  for block in get_blocks(txt, size=16):
+    prev_block = cr.encrypt(xor_bytearrays(prev_block, block))
+    d.extend(prev_block)
 
-  return bytes(enc)
+  return unpad(bytes(enc))
 
 def aes_decrypt_cbc(k, txt, iv):
   assert( isinstance(k, bytes) )
@@ -145,14 +182,13 @@ def aes_decrypt_cbc(k, txt, iv):
   cr = AES.new(k, mode)
 
   prev_block = iv
-  blocks = get_blocks(txt, size=16)
   dec = bytearray()
-  for block in blocks:
-    dec.extend(xor_encrypt(cr.decrypt(block), prev_block, pad=False))
+  for block in get_blocks(txt, size=16):
+    dec.extend(xor_bytearrays(cr.decrypt(block), prev_block))
     #prev_block = block
     prev_block = block
 
-  return bytes(dec)
+  return unpad(dec)
 
 class AESTest(unittest.TestCase):
 
@@ -179,15 +215,9 @@ class HelpersTest(unittest.TestCase):
     cls.b1 = bytes('ice ice baby', 'ascii')
 
   def test_pad(self):
-    #self.assertRaises(AssertionError, pad('abc',3))
-    #self.assertRaises(AssertionError, pad('abc',2))
-    self.assertEqual( self.b1, pad(self.b1, len(self.b1)) )
     self.assertEqual( self.b1 + bytes((1,)), pad(self.b1, len(self.b1)+1) )
     self.assertEqual( bytes('ice ice baby\x02\x02', 'ascii'), pad(self.b1, len(self.b1)+2) )
-
-  def test_pad2(self):
-    self.assertEqual( bytes('ice ice baby\x02\x02', 'ascii'), pad2(self.b1, len(self.b1)+2) )
-    self.assertEqual( self.b1, unpad2(pad2(self.b1)))
+    self.assertEqual( self.b1, unpad(pad(self.b1)))
 
   def test_fill_key(self):
     self.assertEqual( b'ice', fill_key(b'ice', b'ice') )
