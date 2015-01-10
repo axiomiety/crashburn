@@ -18,19 +18,10 @@ def is_using_ECB(raw, blocksize=16):
   for (start,end) in zip(indexes, indexes[1:]):
     d.append( raw[start:end] )
   cn = Counter(d)
-  if cn.most_common()[0][1] > 1:
-    return True
-  else:
-    return False
+  return cn.most_common()[0][1] > 1
 
-def generate_random_key(length=3):
-  bar = bytearray()
-  for i in range(length):
-    bar.append( random.randint(0,255) )
-  return bytes(bar)
-
-def generate_random_AES_key():
-  return generate_random_key(length=16) # well, can be 16, 24, 32
+def rand_bytes(length=16):
+  return bytes(random.randint(0,255) for _ in range(length))
 
 def cycle_key(key):
   idx = 0
