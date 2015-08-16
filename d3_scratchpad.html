@@ -25,9 +25,10 @@ path {
 <script src="http://d3js.org/d3.v3.min.js"></script>
 
 Foo
+<button onclick="refresh()">Refresh</button>
 <div id='random_walk' align="center"></div>
 Bar
-<div id='random_walk_barchar' alight='center'></div>
+<div id='random_walk_barchart' alight='center'></div>
 Spam
 
 <script type="text/javascript">
@@ -66,58 +67,100 @@ var UTILS = {
   },
 }
 
-var ticks = UTILS.generateTicks();
-var csum = UTILS.cumulativeSum(ticks); //
-var points = UTILS.getPoints(csum); // [{x0,y0}, {x1,y1}, ...]
+function getRandomData() {
+  var ticks = UTILS.generateTicks(); // [-1, 1, 1, -1, 1, ...]
+  var csum = UTILS.cumulativeSum(ticks); // [-1, 0 , 1, 0, ...]
+  var points = UTILS.getPoints(csum); // [{x0,y0}, {x1,y1}, ...]
+  return {ticks: ticks, cumulative_sum: csum, points: points};
+}
 
-var margin = {top: 50, right: 50, bottom: 50, left: 50};
-var width = 800 - margin.left - margin.right;
-var height = 500 - margin.top - margin.bottom;
+function displayBarChart(ticks) {
+  var margin = {top: 10, right: 10, bottom: 10, left: 10};
+  var width = 800 - margin.left - margin.right;
+  var height = 100 - margin.top - margin.bottom;
+  var barSpacing = 1;
+  
+  d3.select('#random_walk_barchart').select('svg').remove(); // remove the previous svg container if there is one
+  var svgContainer = d3.select('#random_walk_barchart').append('svg')
+    .attr('width', width + margin.left + margin.right)
+    .attr('height', height + margin.top + margin.bottom)
+    .append('g')
+    .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+    
+  svgContainer.selectAll('rect') // not sure why we need the selectAll there...
+    .data(ticks)
+    .enter() // will cause the below to be called for each entry in data
+    .append('rect')
+    .attr('x', function(d, i) { return i * (width / ticks.length); }) // includes the padding!
+    .attr('y', function(d) {return (d > 0) ? 0 : 40;})
+    .attr('width', width / ticks.length - barSpacing)
+    .attr('height', 40)
+    .attr("fill", function(d) { return "rgb(0, 0, " + ((d > 0) ? 100 : 200) + ")"; });
+    ;
+}
 
-var xScale = d3.scale.linear()
-  .domain([0, csum.length])
-  .range([0,width]);
+function displayRandomWalk(csum, points) {
+  var margin = {top: 50, right: 50, bottom: 50, left: 50};
+  var width = 800 - margin.left - margin.right;
+  var height = 500 - margin.top - margin.bottom;
 
-var yScale = d3.scale.linear()
-  .domain([Math.min.apply(Math, csum), Math.max.apply(Math, csum)])
-  .range([height,0]); // we use an inverted range so positive numbers are above negative ones
-
-
-
-var xAxis = d3.svg.axis().scale(xScale)
-            .orient("bottom") // that's the orientation of the ticks themselves!
-      .ticks(5);
-var yAxis = d3.svg.axis().scale(yScale)
-            .orient("left").ticks(5);
-
-var lineFunc = d3.svg.line()
+  var lineFunc = d3.svg.line()
                 .x( function(d) { return xScale(d.x); } )
                 .y( function(d) { return yScale(d.y); } )
-                .interpolate("linear");
+                .interpolate('linear');
+  
+  // scales for each axis
+  var xScale = d3.scale.linear()
+    .domain([0, csum.length])
+    .range([0,width]);
+    
+  var yScale = d3.scale.linear()
+    .domain([Math.min.apply(Math, csum), Math.max.apply(Math, csum)])
+    .range([height,0]); // we use an inverted range so positive numbers are above negative ones
 
-var svgContainer = d3.select('#random_walk').append('svg')
-  .attr('width', width + margin.left + margin.right)
-  .attr('height', height + margin.top + margin.bottom)
-  .append('g')
+  // axis
+  var xAxis = d3.svg.axis().scale(xScale)
+        .orient("bottom") // that's the orientation of the ticks themselves!
+        .ticks(5);
+  var yAxis = d3.svg.axis().scale(yScale)
+        .orient("left")
+        .ticks(5);
+  
+  // create the svg element inside the random_walk div
+  d3.select('#random_walk').select('svg').remove(); // remove the previous svg container if there is one
+  var svgContainer = d3.select('#random_walk').append('svg')
+    .attr('width', width + margin.left + margin.right)
+    .attr('height', height + margin.top + margin.bottom)
+    .append('g')
     .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
 
-svgContainer.append('path')
-  .attr('d', lineFunc(points))
-  .attr('stroke', 'blue')
-  .attr('stroke-width', 2)
-  .attr('fill', 'none')
-  .on("mouseover", function(d, i) { return alert("value: " + d.y);})
-  ;
+  // add the line
+  svgContainer.append('path')
+    .attr('d', lineFunc(points))
+    .attr('stroke', 'blue')
+    .attr('stroke-width', 2)
+    .attr('fill', 'none')
+    ;
+    
+  // add the axis
+  svgContainer.append('g')
+    .attr('class','x axis')
+    .attr("transform", "translate(0," + yScale(0) + ")") // so it's in line with the 0 on the y axis - TODO need to fix the margin though
+    .call(xAxis);
 
+  svgContainer.append('g')
+    .attr('class','y axis')
+    .call(yAxis);
+}
 
-svgContainer.append('g')
-  .attr('class','x axis')
-  .attr("transform", "translate(0," + yScale(0) + ")") // so it's in line with the 0 on the y axis - need to fix the margin though
-  .call(xAxis);
+function refresh() {
+  data = getRandomData();
+  
+  displayRandomWalk(data.cumulative_sum, data.points);
+  displayBarChart(data.ticks);
+}
 
-svgContainer.append('g')
-  .attr('class','y axis')
-  .call(yAxis);
+refresh(); // could be an onLoaded or something
 
 </script>
 </body>
