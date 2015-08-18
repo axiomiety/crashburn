@@ -1,4 +1,7 @@
 <html>
+<!-- some references:
+http://alignedleft.com/tutorials/d3/making-a-bar-chart
+--!>
 <meta charset="utf-8">
 <style> /* set the CSS */
 
@@ -18,29 +21,40 @@ path {
     shape-rendering: crispEdges;
 }
 
+.bar rect {
+  fill: steelblue;
+  shape-rendering: crispEdges;
+}
+.bar text {
+  fill: #fff;
+}
+
 </style>
 <body>
 <!-- <div id="visualisation"></div> -->
 <!-- load the d3.js library -->
-<script src="http://d3js.org/d3.v3.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.5/d3.min.js"></script>
 
 Foo
 <button onclick="refresh()">Refresh</button>
 <div id='random_walk' align="center"></div>
 Bar
-<div id='random_walk_barchart' alight='center'></div>
+<div id='random_walk_barchart' align='center'></div>
 Spam
+<div id='random_walk_histogram' align='center'></div>
+Eggs
+<div id='random_walk_multi' align='center'></div>
 
 <script type="text/javascript">
 
 var UTILS = {
   generateTicks: function(num_ticks, up_prob) {
     /* EMEAScript 2015 supports default parameters! */
-    if (num_ticks === undefined) {num_ticks = 100;}
+    if (num_ticks === undefined) {num_ticks = 50;}
     if (up_prob === undefined) {up_prob = 0.5;}
 
     var ticks = [];
-    for (i = 0; i < num_ticks; i++) {
+    for (var i = 0; i < num_ticks; i++) {
       ticks.push( (Math.random() < up_prob) ? 1 : -1);
     };
     return ticks;
@@ -51,7 +65,7 @@ var UTILS = {
     /* not sure if reduce would make more sense */
     if (arr.length) {
       csum.push(arr[0]);
-      for (i = 1; i < arr.length; i++) {
+      for (var i = 1; i < arr.length; i++) {
         csum.push(csum[i-1] + arr[i]);
       }
     }
@@ -60,18 +74,66 @@ var UTILS = {
 
   getPoints: function(arr) {
     var ret = [];
-    for (i = 0; i < arr.length; i++) {
+    for (var i = 0; i < arr.length; i++) {
       ret.push({x:i, y:arr[i]});
     }
     return ret;
   },
 }
 
-function getRandomData() {
-  var ticks = UTILS.generateTicks(); // [-1, 1, 1, -1, 1, ...]
+function getRandomData(num_ticks) {
+  if (num_ticks === undefined) {num_ticks = 50;}
+  var ticks = UTILS.generateTicks(num_ticks); // [-1, 1, 1, -1, 1, ...]
   var csum = UTILS.cumulativeSum(ticks); // [-1, 0 , 1, 0, ...]
   var points = UTILS.getPoints(csum); // [{x0,y0}, {x1,y1}, ...]
   return {ticks: ticks, cumulative_sum: csum, points: points};
+}
+
+function displayHistogram(csum) {
+  var margin = {top: 10, right: 20, bottom: 20, left: 20};
+  var width = 500 - margin.left - margin.right;
+  var height = 500 - margin.top - margin.bottom;
+  
+  d3.select('#random_walk_histogram').select('svg').remove(); // remove the previous svg container if there is one
+  var svgContainer = d3.select('#random_walk_histogram').append('svg')
+    .attr('width', width + margin.left + margin.right)
+    .attr('height', height + margin.top + margin.bottom)
+    .append('g')
+    .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+    
+  var xScale = d3.scale.linear()
+    .domain([Math.min.apply(Math, csum), Math.max.apply(Math, csum)])
+    .range([0, width]);
+  
+  var data = d3.layout.histogram()
+        .bins(xScale.ticks(2)) //40 uniformly distributed bins
+        (csum);
+  
+  var yScale = d3.scale.linear()
+    .domain([0, d3.max(data, function(d) { return d.y; })])
+    .range([height, 0]); // inverted, so it goes up instead of down
+  
+  var xAxis = d3.svg.axis()
+    .scale(xScale)
+    .orient("bottom");
+    
+  var bar = svgContainer.selectAll(".bar")
+    .data(data)
+    .enter().append("g")
+    .attr("class", "bar")
+    .attr("transform", function(d) { return "translate(" + xScale(d.x) + "," + yScale(d.y) + ")"; });
+  
+  
+  bar.append("rect")
+    .attr("x", 1)
+    .attr("width", xScale(data[0].dx) - 1)
+    .attr("height", function(d) { return height - yScale(d.y); });
+    
+  // add the x-axis
+  svgContainer.append("g")
+    .attr("class", "x axis")
+    .attr("transform", "translate(0," + height + ")")
+    .call(xAxis);
 }
 
 function displayBarChart(ticks) {
@@ -87,7 +149,7 @@ function displayBarChart(ticks) {
     .append('g')
     .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
     
-  svgContainer.selectAll('rect') // not sure why we need the selectAll there...
+  svgContainer.selectAll('.rect') // not sure why we need the selectAll there...
     .data(ticks)
     .enter() // will cause the below to be called for each entry in data
     .append('rect')
@@ -153,11 +215,69 @@ function displayRandomWalk(csum, points) {
     .call(yAxis);
 }
 
+function displayMultipleRandomWalks(data) {
+  /*  data is essentially an MxN matrix with M paths of length N */
+  var margin = {top: 50, right: 50, bottom: 50, left: 50};
+  var width = 800 - margin.left - margin.right;
+  var height = 500 - margin.top - margin.bottom;
+
+  var lineFunc = d3.svg.line()
+                .x( function(d, i) { return xScale(i); } )
+                .y( function(d) { return yScale(d); } )
+                .interpolate('linear');
+  
+  // scales for each axis
+  var xScale = d3.scale.linear()
+    .domain([0, data[0].length])
+    .range([0,width]);
+  
+  // in order to get our y scale right, we need to get the overall min/max values
+  var data_min = [];
+  var data_max = [];
+  for (var i = 0; i < data.length; i++) {
+    var row = data[i];
+    data_min.push( Math.min.apply(Math, row) );
+    data_max.push( Math.max.apply(Math, row) );
+  }
+  
+  var yScale = d3.scale.linear()
+    .domain([Math.min.apply(Math, data_min), Math.max.apply(Math, data_max)])
+    .range([height,0]); // we use an inverted range so positive numbers are above negative ones
+
+  // axis
+  var xAxis = d3.svg.axis().scale(xScale)
+        .orient("bottom") // that's the orientation of the ticks themselves!
+        .ticks(5);
+  var yAxis = d3.svg.axis().scale(yScale)
+        .orient("left")
+        .ticks(5);
+  
+  var svgContainer = d3.select('#random_walk_multi').append('svg')
+    .attr('width', width + margin.left + margin.right)
+    .attr('height', height + margin.top + margin.bottom)
+    .append('g')
+    .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+  
+  svgContainer.selectAll(".line")
+    .data(data)
+    .enter().append("path")
+    .attr("class", "line")
+    .attr("d", lineFunc);
+}
+
 function refresh() {
   data = getRandomData();
   
   displayRandomWalk(data.cumulative_sum, data.points);
   displayBarChart(data.ticks);
+  //displayHistogram(data.ticks);
+  blah = [];
+  for (var i = 0; i < 100; i++) {
+    var d = getRandomData(300);
+    blah.push( d.cumulative_sum );
+  }
+  alert(blah[0].length);
+  displayMultipleRandomWalks(blah);
 }
 
 refresh(); // could be an onLoaded or something
