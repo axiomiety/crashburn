@@ -89,7 +89,7 @@ function getRandomData(num_ticks) {
   return {ticks: ticks, cumulative_sum: csum, points: points};
 }
 
-function displayHistogram(csum) {
+function displayHistogram(values) {
   var margin = {top: 10, right: 20, bottom: 20, left: 20};
   var width = 500 - margin.left - margin.right;
   var height = 500 - margin.top - margin.bottom;
@@ -101,13 +101,19 @@ function displayHistogram(csum) {
     .append('g')
     .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
     
+  num_bins = 30;
+  
   var xScale = d3.scale.linear()
-    .domain([Math.min.apply(Math, csum), Math.max.apply(Math, csum)])
+    .domain([
+      //Math.min.apply(Math, values), Math.max.apply(Math, values)])
+      Math.floor(d3.min(values) / num_bins) * num_bins,
+      Math.ceil(d3.max(values) / num_bins) * num_bins
+    ])
     .range([0, width]);
   
   var data = d3.layout.histogram()
-        .bins(xScale.ticks(2)) //40 uniformly distributed bins
-        (csum);
+        .bins(xScale.ticks(num_bins)) //40 uniformly distributed bins
+        (values);
   
   var yScale = d3.scale.linear()
     .domain([0, d3.max(data, function(d) { return d.y; })])
@@ -126,7 +132,7 @@ function displayHistogram(csum) {
   
   bar.append("rect")
     .attr("x", 1)
-    .attr("width", xScale(data[0].dx) - 1)
+    .attr("width", Math.round(width/num_bins)-1)
     .attr("height", function(d) { return height - yScale(d.y); });
     
   // add the x-axis
@@ -265,19 +271,33 @@ function displayMultipleRandomWalks(data) {
     .attr("d", lineFunc);
 }
 
+function generateMultiplePaths(num_paths, num_ticks) {
+  data = [];
+  for (var i = 0; i < num_paths; i++) {
+    var d = getRandomData(num_ticks);
+    data.push( d.cumulative_sum );
+  }
+  return data;
+}
+
 function refresh() {
   data = getRandomData();
   
   displayRandomWalk(data.cumulative_sum, data.points);
   displayBarChart(data.ticks);
-  //displayHistogram(data.ticks);
-  blah = [];
-  for (var i = 0; i < 100; i++) {
-    var d = getRandomData(300);
-    blah.push( d.cumulative_sum );
-  }
-  alert(blah[0].length);
+  
+  var num_ticks = 250;
+  blah = generateMultiplePaths(200,num_ticks);
+  //alert(blah[0].length);
   displayMultipleRandomWalks(blah);
+  
+  var foo = [];
+  
+  for (var i = 0; i < blah.length; i++) {
+    foo.push( blah[i][num_ticks-1] );
+  }
+  
+  displayHistogram(foo);
 }
 
 refresh(); // could be an onLoaded or something
