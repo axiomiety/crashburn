@@ -181,6 +181,70 @@ def aes_decrypt_cbc(k, txt, iv):
 
   return unpad(dec)
 
+def aes_ctr(k, txt):
+  counter = 0
+  def fn():
+    import struct
+    nonlocal counter
+    ret = struct.pack('<QQ', 0, counter) # 2x64b -> 128b
+    counter += 1
+    return ret
+
+  from Crypto.Cipher import AES
+  cr = AES.new(k, AES.MODE_ECB)
+
+  r = bytearray()
+  for i in range(len(txt)//16+1):
+    block = txt[i*16:(i+1)*16]
+    r.extend( xor_bytearrays(cr.encrypt(fn()), block) )
+
+  return bytes(r)
+
+def reverse_mersene_transform(k):
+  #  y ^= y>>MT.l
+  top18 = k & 0xffffc000
+  bot14 = top18>>18
+  kdash_bot14 = k& 0x00003fff
+  actual_bot14 = kdash_bot14^bot14
+  orig_k = top18^actual_bot14
+  k = k^(orig_k>>18)
+  #  y ^= (y<<MT.t) & MT.c
+  const = 0xefc60000
+  ret = k
+  last15 = ret & 0x00007fff # 15 1's
+  kk = last15<<15
+  val = kk&const ^ ret
+  last17 = val & 0x0001ffff # 17 1's
+  kk = last17<<15
+  val = kk&const ^ ret
+  top15 = val & 0xfffe0000
+  orig_k = top15 | last17
+  k = ret ^ ((orig_k<<15)&const)
+  #  y ^= (y<<MT.s) & MT.b
+  const = 0x9d2c5680
+  ret = k
+  last7 = ret & 0x0000007f
+  kk = last7<<7
+  val = kk&const ^ ret
+  last14 = val & 0x00003fff
+  kk = last14<<7
+  val = kk&const ^ ret
+  last21 = val & 0x001fffff
+  kk = last21<<7
+  val = kk&const ^ ret
+  last28 = val & 0x0fffffff
+  kk = last28<<7
+  orig_k = kk&const ^ ret
+  k = k ^ (orig_k<<7)&const
+  #  y ^= (y>>MT.u) & MT.d
+  kk = k & 0xffe0000 # top 11
+  ret = (kk>>11)&0xffffffff
+  kk = ret^k # top 22
+  ret = (kk>>11)&0xffffffff
+  orig_k = ret^k# top 32
+  k = k^(orig_k>>11)&0xffffffff
+  return k
+
 class AESTest(unittest.TestCase):
 
   def test_inverse(self):
