@@ -1,0 +1,61 @@
+.encoding = "windows-1252"
+config.version = "8"
+virtualHW.version = "4"
+displayName = "Kali Linux Light 2.0 ISO"
+annotation = "Kali ISO"
+guestinfo.vmware.product.version.major = "1"
+guestinfo.vmware.product.version.minor = "0"
+guestinfo.vmware.product.version.revision = "0"
+guestinfo.vmware.product.version.type = "release"
+guestinfo.vmware.product.class = "virtual machine"
+guestinfo.vmware.product.build = "2.0"
+uuid.action = "create"
+guestOS = "linux"
+#####
+# Memory
+#####
+# memsize = "128"
+# memsize = "256"
+memsize = "512"
+# memsize = "768"
+#
+# Alternative larger memory allocations
+#####
+# USB
+#####
+usb.present = "TRUE"
+#####
+# Floppy
+#####
+#####
+# IDE Storage
+#####
+ide1:0.present = "TRUE"
+#Edit line below to change ISO to boot from
+ide1:0.fileName = "kali-linux-light-2.0-amd64.iso"
+ide1:0.deviceType = "cdrom-image"
+ide1:0.startConnected = "TRUE"
+ide1:0.autodetect = "TRUE"
+#####
+# Network
+#####
+ethernet0.present = "TRUE"
+ethernet0.connectionType = "bridged"
+# ethernet0.connectionType = "bridged"
+#
+# Switch these two to enable "Bridged" vs. "NAT"
+extendedConfigFile = "kali-linux-light-2.0-amd64.vmxf"
+virtualHW.productCompatibility = "hosted"
+floppy0.present = "FALSE"
+numa.autosize.vcpu.maxPerVirtualNode = "1"
+numa.autosize.cookie = "10001"
+uuid.bios = "56 4d 45 b6 ee c8 92 17-5a a6 ac eb 5e ac 30 89"
+uuid.location = "56 4d 45 b6 ee c8 92 17-5a a6 ac eb 5e ac 30 89"
+migrate.hostlog = ".\kali-linux-light-2.0-amd64-acc48d96.hlog"
+ethernet0.addressType = "generated"
+ethernet0.generatedAddress = "00:0c:29:ac:30:89"
+ethernet0.generatedAddressOffset = "0"
+monitor.phys_bits_used = "36"
+vmotion.checkpointFBSize = "33554432"
+cleanShutdown = "FALSE"
+softPowerOff = "FALSE"
