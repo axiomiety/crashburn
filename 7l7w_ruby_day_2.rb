@@ -48,12 +48,11 @@ class Tree
               }
 
   def initialize(tr)
+    # base case is {'root' => {}}
     @children = []
-    tr.each_pair do |k,v| # there should only be one key
-      @node_name = k
-      v.each_pair do |kk,vv|
-        @children.push( Tree.new( {kk=>vv} ) )
-      end
+    @node_name = tr.keys.pop
+    tr[@node_name].each_pair do |k,v|
+      @children.push( Tree.new( {k=>v} ) )
     end
   end
 
@@ -88,6 +87,16 @@ family_tree = {'grandpa' => {
                   }
                 }
               }
+#family_tree = {'root'=>{'child'=>{}}}
 ft = Tree.new(family_tree)
 ft.visit_all{ |node| puts node.node_name }
-# simple grep that print lines of a file having any occurences of a phrase anywhere in that line
+
+def ruby_grep
+  # simple grep that print lines of a file having any occurences of a phrase anywhere in that line
+  puts 'word to search for:'
+  word = gets.chomp
+  puts "searching for #{word}"
+  IO.foreach('/etc/dictionaries-common/words') do |line|
+    puts "found #{word} in <#{line}>" if line.include?(word)
+  end
+end
