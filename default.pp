@@ -22,17 +22,26 @@ package { "python3-crypto":
   ensure  => present,
   require => Package["python3"],
   }
+  
+package { "python3-gmpy2":
+  ensure  => present,
+  require => Package["python3"],
+  }
+  
+package { "python3-numpy":
+  ensure  => present,
+  require => Package["python3"],
+  }
 
 package { "ipython3":
   ensure  => present,
   require => Package["python3"],
   }
-
-# requires -t precise-backport
-#package { "ipython3-notebook":
-#  ensure  => present,
-#  require => Package["ipython3"],
-#  }
+  
+package { "ipython3-notebook":
+  ensure  => present,
+  require => Package["ipython3"],
+  }
   
 package { "nodejs":
   ensure  => present,
@@ -44,7 +53,7 @@ package { "ruby":
   require => Exec["apt-get update"],
   }
   
-package { "rubygems":
+package { "rubygems-integration":
   ensure  => present,
   require => Package["ruby"],
   }
@@ -52,10 +61,15 @@ package { "rubygems":
 package { 'jekyll':
     ensure   => 'installed',
     provider => 'gem',
-    require => [Package["ruby"], Package["rubygems"]],
+    require => [Package["ruby"], Package["rubygems-integration"]],
 }
   
 package { "fish":
+  ensure  => present,
+  require => Exec["apt-get update"],
+  }
+  
+package { "erlang-base":
   ensure  => present,
   require => Exec["apt-get update"],
   }
@@ -92,4 +106,6 @@ fetch_github_repo{'crashburn':
 fetch_github_repo{'setup':
   repo  => 'setup',
   }
-  
+
+# copy the .dotfiles to where they should be
+
