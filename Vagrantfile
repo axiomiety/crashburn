@@ -12,7 +12,7 @@ Vagrant.configure(2) do |config|
 
   # Every Vagrant development environment requires a box. You can search for
   # boxes at https://atlas.hashicorp.com/search.
-  config.vm.box = "precise64"
+  config.vm.box = "ubuntu/trusty64"
 
   # Disable automatic box update checking. If you disable this, then
   # boxes will only be checked for updates when the user runs
@@ -47,16 +47,15 @@ Vagrant.configure(2) do |config|
   # i need this the first time around - otherwise vcsrepo doesn't work
   # as for exercism, i should probably move that somewhere else!
   config.vm.provision "shell", inline: <<-SHELL
-    sudo puppet module install puppetlabs-vcsrepo --mode master
+    sudo puppet module install puppetlabs-vcsrepo
 	mkdir bin
 	cd bin
 	wget https://raw.githubusercontent.com/exercism/cli-www/master/public/install
 	chmod +x install
 	DIR=/home/vagrant/bin ./install
-	rm installls
+	rm install
   SHELL
   
-  config.vm.provision "shell", path: "sh-provision.sh"
-  config.vm.provision "shell", path: "sh-provision.sh"
+  #config.vm.provision "shell", path: "sh-provision.sh"
   config.vm.provision :puppet
 end
