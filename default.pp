@@ -74,10 +74,10 @@ package { "erlang-base":
   require => Exec["apt-get update"],
   }
 
-# download & install exercism (http://exercism.io)
-#curl -O https://raw.githubusercontent.com/exercism/cli-www/master/public/install
-#chmod +x install
-#DIR=/path/to/bin ./install
+package { "golang":
+  ensure  => present,
+  require => Exec["apt-get update"],
+}
   
 # maybe this should be cloned to a shared folder so
 # i can use something like pycharm?
@@ -108,4 +108,21 @@ fetch_github_repo{'setup':
   }
 
 # copy the .dotfiles to where they should be
+exec {"copy_dot_files":
+	command => '/home/vagrant/setup/copy_dot_files.sh',
+	path    => '/usr/local/bin/:/bin/',
+}
 
+# grab exercism cli
+#TODO: this requires golang 1.5!
+#exec {"exercism":
+#	command => 'export GOPATH=/home/vagrant/go-ws;go get github.com/exercism/cli/exercism',
+#	path    => '/usr/local/bin/:/bin/',
+#}
+
+# make sure ownership of everything in ~ is set to the vagrant user
+# it's root otherwise...
+exec {"chown_vagrant":
+	comment => 'chown -hR vagrant /home/vagrant/*'
+	path    => '/usr/local/bin/:/bin/',
+}
