@@ -95,6 +95,11 @@ class packages {
     ensure  => present,
     require => Exec["apt-get update"],
     }
+    
+  package { "sqlite3":
+    ensure  => present,
+    require => Exec["apt-get update"],
+    }
   }
 
 class github {
