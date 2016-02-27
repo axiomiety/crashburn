@@ -49,7 +49,12 @@ class packages {
     ensure  => present,
     require => Package["python3"],
     }
-
+  
+  package { "python3-matplotlib":
+    ensure  => present,
+    require => Package["python3"],
+    }
+    
   package { "ipython3":
     ensure  => present,
     require => Package["python3"],
