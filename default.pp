@@ -54,7 +54,17 @@ class packages {
     ensure  => present,
     require => Package["python3"],
     }
-    
+  
+  package { "python3-pandas":
+    ensure  => present,
+    require => Package["python3"],
+    }
+  
+  package { "python3-pygments":
+    ensure  => present,
+    require => Package["python3"],
+    }
+  
   package { "ipython3":
     ensure  => present,
     require => Package["python3"],
