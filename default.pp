@@ -105,7 +105,12 @@ class packages {
     ensure  => present,
     require => Exec["apt-get update"],
     }
-    
+
+  package { "erlang-dev":
+    ensure  => present,
+    require => Exec["apt-get update"],
+    }
+  
   package { "erlang-eunit":
     ensure  => present,
     require => Exec["apt-get update"],
