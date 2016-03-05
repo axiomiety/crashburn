@@ -105,7 +105,12 @@ class packages {
     ensure  => present,
     require => Exec["apt-get update"],
     }
-
+    
+  package { "erlang-eunit":
+    ensure  => present,
+    require => Exec["apt-get update"],
+    }
+    
   package { "golang":
     ensure  => present,
     require => Exec["apt-get update"],
@@ -116,6 +121,11 @@ class packages {
     require => Exec["apt-get update"],
     }
   }
+  
+  package { "pandoc":
+    ensure  => present,
+    require => Package["python3"],
+    }
 
 class github {
 
