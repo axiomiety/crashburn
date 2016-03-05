@@ -47,6 +47,9 @@ Vagrant.configure(2) do |config|
 
   # i need this the first time around - otherwise vcsrepo in the puppet config file won't work
   # as for exercism, i should probably move that somewhere else!
+  
+  # also note that for exercism, you'll need to do an `exercism configure --key=API_KEY` which will create
+  # .exercism.json in the home directory. more here: http://exercism.io/help
   config.vm.provision "shell", inline: <<-SHELL
     sudo puppet module install puppetlabs-vcsrepo
 	mkdir bin
