@@ -24,6 +24,8 @@ Vagrant.configure(2) do |config|
   # note this shouldn't be necessary if your vm.network is public
   config.vm.network "forwarded_port", guest: 8080, host: 8080
   config.vm.network "forwarded_port", guest: 8088, host: 8088
+  # for rdp
+  config.vm.network "forwarded_port", guest: 9876, host: 9876
 
   # Create a private network, which allows host-only access to the machine
   # using a specific IP.
@@ -42,7 +44,7 @@ Vagrant.configure(2) do |config|
 
   config.vm.provider "virtualbox" do |vb|
     vb.gui = false
-    vb.memory = "512"
+    vb.memory = "1024"
   end
 
   # i need this the first time around - otherwise vcsrepo in the puppet config file won't work

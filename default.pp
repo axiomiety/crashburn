@@ -35,6 +35,16 @@ class packages {
     require => Exec["apt-get update"],
     }
 
+  package { "python3-pip":
+    ensure  => present,
+    require => Exec["apt-get update"],
+    }
+    
+  package { "python3-venv":
+    ensure  => present,
+    require => Exec["apt-get update"],
+    }
+    
   package { "python3-crypto":
     ensure  => present,
     require => Package["python3"],
@@ -132,6 +142,24 @@ class packages {
     require => Package["python3"],
     }
 
+  # on a full-blown system i'd use xmonad, but it requires too much space
+  # when all i want to do is view TensorFlow simulations  
+  # thanks to https://peteris.rocks/blog/remote-desktop-and-vnc-on-ubuntu-server/
+  package { "xfce4":
+    ensure  => present,
+    require => Exec["apt-get update"],
+    }
+    
+  package { "tightvncserver":
+    ensure  => present,
+    require => Exec["apt-get update"],
+    }
+    
+  package { "xrdp":
+    ensure  => present,
+    require => Exec["apt-get update"],
+    }
+    
 class github {
 
   # maybe this should be cloned to a shared folder so
