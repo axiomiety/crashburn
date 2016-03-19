@@ -15,5 +15,7 @@ cd ~/crashburn
 git remote add crashburn https://github.com/axiomiety/crashburn.git
 cd ~/axiomiety.github.io
 git remote add axiomiety.github.io https://github.com/axiomiety/axiomiety.github.io.git
+cd ~/exercism-io
+git remote add exercism-io https://github.com/axiomiety/exercism-io.git
 
 git config --global core.editor "vim"
