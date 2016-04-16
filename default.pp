@@ -142,6 +142,11 @@ class packages {
     require => Package["python3"],
     }
 
+  package { "docker.io":
+    ensure  => present,
+    require => Exec["apt-get update"],
+    }
+
   # on a full-blown system i'd use xmonad, but it requires too much space
   # when all i want to do is view TensorFlow simulations  
   # thanks to https://peteris.rocks/blog/remote-desktop-and-vnc-on-ubuntu-server/
