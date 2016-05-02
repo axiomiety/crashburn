@@ -1,0 +1,17 @@
+#!/bin/bash
+set -e
+ip="10.0.2.15" #"$(curl icanhazip.com -s)"
+name="$1"
+version="$2"
+port="8000"
+registry="$ip:5000"
+
+echo "pulling $version from registry..."
+docker pull $registry/$name:$version > /dev/null
+docker tag -force $registry/$name:$version $name:$version
+echo "stopping existing version"
+docker rm -f $(docker ps | grep $name | cut -d ' ' -f 1) > /dev/null 2>&1 || true
+echo "starting version $version"
+docker run -d -P --link redis:db $name:$version > /dev/null
+echo "name deployed:"
+echo "  $(docker port `docker ps -lq` $port | sed s/0.0.0.0/$ip/)"
