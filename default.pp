@@ -94,7 +94,12 @@ class packages {
     ensure  => present,
     require => Exec["apt-get update"],
     }
-    
+
+  package { "ruby-dev":
+    ensure  => present,
+    require => Package["ruby"],
+    }
+  
   package { "rubygems-integration":
     ensure  => present,
     require => Package["ruby"],
@@ -170,7 +175,7 @@ class github {
   # maybe this should be cloned to a shared folder so
   # i can use something like pycharm?
   define fetch_github_repo($repo=undef) {
-    vcsrepo { "/home/vagrant/${repo}":
+    vcsrepo { "/shared/${repo}":
       ensure   => latest,
       provider => git,
       require  => [ Package["git"] ],
@@ -200,23 +205,23 @@ class dothislast {
   
 	# copy the .dotfiles to where they should be
 	exec {"copy_dot_files":
-		command  => '/home/vagrant/setup/copy_dot_files.sh',
+		command  => '/shared/setup/copy_dot_files.sh',
 		path     => '/usr/local/bin/:/bin/',
     }
 
 	# grab exercism cli
-	#TODO: this requires golang 1.5!
-	#exec {"exercism":
-	#	command => 'export GOPATH=/home/vagrant/go-ws;go get github.com/exercism/cli/exercism',
-	#	path    => '/usr/local/bin/:/bin/',
-	#}
+	exec {"exercism":
+		command       => 'go get github.com/exercism/cli/exercism',
+		path          => '/usr/local/bin/:/bin/:/usr/bin',
+    environment   => ["GOPATH=/home/vagrant/go-ws"]
+    }
 
 	# make sure ownership of everything in ~ is set to the vagrant user
 	# it's root otherwise...
-	exec {"chown_vagrant":
-		command => 'chown -hR vagrant /home/vagrant/*',
-		path    => '/usr/local/bin/:/bin/',
-    }
+	#exec {"chown_vagrant":
+	#	command => 'chown -hR vagrant /home/vagrant/*',
+	#	path    => '/usr/local/bin/:/bin/',
+  #  }
   }
 
 ###

@@ -12,12 +12,14 @@ Vagrant.configure(2) do |config|
 
   # Every Vagrant development environment requires a box. You can search for
   # boxes at https://atlas.hashicorp.com/search.
-  config.vm.box = "ubuntu/wily64"
+
+  # the default ubuntu/xenial64 has issues
+  config.vm.box = "bento/ubuntu-16.04" 
 
   # Disable automatic box update checking. If you disable this, then
   # boxes will only be checked for updates when the user runs
   # `vagrant box outdated`. This is not recommended.
-  # config.vm.box_check_update = false
+  config.vm.box_check_update = false
 
   # needed so i can access things like ipython notebook
   # and jekyll from the host!
@@ -40,28 +42,23 @@ Vagrant.configure(2) do |config|
   # the path on the host to the actual folder. The second argument is
   # the path on the guest to mount the folder. And the optional third
   # argument is a set of non-required options.
-  config.vm.synced_folder "../shared", "/host_shared"
-
+  config.vm.synced_folder "U:/virt/shared", "/shared"
+  
+  # use the host's DNS
+  # fix for the vbox resolver not working after hibernate/suspend
   config.vm.provider "virtualbox" do |vb|
+    vb.customize ["modifyvm", :id, "--natdnshostresolver1", "on"]
     vb.gui = false
     vb.memory = "1024"
   end
 
-  # i need this the first time around - otherwise vcsrepo in the puppet config file won't work
-  # as for exercism, i should probably move that somewhere else!
-  
-  # also note that for exercism, you'll need to do an `exercism configure --key=API_KEY` which will create
-  # .exercism.json in the home directory. more here: http://exercism.io/help
-  config.vm.provision "shell", inline: <<-SHELL
+  # note the use of sed to fetch updates regionally
+  config.vm.provision :shell, inline: <<-SHELL
+    sudo sed -i "s@\/us.@\/sg.@" /etc/apt/sources.list
+    sudo apt-get update
+    sudo apt-get --yes install puppet
     sudo puppet module install puppetlabs-vcsrepo
-	mkdir bin
-	cd bin
-	wget https://raw.githubusercontent.com/exercism/cli-www/master/public/install
-	chmod +x install
-	DIR=/home/vagrant/bin ./install
-	rm install
   SHELL
   
-  #config.vm.provision "shell", path: "sh-provision.sh"
-  config.vm.provision :puppet
+  #config.vm.provision :puppet
 end
