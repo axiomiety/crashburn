@@ -89,6 +89,11 @@ class packages {
     ensure  => present,
     require => Exec["apt-get update"],
     }
+  
+  package { "npm":
+    ensure  => present,
+    require => Package["nodejs"],
+    }
     
   package { "ruby":
     ensure  => present,
