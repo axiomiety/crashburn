@@ -86,14 +86,18 @@ def create_initial_population(population_size):
   for i in range(population_size):
     # we generate each gene separately
     chromosome = 0
-    for g in range(CHROMOSOME_LENGTH):
-      gene = random.randint(0,2**GENE_LENGTH-1) # so GENE_LENGTH bits
-      chromosome ^= gene << g*GENE_LENGTH
+    # there's no point generating invalid chromosomes as it means they'll be discarded straight away
+    while not validate(decode(chromosome)):
+      chromosome = 0
+      for g in range(CHROMOSOME_LENGTH):
+        gene = random.randint(0,2**GENE_LENGTH-1) # so GENE_LENGTH bits
+        chromosome ^= gene << g*GENE_LENGTH
     chromosomes.append( chromosome )
   return chromosomes
 
 assert len(create_initial_population(20)) == 20
 
+#TODO can this take a number of weighted choices instead?
 def weighted_random_choice(chromosomes):
   total_fitness = sum(c.fitness for c in chromosomes)
   pick = random.uniform(0, total_fitness)
@@ -131,7 +135,7 @@ assert mutate(0x30100,[1,1,1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0],0.5) == 0x20101
 
 Chromosome = namedtuple('Chromosome', 'repr fitness')
 
-def run(target=42, pop_size=400, max_rounds=10000, crossover_rate=0.7, mutation_rate=0.001):
+def run(target=42, pop_size=500, max_rounds=2000, crossover_rate=0.7, mutation_rate=0.1):
   pop = create_initial_population(pop_size)
   chromosomes = []
   new_pop = []
@@ -146,7 +150,7 @@ def run(target=42, pop_size=400, max_rounds=10000, crossover_rate=0.7, mutation_
       except Exception:
         # result found! this is due to how our fitness function works
         logger.info('we have a winner! {0}'.format(chromosome))
-      if fitness_score > float('-inf'):
+      if fitness_score > 0: # we only look at positive fitness - otherwise weighted_random_choice won't work
         chromosomes.append( Chromosome(chromosome, fitness_score) )
       # otherwise it *dies*!
 
