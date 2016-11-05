@@ -1,0 +1,28 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2015/06/nuspec.xsd">
+  <metadata>
+    <id>jlang</id>
+    <version>8.05</version>
+    <title>JLang</title>
+    <authors>jsoftware.com</authors>
+    <projectUrl>https://jsoftware.com</projectUrl>
+    <iconUrl>https://upload.wikimedia.org/wikipedia/en/6/65/J_(programming_language)_icon.png</iconUrl>
+	<licenseUrl>http://www.gnu.org/licenses/gpl-3.0.txt</licenseUrl>
+    <requireLicenseAcceptance>true</requireLicenseAcceptance>
+    <projectSourceUrl>https://github.com/jsoftware/jsource</projectSourceUrl>
+    <docsUrl>http://code.jsoftware.com/wiki/Guides/Getting_Started</docsUrl>
+    <mailingListUrl>http://www.jsoftware.com/forumsearch</mailingListUrl>
+    <tags>jlang admin</tags>
+    <summary>J805</summary>
+    <description>J (J language) is a high-level, general-purpose, high-performance programming language.</description>
+    <releaseNotes>Version 8.05 (J805)</releaseNotes>
+    <dependencies>
+      <dependency id="chocolatey" version="0.9.8.21" />
+    </dependencies>
+   </metadata>
+  <files>
+    <!-- this section controls what actually gets packaged into the Chocolatey package -->
+    <file src="tools\**" target="tools" />
+    <!--Building from Linux? You may need this instead: <file src="tools/**" target="tools" />-->
+  </files>
+</package>
