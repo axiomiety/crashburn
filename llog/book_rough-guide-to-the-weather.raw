@@ -1,0 +1,236 @@
+---
+layout: default
+title: llog/rough-guid-to-weather
+category: pages
+---
+
+## Rough Guide To The Weather
+
+Notes taken whilst reading the book - unformatted (best viewed [raw](https://raw.githubusercontent.com/axiomiety/axiomiety.github.io/master/llog/book_rough-guide-to-the-weather.markdown) on github).
+
+ISBN 1-85828-827-4
+
+Thoughts: 
+Introduction was pretty good - light, but with enough details and plenty of references. But as the book progresses, the depth that made the early passages so interesting is soon lost to rather woolly explanations (eg, El Nino, droughts  ...). The rest of the book was more of a reference for world climate and wasn't much interest to me. Great as a light introduction on weather and climate systems but not much more (which incidentally is exactly what this book is supposed to be!)
+
+Ingredients
+
+Weather vs Climate - "Climate is what you expect, weather is what you get"
+    Day to day change vs average over time
+
+History:
+    Glaciation (~10k yrs ago), sea level was > 100m lower
+        Land bridges
+            GB -> FR
+            East Asia -> Alaska
+            Australia -> Tasmania/New Guinea
+    Warm-up from there on, break b/w 6200-5600BC
+        Resumed -> rising Mediterranean into Black See (cataclysmic - possible link to Bible's flood?)
+    'Meteorologica' by Aristotle ~340BC
+
+Instruments:
+    Thermometer
+        Invented 1660 by Ferdinand II (sealed liquid in glass)
+        Fahrenheit - 100 degrees (assumed air temp ~ above blood heat)
+        Celcius - used water (freezing + boiling), 1.8 * Fahrenheit
+        Kelvin - Celcius + 273.15
+        Crickets - # chirps in 7s + 5 -> temp C
+    Barometer
+        Aneroid - expansion and contraction of sensitive bellows
+    Hygrometer (humidity)
+        Used human hair - stretches 2.5% in length as relative humidity goes from 0 to 100%
+    Anemometer
+        Built ~1450 Leon Battista Alberti (board hanging from wind vane - lever-like)
+    Nephoscopes
+        Speed + direction of cloud motion
+    Ceilometers
+        Beams of lights reflected off clouds
+
+Atmosphere:
+    90% of atmosphere (oxygen, water vapour, ozon) within 32km of surface
+    Troposhere -> Tropopause (0 - 16km)
+        1km rise means -6C drop
+        Ozone maximum (30km)
+    Stratosphere -> Stratopause (16 - 50km)
+        Sunlight helps generate ozone by splitting oxygen molecules
+    Mesosphere -> Mesopause (50 - 80km)
+    Termosphere (80 - 650km)
+        Geomagnetic storms (batch of magnetised plasma arrives via solar winds)
+
+Weather maps: (eg MET office)
+    H/L -> High/Low pressure - outward from high, inward from low
+        Flow angles clockwise/ant-clockwise respectivley in Northern Hemisphere
+    Lines are isobars - connect points of equal pressure
+        Surface wind usually blows along isobars, but tilts slightly inward towards low pressure
+            Strongest where isobars tightly packed
+    Front
+        Cold (blue/triangular)
+        Warm (red semicircles)
+        Occluded (cold front overtakes warm - purple with rectangles)
+
+Humidity:
+    Water vapour coexists with dry air (air 'holds' moisture)
+    Warmer air -> more water vapour it can coexist with
+    Every 11C air holds twice as much moisture (so 21C, max amount is 2x amount at 10C)
+    90% relative humidity -> air holding 90% of the maximum amount of moisture it can at this temperature
+
+Climate zones:
+    ~70% of the planet's land area is in the Northern Hemisphere
+        Land heats/cools more readily than water -> biggest temperature swings
+    Ocean currents -> large contribution to climate
+        Clockwise loops in N.E, ant-clickwise in S.E.
+    Mountains are next biggest player
+        Intercept moisture-laden winds (barriers - wet on one side, dry on the other)
+    Large inland bodies of water
+        Black Sea
+    20% of land is desert
+    Koppen classification (dry, tropical, rainy, warm temperate, snowy forest, polar + subdivisions)
+
+The wild stuff
+
+Rain:
+    Hydrologic cycle - endless travelling loop
+    Water evaporates from sea surface (80% of total vs lakes etc...) -> water vapour in atmosphere
+        Each molecule takes a tiny bit of heat so warmer water -> more evaporation
+    ~Week for a molecule to fall back as rain
+    Raindrop is a lot water molecules joining together
+        Happens in clouds
+            Relative humidity ~100%
+            Water vapour condenses on nearest particle (salt, soot, ...) -> cloud droplet
+            Production caused by warm/cold rain
+                Warm rain - in tropics
+                    Cloud lower than freezing level
+                    Droplets drop, bump, increase in size - ~30mns from cloud to raindrop
+                Cold rain
+                    Ice crystals formed - outnumbered by water droplets but grow faster
+                        Vapour tends to be drawn to ice > liquid water in the presence of both
+                        Snowflakes! But turns to rain as it descends through warmer air
+        Starts as sphere -> oblong -> doughnut (without hole punched through)
+
+Snow:
+    Snowflakes can be identical in shape, but not necessarily at molecular level
+    Hue is due to algae living in snow (blue, green, pink)
+    Snowflakes begin life as single microscopic ice crystal - formed on mote of dust in cloud
+        Not all air-born particles can support ice forming on them
+    Grow by attracting water vapour -> sublimation (vapour straight to ice, no liquid phase)
+    Temperature biggest contributor to shape
+    NY subway was partly due to the blizzard of 1888
+    Mountains typically have snow due to high altitude (cold air consistently) and peaks wring moisture out of ascending winds
+    Avalanches - slopes of 30-45deg are most vulnerable (steeper slopes shed their snow)
+        If buried, form breathing space with arms - snow melted by breath freezes and cuts off oxygen
+
+Freezing Rain/Sleet:
+    Ice pellets begin as snowflake
+        -> fall into warmer layer and melts partially/completely
+        -> hit ground-hugging layer of air with temp below freezing
+        -> freeze melted snowflake into rounded solid mass
+        Freezing rain is a particular condition of ice pellets
+            Ground-hugging layer warm enough -> no time for melted snowflake to freeze before hitting ground
+            Refreezes on surface (eg, exposed surfaces such as highway bridges)
+            Danger to airplanes
+
+Fog:
+    Cloud on ground
+    Caused by more water vapour than the air can hold (ie, moisture can't stay in vapour form) condensing on particles
+    Water-attracting particles are called hygroscopic (eg, salt)
+        Increase in those particles -> fog can form in humidity less than 100%/saturation
+    Fog particles usually sink to ground ~1cm/second
+        Cooling on top can keep it resplenished
+        Lifting fog is really eroding (evaporation clearing its way upwards)
+    Can be cleared by injecting fog with sprays of salt/ice/hygroscopic particles
+        Goal is to attract moisture away from fog dropplets
+
+Thunderstorms:
+    Thunder and lightening
+        Require cloud ~5km high
+        Pull moisture into sub-freezing temperature
+        Cumulus clouds (bubbly, cauliflower)
+        Rise to where ice crystals can form -> cumulonimbus
+        Ascent slows, cloud spreads into anvil shape
+        Ice crystals form -> collide with unfrozen water droplets -> tiny electrical charges
+        Cloud electric field increases -> lightning!
+    Lightning comes in two forms
+        Intracloud (IC) + Cloud to ground (CG)
+        Electrons fall, met by positive charge from ground
+        Return stroke (up) is the visible one
+        Crooked shape due to path leader stopping a few times (avg 4) along path
+            ~10% of CG leaders bring positive charge to ground
+    Thunder is a shock wave
+        Heat expands air near lightning flash
+        Travels ~1km/3 sec
+    Fulgura frango (I break up lightning - inscription on some church towers)
+
+Hail:
+    Begins life as tiny ice crystals
+    Grows by encountering supercooled water droplets
+        Strong storms -> air rising so quickly -> inflowing water vapour no chance to freeze
+        Liquid at below freezing temperature
+        Freezes on surface of hailstones
+        Growth happens during ascension
+    Can be formed of multiple layers due to multiple trips (ejected upwards, caught by inflow as they fall)
+
+Tornadoes:
+    Strongest winds on planet (~480km/h)
+    Can only develop from parent storm
+    Large tornadoes have multiple vortices that spin around the parent funnel
+
+Hurricanes/tropical cyclones:
+    Heat engine that sucks energy from tropical oceans
+    Form over warm ocean (~26degC surface temp)
+    Water holds more heat than air (much denser) 
+    Extra heat when water molecule condenses as rain
+    Require upper winds, but not so strong as to pull apart embryonic circulation
+    Like a chimney - pulls warm, moist air into its centre
+        Funnels air upwards through spiral rain bands and central eyewall
+        Air spins outwards, forming shield of ice crystals
+    Classification based on sustained winds speed
+        62km/h -> tropical storm
+        118km/h -> hurricante/typhoon/tropical cyclone
+    Incubation areas ~10-30deg latitude north and south
+        Earth's turning can impact cyclonic spin
+    Tend to move westwards - and either north or south away from equator
+    Deep patches of warm water (150m deep vs usual 30-45m) can provoke rapid intensification (less than 24h to monster hurricane)
+
+Coastal storms:
+    Low-pressure centres - west -> east at mid-latitude
+    Lows form ahead of equatorward dips in upper-level jet sreams
+    Need moist air to make it rain or snow
+        Can use moisture from ocean, humid winds, large lakes, ...
+    Vs hurricane, asymmetry in temperature not a problem (can pull in cold air vs warmth of ocean)
+    Larger storms when low moves close to mass of cold air near cost
+        Warm air rises above cold blob, heavy rain/snow wrung out
+
+Windstorms:
+    Descending air normally expands as it sinks -> warm up
+    Downburst/microburst - cool, moist air descending from thunderstorm
+        Up to 240km/h
+        Rain evaporates and cools air below
+        Danger to low flying aircrafts (headwind -> nose up -> tail wind -> reduces speed)
+    Derecho - long-lasting windstorm
+
+Floods:
+    Caused by rain and landscape
+    Landscape has absorption rate
+        Dependent on urbanisation, soil type, recent weather, topography
+    Only takes ~50cm water to float most vehicles
+
+Drought:
+    Loosely defined as rain stopping or diminishing to a certain degree for some length of time
+    Flora and fauna adopt to long-term average rainfall in given local
+    Can impact drinking water/crops
+    
+
+El Nino/La Nina
+    Atmospheric cycles
+    'Two sides of a coin'
+    El Nino - surface water becomes warmer than average through eastern tropical Pacific (west from Ecuador coast)
+    La Nina - opposite (same waters cooler  than average)
+    Change in temperature not dramatic - 1-2degC for a weak Nino, 3-4degC for a weak Nina
+    Impact is in geographic scope
+        Tropical Pacific is broadest stretch of ocean
+        Eastern winds push so mush water -> sea level on west ~50cm higher than on the east side
+        Ends at western Pacific warm pool
+        Deepening of warm pol - as far down as 200m
+        Kink in thermocline (boundary between bodies of warm and cold water - sort of)
+        
+
