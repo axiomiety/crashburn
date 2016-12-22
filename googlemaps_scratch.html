@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <style>
+       #map {
+        height: 400px;
+        width: 100%;
+       }
+    </style>
+  </head>
+  <body>
+    <div id="map"></div>
+	<script>
+	
+	
+    function initMap() {
+		var map = new google.maps.Map(document.getElementById('map'), {
+          zoom: 11,
+          center: {lat: 45.496111, lng: -73.569444} // Centre Bell
+        });
+	
+		var stations = [
+			{position: new google.maps.LatLng(45.54176571696572,-73.62612783908844), colour: "green", tooltip: "Gounod / Saint-Denis"},
+			{position: new google.maps.LatLng(45.52114,-73.54926), colour: "green", tooltip: "RenLesque / Papineau"},
+			{position: new google.maps.LatLng(45.477313,-73.615327), colour: "green", tooltip: "Ave Notre Dame de Gre / Darie"},
+			{position: new google.maps.LatLng(45.50233,-73.566497), colour: "green", tooltip: "Union/RenLesque"},
+			{position: new google.maps.LatLng(45.462742,-73.565845), colour: "purple", tooltip: "Ross / Ave de Llise"},
+			{position: new google.maps.LatLng(45.544377,-73.581018), colour: "green", tooltip: "Parc Rosemont (Dandurand/d'Iberville)"},
+			{position: new google.maps.LatLng(45.53702583434782,-73.59316617250443), colour: "green", tooltip: "Parc Pe-Marquette (Chambord / Rosemont)"},
+			{position: new google.maps.LatLng(45.546978,-73.575515), colour: "red", tooltip: "4e Avenue / Masson"},
+			{position: new google.maps.LatLng(45.477249,-73.587238), colour: "green", tooltip: "Metro Place St-Henri (St-Ferdinand/St-Jacques)"},
+			{position: new google.maps.LatLng(45.53696,-73.61199), colour: "purple", tooltip: "Banger / Saint-Denis"}
+		];
+		
+		var icons = {
+			red:	"http://maps.google.com/mapfiles/ms/icons/red-dot.png",
+			purple:	"http://maps.google.com/mapfiles/ms/icons/purple-dot.png",
+			green:	"http://maps.google.com/mapfiles/ms/icons/green-dot.png"
+		};
+		
+		function placeMarker(station) {
+			new google.maps.Marker({
+				position: station.position,
+				icon: icons[station.colour],
+				map: map,
+				title: station.tooltip
+			  });
+			}
+		
+		for (var i = 0, station; station = stations[i]; i++) {
+		  placeMarker(station);
+		}
+	}
+	
+    </script>
+    <script async defer
+    src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAJU9tBxeH1dSEriCEuml0pZhIOeO-1syc&callback=initMap">
+    </script>
+  </body>
+</html>
