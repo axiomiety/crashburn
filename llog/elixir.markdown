@@ -27,9 +27,49 @@ Defining functions in a module must adhere to the `def <name> do ... end` syntax
 #### E
 
 `@doc` works at the function level and can be accessed via `h <module.fn>`. `@spec` can be accessed with `s <module.fn>`.
+
 #### E
+
+To document module, use `@moduledoc`.
+
 #### E
+
+You can reload & recompile a single module with `r(<module_name>)`.
+
 #### E
+
+Elixir counts from 0!
+
+~~~ erlang
+ex(19)> o={:foo,:bar}
+{:foo, :bar}
+iex(20)> elem(o,1)
+:bar
+~~~
+
 #### E
+
+Elixir considers anything other than `nil` and `false` to be true.
+
+~~~ erlang
+iex(32)> foo=0
+0
+iex(33)> cond do
+...(33)> foo -> true
+...(33)> not foo -> false
+...(33)> end
+true
+iex(34)> if [] do true else false end
+true
+iex(35)> if 0 do true else false end
+true
+~~~
+
+#### E
+
+ `< ericmj> if, cond, &&, || and ! work with truthy and falsey values`
+
+Guards are not part of this.
+
 #### E
 #### E
