@@ -72,4 +72,15 @@ true
 Guards are not part of this.
 
 #### E
+
+Use `IO.puts` to automatically add a new line (vs `IO.write`). To write out something that isn't a string, use `IO.inspect`.
+
+#### E
+#### E
+#### E
+#### E
+#### E
+#### E
+#### E
+#### E
 #### E

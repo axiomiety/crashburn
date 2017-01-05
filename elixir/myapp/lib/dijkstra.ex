@@ -1,5 +1,6 @@
 defmodule Disjkstra do
 
+  @spec gcd(number(), number()) :: number()
   def gcd(m,m) do
     m
   end
