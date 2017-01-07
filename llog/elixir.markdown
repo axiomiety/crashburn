@@ -73,11 +73,32 @@ Guards are not part of this.
 
 #### E
 
-Use `IO.puts` to automatically add a new line (vs `IO.write`). To write out something that isn't a string, use `IO.inspect`.
+Use `IO.puts` to automatically add a new line (vs `IO.write`). To write out something that isn't a string, use `IO.inspect`:
+
+~~~ erlang
+iex(66)> y={1,2,3}
+{1, 2, 3}
+iex(67)> "y is #{inspect y}"
+"y is {1, 2, 3}"
+~~~
 
 #### E
+
+Using single quotes will create a list of characters - but are slower to work with and take more space than strings. `'foo' ++ 'bar'`. Convert to and thro with `List.to_string/1` and `String.to_char_list/1`.
+
 #### E
+
+Split a string as a list of words with `~w//`:
+
+~~~ erlang
+iex(68)> ~w/The quick brown fox/
+["The", "quick", "brown", "fox"]
+~~~
+
 #### E
+
+
+
 #### E
 #### E
 #### E
