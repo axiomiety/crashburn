@@ -97,9 +97,12 @@ iex(68)> ~w/The quick brown fox/
 
 #### E
 
-
+Once a module has been loaded, adding `@doc` and `@moduledoc` won't show up with `r` but `c` instead.
 
 #### E
+
+Arguments to fns should be (start with?) lowercase. Anything starting with a capital letter is a module atom (unlike Erlang)
+
 #### E
 #### E
 #### E
