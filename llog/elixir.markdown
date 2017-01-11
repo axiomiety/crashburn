@@ -104,6 +104,25 @@ Once a module has been loaded, adding `@doc` and `@moduledoc` won't show up with
 Arguments to fns should be (start with?) lowercase. Anything starting with a capital letter is a module atom (unlike Erlang)
 
 #### E
+
+`{result, device} = File.open("<filename>", [:read, :utf8])` - `:utf8` is required for text files. To read a single line, `IO.read(<device>, :line)`. Close with `File.close(<device>)`.
+
+#### E
+
+Structs can be updated just like maps:
+
+~~~ erlang
+iex(234)> x=%City{name: "Berlin"}
+%City{lat: nil, long: nil, name: "Berlin", pop: nil}
+iex(235)> %{x | lat: 1.32}
+%City{lat: 1.32, long: nil, name: "Berlin", pop: nil}
+~~~
+
+#### E
+
+`case` statements that match against variable names need to use pinning - `^`.
+
+#### E
 #### E
 #### E
 #### E
