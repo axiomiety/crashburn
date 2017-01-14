@@ -123,6 +123,27 @@ iex(235)> %{x | lat: 1.32}
 `case` statements that match against variable names need to use pinning - `^`.
 
 #### E
+
+If you're having an issue with an implementation, `mix clean` can sometimes resolve that!
+
+#### E
+
+List comprehensions FTW with tuples:
+
+~~~ erlang
+iex(9)> Enum.filter(pp,fn({name, gender, age}) -> (gender == "M") and (age > 40) end)
+[{"Tran", "M", 47}, {"Elias", "M", 50}]
+~~~
+
+#### E
+
+Actually list comprehensions are this: `for rank <- ["C","D","H","S"], suit <- ["A",2,3,4,5,6,7,8,9,"J","Q","K"], do: {suit, rank}`
+
+#### E
+#### E
+#### E
+#### E
+#### E
 #### E
 #### E
 #### E
