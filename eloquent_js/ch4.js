@@ -1,3 +1,21 @@
+
+function range(start, stop, step=1) {
+  var arr = [];
+  var count = 0;
+  var max_steps = Math.abs(stop-start)/Math.abs(step);
+  while (count <= max_steps) {
+    arr.push(start + step*count);
+    count += 1;
+  }
+  return arr;
+}
+
+exports.sum = function(arr) {
+  return arr.reduce(function(acc,val) {return acc+val;});
+}
+
+exports.range = range;
+
 exports.reverseArray = function(arr) {
 	var rev = Array();
 	for (var i=0; i<arr.length; i+=1) {
@@ -45,3 +63,19 @@ function nth(li,n) {
 }
 
 exports.nth = nth;
+
+function deepEqual(obj1, obj2) {
+  if (obj1 === obj2) { return true; }
+  
+  if (typeof obj1 == 'object' && typeof obj2 == 'object') {
+    props1 = Object.keys(obj1);
+    props2 = Object.keys(obj2);
+    if (props1.length != props2.length) { return false; }
+    if (!props1.every(p => props2.includes(p))) { return false; }
+    return props1.every(p => deepEqual(obj1[p],obj2[p]));
+  }
+
+  return false;
+}
+
+exports.deepEqual = deepEqual;
