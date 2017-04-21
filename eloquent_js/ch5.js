@@ -17,3 +17,7 @@ exports.some = function(arr, pred) {
   }
   return false;
 }
+
+exports.average = function(arr) {
+  return arr.reduce((a,b) => (a+b)) / arr.length;
+}
