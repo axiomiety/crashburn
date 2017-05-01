@@ -61,6 +61,21 @@ function repeat(string, times) {
   return result;
 }
 
+function dataTable(data) {
+  var keys = Object.keys(data[0]);
+  var headers = keys.map(function(name) {
+    return new UnderlinedCell(new TextCell(name));
+  });
+  var body = data.map(function(row) {
+    return keys.map(function(name) {
+      return new TextCell(String(row[name]));
+    });
+  });
+  return [headers].concat(body);
+}
+
+
+// TextCell
 function TextCell(text) {
   this.text = text.split("\n");
 }
@@ -84,6 +99,30 @@ TextCell.prototype.draw = function(width, height) {
   return result;
 };
 
+// UnderlinedCell
+function UnderlinedCell(inner) {
+  this.inner = inner;
+};
+UnderlinedCell.prototype.minWidth = function() {
+  return this.inner.minWidth();
+};
+UnderlinedCell.prototype.minHeight = function() {
+  return this.inner.minHeight() + 1;
+};
+UnderlinedCell.prototype.draw = function(width, height) {
+  return this.inner.draw(width, height - 1)
+    .concat([repeat("-", width)]);
+};
+
+// StretchCell
+function StretchCell(inner, width, height) {
+  this.inner = inner;
+  this.width = width;
+  this.height = height;
+};
+StretchCell.prototype.minWidth = function() { return Math.max(this.inner.minWidth(), this.width); }
+StretchCell.prototype.minHeight = function() { return Math.max(this.inner.minHeight(), this.height); }
+StretchCell.prototype.draw = function(width, height) { return this.inner.draw(width, height); }
 var rows = [];
 for (var i = 0; i < 5; i++) {
    var row = [];
@@ -95,4 +134,28 @@ for (var i = 0; i < 5; i++) {
    }
    rows.push(row);
 }
+
+var MOUNTAINS = require('./mountains.js');
 console.log(drawTable(rows));
+
+exports.drawTable = drawTable;
+exports.foo = drawTable(dataTable(MOUNTAINS));
+exports.StretchCell = StretchCell;
+exports.TextCell = TextCell;
+
+// Sequence Interface
+
+function ISeq(seq) {
+  this.seq = seq;
+  this.it = 0;
+};
+ISeq.prototype.hasNext() {
+  return this.it < this.seq-1;
+}
+ISeq.prototype.next() {
+  const o = this.seq[this.it];
+  this.it += 1;
+  return o;
+}
+
+
