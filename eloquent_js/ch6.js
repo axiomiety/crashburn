@@ -144,18 +144,32 @@ exports.StretchCell = StretchCell;
 exports.TextCell = TextCell;
 
 // Sequence Interface
-
-function ISeq(seq) {
+function ArraySeq(seq) {
   this.seq = seq;
   this.it = 0;
-};
-ISeq.prototype.hasNext() {
-  return this.it < this.seq-1;
-}
-ISeq.prototype.next() {
-  const o = this.seq[this.it];
-  this.it += 1;
-  return o;
 }
 
+ArraySeq.prototype.hasNext = function() { return this.it < this.seq.length };
+ArraySeq.prototype.next    = function() { const o = this.seq[this.it]; this.it +=1; return o };
 
+function RangeSeq(start, finish) {
+  this.step = (start > finish) ? -1 : 1;
+  this.start = start
+  this.inc = 0
+  this.count = Math.abs(start - finish);
+}
+
+RangeSeq.prototype.hasNext  = function() { return this.inc < this.count; };
+RangeSeq.prototype.next     = function() { const o = this.start + this.inc; this.inc += this.step; return o;};
+
+exports.logFive = function(iseq) {
+  var count = 0
+  while (iseq.hasNext() && count < 5) {
+    console.log(iseq.next());
+    count += 1;
+  }
+}
+
+//exports.logFive(new ArraySeq([1,2]));
+exports.ArraySeq = ArraySeq;
+exports.RangeSeq = RangeSeq;
