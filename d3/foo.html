@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <script type="text/javascript" src="d3.v4.min.js"></script>
+    <script type="text/javascript">
+
+    document.addEventListener("DOMContentLoaded", function(e) {
+   
+        var width = 600,
+            height = 600,
+            margin = 100;
+
+        var svgSelection = d3.select("body").append("svg")
+                    .attr("width", width +2*margin)
+                    .attr("height", height +2*margin)
+                    .append("g")
+                    .attr("translate(" + margin + "," + margin + ")");
+
+
+        var yScale = d3.scaleLinear().range([height,0]).domain([-5,5]);
+        var xScale = d3.scaleLinear().range([0,width]).domain([-5,5]);
+
+        svg.append("g")
+        .attr("transform", "translate(0," + height/2 + ")")
+        .call(d3.axisBottom(xScale));
+
+        svg.append("g")
+        .attr("transform", "translate(" + width/2 + ",0)")
+        .call(d3.axisLeft(yScale));
+
+        var vfield = function(d) {
+            d.vx = -d.y;
+            d.vy = d.x;
+            d.magnitude = MAth.sqrt(d.vx*d.vx + d.vy*d.vy);
+        }
+
+        data = [];
+        for (var i=-5; i <= 10; i+= 0.5){
+            for (var j=-5; j<=10; j+= 0.5) {
+                var pt = {x:i, y:j};
+                vfield(pt);
+                data.push(pt);
+            }
+        }
+
+        var max_magnitude = data.reduce(function (max_, it) {
+            return (!isNaN(it.magnitude) && (max_ > it.magnitude)) ? max_ : it.magnitude;
+        }, 0);
+
+        data.forEach(function(p)
+    {
+        //TODO: fix that
+        if (!isNaN(p.magnitude))
+        {
+            p.vx /= p.magnitude;
+            p.vy /= p.magnitude;
+
+            p.vx *= 0.4;
+            p.vy *= 0.4;
+
+            var colorScale = d3.scaleSequential(d3.interpolateInferno).domain([0,max_magnitude]);
+
+            svg.append("g")
+            .append("path")
+            .attr("d", "M" + xScale(0) + " " + yScale(0) + " L" + xScale(p.vx) + " " + yScale(p.vy))
+            .attr("stroke", colorScale(p.magnitude))
+            .attr("stroke-width", 1)
+            .attr("fill", "none")
+            .attr("transform", "translate(" + (xScale(p.x) - xScale(0)) + "," + (yScale(p.x) - yScale(0)) + ")")
+            ;
+
+            svg.append("g")
+            .append("circle")
+            .attr("r",2)
+            .attr("cx", xScale(p.vx))
+            .attr("cy", yScale(p.vy))
+            .attr("transform", "translate(" + (xScale(p.x) - xScale(0)) + "," + (yScale(p.x) - yScale(0)) + ")")
+            ;
+            
+        }
+
+    });
+
+        // add the axis
+        var yScale = d3.scaleLinear()
+                             .domain([-5,5])
+                             .range([height-padding,padding]);
+        var yAxis = d3.svgAxis()
+            .orient("left")
+            .scale(yScale);
+        
+            svgSelection.append("g")
+            .attr("transform", "translate("+padding+",0)")
+            .call(yAxis);
+
+    });
+    </script>
+  </head>
+  <body>
+    <p>Hello!</p>
+  </body>
+</html>
+
