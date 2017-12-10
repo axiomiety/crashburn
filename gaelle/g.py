@@ -59,7 +59,7 @@ def potential_key_lengths(data):
     for key_length in range(2,20):
         dists.append( (key_length, get_avg_hamming_dist(data, key_length)) )
     dists = sorted(dists, key=lambda x: x[1])
-    return dists
+    return dists[:10]
 
 def challenge():
     raw = readf('c.txt')
