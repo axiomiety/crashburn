@@ -100,3 +100,54 @@ def solve(board):
             boards.append(merge(b, possible_row, candidate_row_idx))
         
     return [] # no solution
+
+import unittest
+
+class SudokuTest(unittest.TestCase):
+
+    def test_boardAccessors(self):
+        b = [[1,2],[3,4]]
+        self.assertEqual(row(b,0), [1,2])
+        self.assertEqual(row(b,1), [3,4])
+        self.assertEqual(col(b,0), [1,3])
+        self.assertEqual(col(b,1), [2,4])
+
+        # this is not a valid board, we just want to make sure we get unique chunks
+        b = [
+                [1, 2, 3, 4],
+                [5, 6, 7, 8],
+                [-1, -2, -3, -4],
+                [-5, -6, -7, -8]
+            ]
+        chunks = boardChunks(b)
+        self.assertEqual(chunks[0], [1,2,5,6])
+        self.assertEqual(chunks[1], [3,4,7,8])
+        self.assertEqual(chunks[2], [-1,-2,-5,-6])
+        self.assertEqual(chunks[3], [-3,-4,-7,-8])
+
+    def test_validity(self):
+        b = [
+                [1, 2, 3, 4],
+                [4, 3, 2, 1],
+                [3, 4, 1, 2],
+                [2, 1, 4, 3]
+            ]
+        self.assertTrue(isBoardComplete(b))
+        self.assertTrue(isBoardValid(b))
+        b[0][0] = None
+        self.assertFalse(isBoardComplete(b))
+        self.assertTrue(isBoardValid(b))
+        # rows and columns are valid but chunks aren't
+        b = [
+                [1, 2, 3, 4],
+                [2, 3, 4, 1],
+                [3, 4, 1, 2],
+                [4, 1, 2, 3]
+
+            ]
+        self.assertFalse(isBoardValid(b))
+
+
+
+if __name__ == '__main__':
+    unittest.main()
