@@ -91,7 +91,7 @@ def solve(board):
     while boards:
         b = boards.pop()
 
-        if isBoardComplete(b) and isBoardValid(b):
+        if isBoardComplete(b) and isBoardValid(b): # technically the board should already by valid
             return b # a potential solution
 
         candidate_row_idx = getFullestRowIdx(b)
@@ -147,7 +147,28 @@ class SudokuTest(unittest.TestCase):
             ]
         self.assertFalse(isBoardValid(b))
 
+    def test_getFullestRowIdx(self):
+        # the fullest row is the first one, but it has no empty cells
+        # so we're not interested
+        b = [
+                [1,2,3],
+                [None, None, None],
+                [None, 1, None],
+                [None, 1, 2]
+            ]
+        self.assertEqual(getFullestRowIdx(b), 3)
 
+    def test_genValidRows(self):
+        b = [
+                [1, None, None, None],
+                [None, None, None, 1],
+                [None, None, None, None],
+                [2, 1, 4, 3]
+            ]
+        valid_rows = [[4, 3, 1, 2], [3, 4, 1, 2]]
+        self.assertEqual(genValidRows(b, 2), valid_rows)
+        valid_rows = [[1, 4, 3, 2], [1, 3, 2, 4], [1, 2, 3, 4]]
+        self.assertEqual(genValidRows(b, 0), valid_rows)
 
 if __name__ == '__main__':
     unittest.main()

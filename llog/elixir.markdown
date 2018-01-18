@@ -140,8 +140,17 @@ iex(9)> Enum.filter(pp,fn({name, gender, age}) -> (gender == "M") and (age > 40)
 Actually list comprehensions are this: `for rank <- ["C","D","H","S"], suit <- ["A",2,3,4,5,6,7,8,9,"J","Q","K"], do: {suit, rank}`
 
 #### E
+
+Use `Process.whereis/1` to retrieve the pid of a registered process - and `Process.unregister(<atom>)` to deregister it without killing it. `Process.registered/0` will show all currentl registered processes.
+
 #### E
+
+`Process.flag(:trap_exit, true)` sets you up as receiving a `{:EXIT, pid, reason}` tuple in case of failure.
+
 #### E
+
+Use `spawn_link` to be notified of abnormal exit from the dependent process.
+
 #### E
 #### E
 #### E

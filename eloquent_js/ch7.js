@@ -67,7 +67,6 @@ BouncingCritter.prototype.act = function(view) {
 function elementFromChar(legend, ch) {
   if (ch == " ")
     return null;
-  console.log(ch);
   var element = new legend[ch]();
   element.originChar = ch;
   return element;
@@ -181,7 +180,7 @@ LifelikeWorld.prototype.letAct = function(critter, vector) {
     actionTypes[action.type].call(this, critter,
                                   vector, action);
   if (!handled) {
-    critter.energy -= 0.2;
+    critter.energy -= 1;
     if (critter.energy <= 0)
       this.grid.set(vector, null);
   }
@@ -219,7 +218,7 @@ actionTypes.reproduce = function(critter, vector, action) {
                              critter.originChar);
   var dest = this.checkDestination(action, vector);
   if (dest == null ||
-      critter.energy <= 2 * baby.energy ||
+     // critter.energy <= 2 * baby.energy ||
       this.grid.get(dest) != null)
     return false;
   critter.energy -= 2 * baby.energy;
@@ -232,22 +231,22 @@ function Plant() {
   this.energy = 3 + Math.random() * 4;
 }
 Plant.prototype.act = function(context) {
-  if (this.energy > 15) {
+  if (this.energy > 40) {
     var space = context.find(" ");
     if (space)
       return {type: "reproduce", direction: space};
   }
-  if (this.energy < 20)
+  if (this.energy < 10)
     return {type: "grow"};
 };
 
 // plant eater
 function PlantEater() {
-  this.energy = 20;
+  this.energy = 60;
 }
 PlantEater.prototype.act = function(context) {
   var space = context.find(" ");
-  if (this.energy > 60 && space)
+  if (this.energy >= 20 && space)
     return {type: "reproduce", direction: space};
   var plant = context.find("*");
   if (plant)
@@ -256,22 +255,37 @@ PlantEater.prototype.act = function(context) {
     return {type: "move", direction: space};
 };
 
+// predator
+function Predator() {
+  this.energy = 100; // lots!
+}
+
+Predator.prototype.act = function(context) {
+  var food = context.find("O");
+  if (food)
+    return {type: "eat", direction: food}
+  var space = context.find(" ");
+  if (space)
+    return {type: "move", direction: space};
+};
+
 var valley  = new LifelikeWorld(
    ["############################",
     "#####                 ######",
     "##   ***                **##",
-    "#   *##**         **  O  *##",
-    "#    ***     O    ##**    *#",
+    "#   *##**    X    **  O  *##",
+    "#    ***          ##**    *#",
     "#       O         ##***    #",
     "#                 ##**     #",
-    "#   O       #*             #",
+    "#   O  X    #*             #",
     "#*          #**       O    #",
     "#***        ##**   O     **#",
     "##****     ###***       *###",
     "############################"],
    {"#": Wall,
     "O": PlantEater,
-    "*": Plant}
+    "*": Plant,
+    "X": Predator}
 );
 
 exports.World = World;
@@ -279,5 +293,10 @@ exports.Wall = Wall;
 exports.plan = plan;
 exports.BouncingCritter = BouncingCritter;
 exports.valley = valley;
-for (var i=0; i<10;i++) { valley.turn();}
 console.log(valley.toString());
+for (var i=0; i<1000;i++)
+{
+  valley.turn();
+  if (i % 10 == 0) { console.log(valley.toString()); }
+  //console.log(valley.toString());
+}
