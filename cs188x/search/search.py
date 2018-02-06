@@ -21,7 +21,7 @@ import util
 
 from collections import namedtuple
 
-FringeItem = namedtuple('FringeItem', 'position directions cost')
+FringeItem = namedtuple('FringeItem', 'state directions cost')
 
 class GenericSearch:
 
@@ -40,10 +40,11 @@ class GenericSearch:
         while True:
             if fringe.isEmpty(): util.raiseNotDefined() #TODO fix that
             fringeItem = fringe.pop()
-            if problem.isGoalState(fringeItem.position): return fringeItem.directions
-            if fringeItem.position not in closed:
-                closed.add(fringeItem.position)
-                for child in problem.getSuccessors(fringeItem.position):
+            if problem.isGoalState(fringeItem.state):
+                return fringeItem.directions
+            if fringeItem.state not in closed:
+                closed.add(fringeItem.state)
+                for child in problem.getSuccessors(fringeItem.state):
                     fringe.push(GenericSearch.mkFringeItem(child, fringeItem, strategy))
     
 class SearchProblem:
@@ -145,7 +146,7 @@ def aStarSearch(problem, heuristic=nullHeuristic):
     """Search the node that has the lowest combined cost and heuristic first."""
     "*** YOUR CODE HERE ***"
     def fn(item):
-        return item.cost + heuristic(item.position, problem)
+        return item.cost + heuristic(item.state, problem) #TODO does this work when state is just a position?
     return GenericSearch.do(problem, util.PriorityQueueWithFunction(fn), None)
 
 
