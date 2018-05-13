@@ -113,3 +113,80 @@ Need to use `!` to 'unref' the reference
 	   
 # let y = !x+1;;
 val y : int = 26
+
+Printing looks a bit odd. Built-ins don't mangle types
+
+# Printf.printf "x = %d, bye %s\n" !x "John";;
+- : unit = ()
+# print_string 32;;
+File "", line 1, characters 13-15:
+Error: This expression has type int but an expression was expected of type
+         string
+# print_string "32";;
+- : unit = <unknown constructor>
+# print_int 3;;
+- : unit = <unknown constructor>
+# ;
+File "", line 1, characters 13-14:
+Error: Syntax error
+# print_int 2;;
+- : unit = <unknown constructor>
+# print_newline ();;
+- : unit = ()
+# print_int 2;;
+
+And I think the online console doesn't render properly.
+
+Lists?
+
+# let x1 = ref [];;
+val x1 : '_a list ref = {contents = []}
+# x1 := 0 :: !x1;;
+- : unit = ()
+# x1;;
+- : int list ref = {contents = [0]}
+# x1 := 1 :: !x1;;
+- : unit = ()
+# x1;;
+- : int list ref = {contents = [1; 0]}
+# x1 := 2 :: !x1;;
+- : unit = ()
+# x1;;
+- : int list ref = {contents = [2; 1; 0]}
+# List.rev !x1;;
+- : int list = [0; 1; 2]
+# x1;;
+- : int list ref = {contents = [2; 1; 0]}
+
+Can't seem to do for loops on the prompt. Format is:
+
+for i = 1 to 10 do
+  xl := i :: !xl;
+done;
+
+for i = 10 downto 1 do
+ xl := i :: !xl
+done;
+
+booleans
+
+
+# 1>2;;
+- : bool = false
+# 1 = 1;;
+- : bool = true
+# 1 <> 1;;
+- : bool = false
+# "1" = 1;;
+File "", line 1, characters 6-7:
+Error: This expression has type int but an expression was expected of type
+         string
+# "1" = string_of_int 1;;
+- : bool = true
+# "aa" > "ab";;
+- : bool = false
+# "aaa" > "ab";;
+- : bool = false
+# "ab" > "aa";;
+- : bool = true
+
