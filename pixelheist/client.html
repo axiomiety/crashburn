@@ -12,12 +12,7 @@ var ctx = canvas.getContext("2d");
 
 ctx.beginPath();
 ctx.rect(0, 0, 1200, 800);
-ctx.fillStyle = "#FF0000";
-ctx.fill();
-ctx.closePath();
-ctx.beginPath();
-ctx.rect(0, 0, 5, 5);
-ctx.fillStyle = "#00FF00";
+ctx.fillStyle = '#000000';//convertHexStringToRgb("0"); //"#FF0000";
 ctx.fill();
 ctx.closePath();
 
@@ -34,6 +29,24 @@ fileSelect.addEventListener("click", function (e) {
   e.preventDefault(); // prevent navigation to "#"
 }, false);
 
+
+function convertHexStringToRgb(str) {
+  const decimalValue = parseInt(str,16);
+  let val = decimalValue*51;
+  const color = {r: 0, g: 0, b: 0};
+  if (val > 255*2) {
+    color.b = val - 255*2;
+    val -= 255*2;
+  }
+  if (val > 255) {
+    color.g = val - 255;
+    val -= 255;
+  }
+  color.r = val;
+  return `rgba(${color.r}, ${color.g}, ${color.b}, 1)`;
+  //return '#FF0000';
+}
+
 function formatStringToIndividualHexNumbers(str) {
   const ret = [];
   if (str.length == 1) {
@@ -44,20 +57,40 @@ function formatStringToIndividualHexNumbers(str) {
   return ret;
 }
 
+function drawSquare(hexStr, idx, ctx) {
+  const width = 5;
+  const startX = idx*width % 1200; // width
+  const startY = Math.floor(idx*width/1200)*width;
+  if (startX === 0) {
+    console.log(startY);
+  }
+  ctx.beginPath();
+  ctx.rect(startX, startY, width, width);
+  ctx.fillStyle = convertHexStringToRgb(hexStr);
+  ctx.fill();
+  ctx.closePath();
+
+}
+
 function foo(file) {
   const fr = new FileReader();
-  console.log('goat');
   fr.onload = () => {
     const data = fr.result;
-    var array = new Uint8Array(data);
-    for(let i=0; i<8; i++) {
+    let array = new Uint8Array(data);
+    console.log(array.length);
+    let hexArray = []; 
+    for(let i=0; i<array.length; i++) {
       const val = array[i].toString(16);
-      console.log(formatStringToIndividualHexNumbers(val));
+      const hex = formatStringToIndividualHexNumbers(val);
+      // this is a bit weird - we should be able
+      // to do this on the fly by doing x2
+      hexArray.push(hex[0]);
+      hexArray.push(hex[1]);
     }
-    // 
-    //console.log(fr.result);
+    for(let j=0; j< hexArray.length; j++) {
+      drawSquare(hexArray[j], j, ctx);
+    }
   }
-  //fr.readAsBinaryString(files[i]);
   fr.readAsArrayBuffer(file);
 };
 
