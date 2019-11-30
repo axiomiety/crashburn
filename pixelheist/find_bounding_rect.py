@@ -1,5 +1,6 @@
 import cv2
 import numpy as np
+import json
 
 img = cv2.imread('ss_browser_window_no_data.png', cv2.IMREAD_UNCHANGED)
 
@@ -26,7 +27,13 @@ for c in contours:
         # draw a red 'nghien' rectangle
         cv2.drawContours(img, [box], 0, (0, 0, 255))
         print(w,h)
-    
+        # we don't need to, but it's cool that we can extract the region of interest so easily!
+        roi = img[y:y+h, x:x+w] 
+        cv2.imwrite('roi.png', roi)
+        coords = {'x':x, 'y': y, 'w': w, 'h': h}
+        with open('coords.json', 'w') as outfile:
+            json.dump(coords, outfile)
+
 print(len(contours))
 #cv2.drawContours(img, contours, -1, (255, 255, 0), 1)
 #cv2.imshow("contours", img)
