@@ -9,9 +9,32 @@
  * We need to think about paging at some point!
  * From a boundary perspective, we could have the user input the file length
  * We need to create a palette - e.g. 16bit
- * The smaller the palette, the less likely compression will mess things up. If we had a 256bit palette that would greatly speed things up, but it probably won't be as accurate
 
+
+## Palette
+
+ * The smaller the palette, the less likely RDP/VNC compression will mess things up. If we had a 256bit palette that would greatly speed things up, but it probably won't be as accurate
+ * RGB is composed of 3 channels, each having a value up to 255
+ * To map a hexadecimal digiti to a colour, the 'unit' is of value 51 (255*3/15 = 51 - 0 being our 16th)
+ * decimal(hexvalue) *  51
+
+## Parsing the image!
+
+ * We can take a screenshot of the active window - that's easy enough (used Greenshot, but I'm sure we can do this programmatically)
+ * OpenCV does a great job at finding the bounding rectangle of the region we'll be displaying data on - but it's unscaled!
+   * That is, it finds a 1802x1202 - because my display is set to 150% (1800/1200 is 1.5)
+ * Once we have the x,y,w,h coordinates, it means we can extract the correct region from all subsequent screenshots
+ * Ref code taken from https://gist.github.com/bigsnarfdude/d811e31ee17495f82f10db12651ae82d
+
+## Misc
+
+ * Firefox can take screenshots! https://stackoverflow.com/questions/25332458/firefox-addon-api-for-taking-screenshot#25359866
+ * Only useful on the client though
+ * But could be used to 'download' binaries onto the client whilst bypassing some restrictions
 
 TODO:
- * map each hex character to an equally space colour in the RGB spectrum
- * iterate through a file and draw 'em squares
+ * take a screenshot of the screen programatically
+ * given x,y,w,h, extract the image data into pixels & colours
+ * DONE: run it through openCV to find the bounding rectangle
+ * DONE: map each hex character to an equally space colour in the RGB spectrum
+ * DONE: iterate through a file and draw 'em squares
