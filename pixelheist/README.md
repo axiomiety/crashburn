@@ -17,6 +17,7 @@
  * RGB is composed of 3 channels, each having a value up to 255
  * To map a hexadecimal digiti to a colour, the 'unit' is of value 51 (255*3/15 = 51 - 0 being our 16th)
  * decimal(hexvalue) *  51
+ * I wonder if it'd make more sense for the palette to increae the R component by 51 first, followed by G, followed by B etc... so e.g. 3 would be (51,51,51) vs (153,0,0) as it is now - if anything there'd be more differentiation between each byte
 
 ## Parsing the image!
 
@@ -34,7 +35,10 @@
 
 TODO:
  * take a screenshot of the screen programatically
- * given x,y,w,h, extract the image data into pixels & colours
+ * create a 'proper' project - complete with requirements.txt
+   * and arguable something separate for js too (we can extract some of the functionality into separate modules, imported by the client)!
+ * take some new screenshots now that the scale has changed...
+ * DONE: given x,y,w,h, extract the image data into pixels & colours
  * DONE: run it through openCV to find the bounding rectangle
  * DONE: map each hex character to an equally space colour in the RGB spectrum
  * DONE: iterate through a file and draw 'em squares
