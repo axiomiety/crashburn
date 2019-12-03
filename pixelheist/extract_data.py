@@ -2,6 +2,7 @@ import cv2
 import numpy as np
 import json
 from itertools import chain
+import sys
 
 img = cv2.imread('roi.png', cv2.IMREAD_UNCHANGED)
 
@@ -13,9 +14,13 @@ PALETTE_RGB_WIDTH = 47
 def convertBGRToHexScale(val):
     (b, g, r) = val
     s = b + g + r
-    remainder = s % PALETTE_RGB_WIDTH
-    quotient = s // PALETTE_RGB_WIDTH
+    return convertToPaletteScale(s)
+
+def convertToPaletteScale(val):
+    remainder = val % PALETTE_RGB_WIDTH
+    quotient = val // PALETTE_RGB_WIDTH
     if remainder > PALETTE_RGB_WIDTH/2:
+        # round up
         quotient = min(16, quotient+1)
     return quotient
 
@@ -48,4 +53,5 @@ def blockify(image, width):
             
 if __name__ == '__main__':
     rimg = rescale(img)
-    blockify(rimg, 5)
+    arr = blockify(rimg, int(sys.argv[1]) if len(sys.argv) > 1 else 5)
+    print([convertBGRToHexScale(a) for a in arr])

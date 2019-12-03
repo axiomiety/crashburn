@@ -1,4 +1,4 @@
-from extract_data import convertBGRToHexScale, PALETTE_RGB_WIDTH, blockify
+from extract_data import convertBGRToHexScale, PALETTE_RGB_WIDTH, blockify, c
 
 
 class MockImage(object):
@@ -27,3 +27,6 @@ def test_blockify():
     ]
     assert [3, 3, 3, 3] == blockify(MockImage(img1), 1)
     assert [3] == blockify(MockImage(img1), 2)
+
+def test_convertToPaletteScale():
+    pass
