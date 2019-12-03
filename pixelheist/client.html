@@ -54,7 +54,7 @@ function convertHexStringToRgb(str) {
 function formatStringToIndividualHexNumbers(str) {
   const ret = [];
   if (str.length == 1) {
-    ret.push(str, str);
+    ret.push('0', str);
   } else {
     ret.push(str[0], str[1]);
   }

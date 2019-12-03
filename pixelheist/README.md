@@ -34,10 +34,12 @@
  * But could be used to 'download' binaries onto the client whilst bypassing some restrictions
 
 TODO:
- * take a screenshot of the screen programatically
+ * merge client/client_test code (c.f. point below)
+ * create test method to identify blocks on the roi (for debugging)
  * create a 'proper' project - complete with requirements.txt
    * and arguable something separate for js too (we can extract some of the functionality into separate modules, imported by the client)!
- * take some new screenshots now that the scale has changed...
+ * take a screenshot of the screen programatically
+ * DONE: take some new screenshots now that the scale has changed...
  * DONE: given x,y,w,h, extract the image data into pixels & colours
  * DONE: run it through openCV to find the bounding rectangle
  * DONE: map each hex character to an equally space colour in the RGB spectrum
