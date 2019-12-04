@@ -31,43 +31,48 @@ def rescale(image):
     return resized_image
 
 def identifyBlock(img, r, c, w):
-    x = r*w
-    y = c*w
+    # columns are x, rows are y
+    x = c*w
+    y = r*w
+    print(f'drawing a green square at ({x},{y}) with width {w}')
     cv2.rectangle(img, (x, y), (x+w, y+w), (0, 255, 0), 2)
-    # get the min area rect
-    rect = cv2.minAreaRect(c)
-    box = cv2.boxPoints(rect)
-    # convert all coordinates floating point values to int
-    box = np.int0(box)
-    # draw a red 'nghien' rectangle
-    cv2.drawContours(img, [box], 0, (0, 0, 255))
-    cv2.imshow('contour',img)
+    cv2.namedWindow('output2', cv2.WINDOW_NORMAL)
+    cv2.imshow('output2',img)
+    cv2.waitKey(0)
 
 def blockify(image, width):
     # we need to generate 'blocks' of pixels of width x width
     h, w, channels = image.shape # we don't use channels
+    print(f'h: {h}, w: {w}')
     num_rows = h//width
     num_cols = w//width
-    print(num_rows, num_cols)
+    print(f'dividing the image in {num_rows} rows and {num_cols} columns')
     counter = 0
     scale = width*width
-
+    block_num = 14
     ret = []
-
     for r in range(num_rows):
         for c in range(num_cols):
             tally = 0
-            if counter == 14:
-                identifyBlock(image, r, c, width)
-            for i in image[r*width:(r+1)*width]:
-                for j in i[c*width:(c+1)*width]:
+            for ii, i in enumerate(image[r*width:(r+1)*width]):
+                for jj, j in enumerate(i[c*width:(c+1)*width]):
+                    if counter == block_num:
+                        t = sum(j)
+                        #if t > 10:
+                        print(f'sum of RGB components > 10 for ({r*width+ii},{c*width+jj}): {j}')
                     tally += sum(j)
             # x = sum(sum(sum(v) for v in i[c*width:(c+1)*width]) for i in image[r*width:(r+1)*width])/scale
+            if counter == block_num:
+                print(f'average pixel: {tally/scale}')
+                identifyBlock(image, r, c, width)
             ret.append(tally/scale)
             counter += 1
     return ret
             
 if __name__ == '__main__':
     rimg = rescale(img)
+    cv2.namedWindow('output', cv2.WINDOW_NORMAL) 
+    cv2.imshow('output',rimg)
+    cv2.waitKey(0)
     arr = blockify(rimg, int(sys.argv[1]) if len(sys.argv) > 1 else 5)
     print([convertToPaletteScale(a) for a in arr])
