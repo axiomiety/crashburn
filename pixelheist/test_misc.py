@@ -1,4 +1,4 @@
-from extract_data import convertBGRToHexScale, PALETTE_RGB_WIDTH, blockify, c
+from extract_data import convertBGRToHexScale, PALETTE_RGB_WIDTH, blockify
 
 
 class MockImage(object):
@@ -11,22 +11,27 @@ class MockImage(object):
     def __getitem__(self, key):
         return self.arr[key]
 
-
 def test_scale_conversion():
     assert 0 == convertBGRToHexScale([0,0,0])
     # below threshold
     assert 1 == convertBGRToHexScale([PALETTE_RGB_WIDTH + PALETTE_RGB_WIDTH//2,0,0])
     # above threshold
     assert 2 == convertBGRToHexScale([PALETTE_RGB_WIDTH + PALETTE_RGB_WIDTH//2+1,0,0])
-    assert 16 == convertBGRToHexScale([255*3-10,0,0])
+    assert 15 == convertBGRToHexScale([255,255,200])
 
 def test_blockify():
     img1 = [
         [ (1,1,1), (1,1,1) ],
         [ (1,1,1), (1,1,1) ],
     ]
-    assert [3, 3, 3, 3] == blockify(MockImage(img1), 1)
-    assert [3] == blockify(MockImage(img1), 2)
+    assert [[3], [3], [3], [3]] == blockify(MockImage(img1), 1)
+    assert [[3, 3, 3, 3]] == blockify(MockImage(img1), 2)
 
-def test_convertToPaletteScale():
-    pass
+    img2 = [
+        [ (1,1,1), (1,1,1), (4,4,4), (4,4,4) ],
+        [ (1,1,1), (1,1,1), (4,4,4), (4,4,4) ],
+        [ (3,3,3), (3,3,3), (2,2,2), (2,2,2) ],
+        [ (3,3,3), (3,3,3), (2,2,2), (2,2,2) ],
+    ]
+
+    assert [[3, 3, 3, 3], [12, 12, 12, 12], [9, 9, 9, 9], [6, 6, 6, 6]] == blockify(MockImage(img2), 2)

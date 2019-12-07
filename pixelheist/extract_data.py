@@ -40,7 +40,7 @@ def identifyBlock(img, r, c, w):
     cv2.imshow('output2',img)
     cv2.waitKey(0)
 
-def blockify(image, width):
+def blockify(image, width, block_num=-1):
     # we need to generate 'blocks' of pixels of width x width
     h, w, channels = image.shape # we don't use channels
     print(f'h: {h}, w: {w}')
@@ -49,23 +49,24 @@ def blockify(image, width):
     print(f'dividing the image in {num_rows} rows and {num_cols} columns')
     counter = 0
     scale = width*width
-    block_num = 14
+    #block_num = 0
     ret = []
     for r in range(num_rows):
         for c in range(num_cols):
-            tally = 0
+            tally = []
             for ii, i in enumerate(image[r*width:(r+1)*width]):
                 for jj, j in enumerate(i[c*width:(c+1)*width]):
-                    if counter == block_num:
-                        t = sum(j)
+                    #if counter == block_num:
+                        #t = sum(j)
                         #if t > 10:
-                        print(f'sum of RGB components > 10 for ({r*width+ii},{c*width+jj}): {j}')
-                    tally += sum(j)
+                          #print(f'sum of RGB components > 10 for ({r*width+ii},{c*width+jj}): {j}')
+                    #tally += sum(j)
+                    tally.append(sum(j))
             # x = sum(sum(sum(v) for v in i[c*width:(c+1)*width]) for i in image[r*width:(r+1)*width])/scale
             if counter == block_num:
-                print(f'average pixel: {tally/scale}')
+                print(f'average pixel: {sum(tally)/scale}')
                 identifyBlock(image, r, c, width)
-            ret.append(tally/scale)
+            ret.append(tally)
             counter += 1
     return ret
             
