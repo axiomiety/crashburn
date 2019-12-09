@@ -55,25 +55,47 @@ def blockify(image, width, block_num=-1):
         for c in range(num_cols):
             tally = []
             for ii, i in enumerate(image[r*width:(r+1)*width]):
-                for jj, j in enumerate(i[c*width:(c+1)*width]):
-                    #if counter == block_num:
-                        #t = sum(j)
-                        #if t > 10:
-                          #print(f'sum of RGB components > 10 for ({r*width+ii},{c*width+jj}): {j}')
-                    #tally += sum(j)
+                for jj, j in enumerate(i[c*width:(c+1)*width]):                    
                     tally.append(sum(j))
-            # x = sum(sum(sum(v) for v in i[c*width:(c+1)*width]) for i in image[r*width:(r+1)*width])/scale
             if counter == block_num:
                 print(f'average pixel: {sum(tally)/scale}')
                 identifyBlock(image, r, c, width)
             ret.append(tally)
             counter += 1
     return ret
-            
+
+def weigh_fn_pyramid(vals, width):
+    # this weight function assigns a higher weight at the values
+    # in the center, and lower weight at the edges
+    # this is only applicable for a width > 2
+    if width < 3:
+        return vals
+
+    # number of steps to the height of the pyramid
+    # the center of the pyramid has weight 1
+    def pyramid(n):
+        r = np.arange(n)
+        d = np.minimum(r,r[::-1])
+        return np.minimum.outer(d,d)
+
+    p = pyramid(width)
+    num_elems = width*width
+    sum_weights = sum(p.reshape((1,num_elems)))
+    ret = []
+    print(p)
+    print(vals)
+    for val in vals:
+        ret.append(list(np.multiply(np.array(val).reshape((width, width)), p).reshape(1, num_elems)))
+    return ret
+
+def weigh(tally, width, weight_fn):
+    return [weigh_fn(vals, width) for vals in tally]
+
 if __name__ == '__main__':
     rimg = rescale(img)
     cv2.namedWindow('output', cv2.WINDOW_NORMAL) 
     cv2.imshow('output',rimg)
     cv2.waitKey(0)
     arr = blockify(rimg, int(sys.argv[1]) if len(sys.argv) > 1 else 5)
+
     print([convertToPaletteScale(a) for a in arr])

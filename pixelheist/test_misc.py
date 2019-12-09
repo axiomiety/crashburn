@@ -1,4 +1,4 @@
-from extract_data import convertBGRToHexScale, PALETTE_RGB_WIDTH, blockify
+from extract_data import convertBGRToHexScale, PALETTE_RGB_WIDTH, blockify, weigh_fn_pyramid
 
 
 class MockImage(object):
@@ -35,3 +35,22 @@ def test_blockify():
     ]
 
     assert [[3, 3, 3, 3], [12, 12, 12, 12], [9, 9, 9, 9], [6, 6, 6, 6]] == blockify(MockImage(img2), 2)
+
+def test_weight_fns():
+    # 2x2x4 block size
+    tally1 = [
+        [1,1,1,1], [2,2,2,2], [3,3,3,3], [4,4,4,4]
+    ]
+    assert tally1 == weigh_fn_pyramid(tally1, 2) # width < 3, so it's a no-op
+    # 3x3x1 block size
+    tally2 = [
+        [1,1,1,
+         1,2,1,
+         1,1,1],
+    ]
+    expected2 = [
+        [0,0,0,
+         0,2,0,
+         0,0,0]
+    ]
+    assert expected2 == weigh_fn_pyramid(tally2, 3)
