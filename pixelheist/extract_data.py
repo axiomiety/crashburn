@@ -82,10 +82,8 @@ def weigh_fn_pyramid(vals, width):
     num_elems = width*width
     sum_weights = sum(p.reshape((1,num_elems)))
     ret = []
-    print(p)
-    print(vals)
     for val in vals:
-        ret.append(list(np.multiply(np.array(val).reshape((width, width)), p).reshape(1, num_elems)))
+        ret.extend(np.multiply(np.array(val).reshape((width, width)), p).reshape(1, num_elems))
     return ret
 
 def weigh(tally, width, weight_fn):

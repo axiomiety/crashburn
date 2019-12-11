@@ -1,5 +1,5 @@
+import numpy as np
 from extract_data import convertBGRToHexScale, PALETTE_RGB_WIDTH, blockify, weigh_fn_pyramid
-
 
 class MockImage(object):
 
@@ -48,9 +48,13 @@ def test_weight_fns():
          1,2,1,
          1,1,1],
     ]
-    expected2 = [
+    expected2 = [np.array(
         [0,0,0,
          0,2,0,
-         0,0,0]
+         0,0,0])
     ]
-    assert expected2 == weigh_fn_pyramid(tally2, 3)
+    ret = weigh_fn_pyramid(tally2, 3)
+    comp = [np.array_equal(act, exp) for (act, exp) in zip(ret, expected2)]
+    assert all(comp)
+    #TODO: extend to have a bigger block so we can check whether the weight fn
+    # should extend vs append
