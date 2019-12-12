@@ -56,5 +56,57 @@ def test_weight_fns():
     ret = weigh_fn_pyramid(tally2, 3)
     comp = [np.array_equal(act, exp) for (act, exp) in zip(ret, expected2)]
     assert all(comp)
-    #TODO: extend to have a bigger block so we can check whether the weight fn
-    # should extend vs append
+    # 3x3x4 block size
+    tally3 = [
+        [1,1,1,
+         1,2,1,
+         1,1,1],
+        [1,1,1,
+         1,3,1,
+         1,1,1],
+        [1,1,1,
+         1,4,1,
+         1,1,1],
+        [1,1,1,
+         1,5,1,
+         1,1,1],
+    ]
+    expected3 = [np.array(
+        [0,0,0,
+         0,2,0,
+         0,0,0]),
+         np.array(
+        [0,0,0,
+         0,3,0,
+         0,0,0]),
+         np.array(
+        [0,0,0,
+         0,4,0,
+         0,0,0]),
+         np.array(
+        [0,0,0,
+         0,5,0,
+         0,0,0])
+    ]
+    ret = weigh_fn_pyramid(tally3, 3)
+    comp = [np.array_equal(act, exp) for (act, exp) in zip(ret, expected3)]
+    assert all(comp)
+    # 4x4x1 block size
+    tally4 = [
+        [1,1,1,1,
+         1,2,2,1,
+         1,2,2,1,
+         1,1,1,1],
+    ]
+    expected4 = [np.array(
+        [0,0,0,0,
+         0,0.5,0.5,0,
+         0,0.5,0.5,0,
+         0,0,0,0]),
+    ]
+    ret = weigh_fn_pyramid(tally4, 4)
+    comp = [np.array_equal(act, exp) for (act, exp) in zip(ret, expected4)]
+    # TODO: work out the scaling!
+    #print(ret)
+    assert all(comp)
+    # TODO: add for block size of 5 as it starts being a little different

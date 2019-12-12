@@ -35,10 +35,11 @@
  * But could be used to 'download' binaries onto the client whilst bypassing some restrictions
 
 TODO:
- * create test method to identify blocks on the roi (for debugging)
+ * work out the scaling as we attribute a lower weight to the outside pixels and higher weight to the inner ones
  * create a 'proper' project - complete with requirements.txt
    * DONE: and arguable something separate for js too (we can extract some of the functionality into separate modules, imported by the client)!
  * take a screenshot of the screen programatically
+ * DONE: create test method to identify blocks on the roi (for debugging)
  * DONE: merge client/client_test code (c.f. point below)
  * DONE: take some new screenshots now that the scale has changed...
  * DONE: given x,y,w,h, extract the image data into pixels & colours
