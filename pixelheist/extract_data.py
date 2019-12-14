@@ -4,7 +4,35 @@ import json
 from itertools import chain
 import sys
 
-img = cv2.imread('roi.png', cv2.IMREAD_UNCHANGED)
+import argparse
+parser = argparse.ArgumentParser()
+parser.add_argument('--image',
+    action='store',
+    default='roi.png',
+    type=str,
+    help='path to image containing the data')
+parser.add_argument('--numBytes',
+    action='store',
+    default=1200*800,
+    type=int,
+    help='length (in bytes) of the file encoded in the image')
+parser.add_argument('--out',
+    action='store',
+    default='out.bin',
+    help='out path for the decoded file')
+parser.add_argument('--withSha256',
+    action='store_true',
+    default=False,
+    help='toggle computing the SHA256 of the decoded file')
+parser.add_argument('--blockSize',
+    action='store',
+    default=5,
+    type=int,
+    help='the width of a block in pixels')
+args = parser.parse_args()
+
+
+img = cv2.imread(args.image, cv2.IMREAD_UNCHANGED)
 
 # accessing a pixel is as easy as accessing the x-y coordinate: img[x,y]
 # the array returned though is in BGR, not RGB
@@ -117,11 +145,18 @@ if __name__ == '__main__':
     cv2.namedWindow('output', cv2.WINDOW_NORMAL) 
     cv2.imshow('output',rimg)
     cv2.waitKey(0)
-    # default width is 5
-    width = int(sys.argv[1]) if len(sys.argv) > 1 else 5
+    width = args.blockSize
     blocks = blockify(rimg, width)
     extract = weigh_blocks(blocks, width, sum_values=True)
     int_array = combine_half_bytes([convertToPaletteScale(ex) for ex in extract])
     print(int_array)
-    byte_array = bytes(int_array)
+    byte_array = bytearray(int_array)[:args.numBytes]
     print(byte_array)
+    if args.withSha256:
+        import hashlib
+        m = hashlib.sha256()
+        m.update(byte_array)
+        print(m.hexdigest())
+    with open(args.out, 'wb') as f:
+        f.write(byte_array)
+        print(f'wrote file to {args.out}')
