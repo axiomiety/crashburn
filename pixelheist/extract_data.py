@@ -108,6 +108,10 @@ def weigh_blocks(vals, width, sum_values=False):
             ret.extend(res)
     return ret
 
+def combine_half_bytes(arr):
+    pairs = zip(arr[::2], arr[1::2])
+    return [((a<<4) + b) for (a,b) in pairs]
+
 if __name__ == '__main__':
     rimg = rescale(img)
     cv2.namedWindow('output', cv2.WINDOW_NORMAL) 
@@ -117,7 +121,7 @@ if __name__ == '__main__':
     width = int(sys.argv[1]) if len(sys.argv) > 1 else 5
     blocks = blockify(rimg, width)
     extract = weigh_blocks(blocks, width, sum_values=True)
-    int_array = [convertToPaletteScale(ex) for ex in extract]
+    int_array = combine_half_bytes([convertToPaletteScale(ex) for ex in extract])
     print(int_array)
     byte_array = bytes(int_array)
     print(byte_array)

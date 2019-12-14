@@ -38,9 +38,12 @@
  * stop using print statements and set some proper logging!
  * work out the scaling as we attribute a lower weight to the outside pixels and higher weight to the inner ones
  * add type annotations!
- * create a 'proper' project - complete with requirements.txt
+ * create a 'proper' project - complete with requirements.txt - c.f. https://docs.python.org/3/tutorial/venv.html
    * DONE: and arguable something separate for js too (we can extract some of the functionality into separate modules, imported by the client)!
  * take a screenshot of the screen programatically
+ * migrate to argparse for Python - need to pass in the number of bytes too
+ * merge bytes in the final array! otherwise we always represent the lower portion
+ * DONE: log the SHA256 digest of the file 
  * DONE: create test method to identify blocks on the roi (for debugging)
  * DONE: merge client/client_test code (c.f. point below)
  * DONE: take some new screenshots now that the scale has changed...

@@ -1,5 +1,5 @@
 import numpy as np
-from extract_data import convertBGRToHexScale, PALETTE_RGB_WIDTH, blockify, weigh_blocks, convertToPaletteScale
+from extract_data import convertBGRToHexScale, PALETTE_RGB_WIDTH, blockify, weigh_blocks, convertToPaletteScale, combine_half_bytes
 
 class MockImage(object):
 
@@ -14,7 +14,7 @@ class MockImage(object):
 def test_img_to_scale():
     """"Given a mock image, extracts the corresponding hexadecimal values"""
 
-    img = [
+    img1 = [
         [ (255,255,0), (255,255,0), (255,255,0), (255,255,0) ],
         [ (255,255,0), (255,0,0), (255,0,0), (255,255,0) ],
         [ (255,255,0), (255,0,0), (255,0,0), (255,255,0) ],
@@ -22,11 +22,34 @@ def test_img_to_scale():
     ]
 
     SIZE = 4
-    blocks = blockify(MockImage(img), SIZE)
+    blocks = blockify(MockImage(img1), SIZE)
     # we're expecting a single block
     assert len(blocks) == 1
     extract = weigh_blocks(blocks, SIZE, sum_values=True)
     assert [convertToPaletteScale(ex) for ex in extract] == [5]
+
+    img2 = [
+        # block 1
+        [ (255,255,0), (255,255,0), (255,255,0), (255,255,0) ],
+        [ (255,255,0), (255,0,0), (255,0,0), (255,255,0) ],
+        [ (255,255,0), (255,0,0), (255,0,0), (255,255,0) ],
+        [ (255,255,0), (255,255,0), (255,255,0), (255,255,0)],
+        # block 2
+        [ (255,255,0), (255,255,0), (255,255,0), (255,255,0) ],
+        [ (255,255,0), (PALETTE_RGB_WIDTH*2,0,0), (PALETTE_RGB_WIDTH*2,0,0), (255,255,0) ],
+        [ (255,255,0), (PALETTE_RGB_WIDTH*2,0,0), (PALETTE_RGB_WIDTH*2,0,0), (255,255,0) ],
+        [ (255,255,0), (255,255,0), (255,255,0), (255,255,0)],
+    ]
+
+    blocks = blockify(MockImage(img2), SIZE)
+    # we're expecting two blocks
+    assert len(blocks) == 2
+    extract = weigh_blocks(blocks, SIZE, sum_values=True)
+    assert [convertToPaletteScale(ex) for ex in extract] == [5,2]
+
+def test_combine_half_bytes():
+    half_bytes1 = [5,2]
+    assert combine_half_bytes(half_bytes1) == [0x52]    
     
 def test_scale_conversion():
     assert 0 == convertBGRToHexScale([0,0,0])
