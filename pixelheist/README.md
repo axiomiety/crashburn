@@ -34,8 +34,10 @@
  * Only useful on the client though
  * But could be used to 'download' binaries onto the client whilst bypassing some restrictions
 
-TODO:
+## TODO:
+ * stop using print statements and set some proper logging!
  * work out the scaling as we attribute a lower weight to the outside pixels and higher weight to the inner ones
+ * add type annotations!
  * create a 'proper' project - complete with requirements.txt
    * DONE: and arguable something separate for js too (we can extract some of the functionality into separate modules, imported by the client)!
  * take a screenshot of the screen programatically

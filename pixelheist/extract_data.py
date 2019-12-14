@@ -17,8 +17,9 @@ def convertBGRToHexScale(val):
     return convertToPaletteScale(s)
 
 def convertToPaletteScale(val):
-    remainder = val % PALETTE_RGB_WIDTH
-    quotient = val // PALETTE_RGB_WIDTH
+    val_int = int(val)
+    remainder = val_int % PALETTE_RGB_WIDTH
+    quotient = val_int // PALETTE_RGB_WIDTH
     if remainder > PALETTE_RGB_WIDTH/2:
         # round up
         quotient = min(16, quotient+1)
@@ -41,6 +42,13 @@ def identifyBlock(img, r, c, w):
     cv2.waitKey(0)
 
 def blockify(image, width, block_num=-1):
+    """Converts the raw image into a list of blocks according to the given size
+
+    E.g. if the image is of size 20x10 (width x height) and each block is of size
+    5x5, this will return a list of 8 blocks, and each block will contain 25 elements
+    representing the sum of the rgb components of each individual pixel
+    """
+
     # we need to generate 'blocks' of pixels of width x width
     h, w, channels = image.shape # we don't use channels
     print(f'h: {h}, w: {w}')
@@ -64,36 +72,52 @@ def blockify(image, width, block_num=-1):
             counter += 1
     return ret
 
-def weigh_fn_pyramid(vals, width):
-    # this weight function assigns a higher weight at the values
-    # in the center, and lower weight at the edges
-    # this is only applicable for a width > 2
+def pyramid_weights(n):
+    """Weighs inner values more than outer values according to the height of the pyramid
+
+    We scale the weights to ensure their sum is equal to one
+    """
+
+    r = np.arange(n)
+    d = np.minimum(r,r[::-1])
+    p = np.minimum.outer(d,d)
+    sum_weights = sum(p.reshape(n*n))
+    return p/sum_weights
+    
+def weigh_blocks(vals, width, sum_values=False):
+    """Gives more weight to inner values of a block compared to outer values
+
+    This is only applicable if the size of a block is > than 2x2 - otherwise
+    the original blocks will be returned.
+
+    From size 3x3 and above, the values at the edges of each block are weighed at 0.
+    """
+
     if width < 3:
         return vals
 
-    # number of steps to the height of the pyramid
-    # the center of the pyramid has weight 1
-    def pyramid(n):
-        r = np.arange(n)
-        d = np.minimum(r,r[::-1])
-        return np.minimum.outer(d,d)
-
-    p = pyramid(width)
+    p = pyramid_weights(width)
     num_elems = width*width
-    sum_weights = sum(p.reshape(num_elems))
+    
     ret = []
     for val in vals:
-        ret.extend(np.multiply(np.array(val).reshape((width, width)), p).reshape(1, num_elems))
-    return ret/sum_weights # sum of weights should be 1
-
-def weigh(tally, width, weight_fn):
-    return [weigh_fn(vals, width) for vals in tally]
+        res = np.multiply(np.array(val).reshape((width, width)), p).reshape(1, num_elems)
+        if sum_values:
+            ret.append(sum(sum(r) for r in res))
+        else:
+            ret.extend(res)
+    return ret
 
 if __name__ == '__main__':
     rimg = rescale(img)
     cv2.namedWindow('output', cv2.WINDOW_NORMAL) 
     cv2.imshow('output',rimg)
     cv2.waitKey(0)
-    arr = blockify(rimg, int(sys.argv[1]) if len(sys.argv) > 1 else 5)
-
-    print([convertToPaletteScale(a) for a in arr])
+    # default width is 5
+    width = int(sys.argv[1]) if len(sys.argv) > 1 else 5
+    blocks = blockify(rimg, width)
+    extract = weigh_blocks(blocks, width, sum_values=True)
+    int_array = [convertToPaletteScale(ex) for ex in extract]
+    print(int_array)
+    byte_array = bytes(int_array)
+    print(byte_array)

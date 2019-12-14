@@ -1,5 +1,5 @@
 import numpy as np
-from extract_data import convertBGRToHexScale, PALETTE_RGB_WIDTH, blockify, weigh_fn_pyramid
+from extract_data import convertBGRToHexScale, PALETTE_RGB_WIDTH, blockify, weigh_blocks, convertToPaletteScale
 
 class MockImage(object):
 
@@ -11,6 +11,23 @@ class MockImage(object):
     def __getitem__(self, key):
         return self.arr[key]
 
+def test_img_to_scale():
+    """"Given a mock image, extracts the corresponding hexadecimal values"""
+
+    img = [
+        [ (255,255,0), (255,255,0), (255,255,0), (255,255,0) ],
+        [ (255,255,0), (255,0,0), (255,0,0), (255,255,0) ],
+        [ (255,255,0), (255,0,0), (255,0,0), (255,255,0) ],
+        [ (255,255,0), (255,255,0), (255,255,0), (255,255,0)],
+    ]
+
+    SIZE = 4
+    blocks = blockify(MockImage(img), SIZE)
+    # we're expecting a single block
+    assert len(blocks) == 1
+    extract = weigh_blocks(blocks, SIZE, sum_values=True)
+    assert [convertToPaletteScale(ex) for ex in extract] == [5]
+    
 def test_scale_conversion():
     assert 0 == convertBGRToHexScale([0,0,0])
     # below threshold
@@ -33,7 +50,6 @@ def test_blockify():
         [ (3,3,3), (3,3,3), (2,2,2), (2,2,2) ],
         [ (3,3,3), (3,3,3), (2,2,2), (2,2,2) ],
     ]
-
     assert [[3, 3, 3, 3], [12, 12, 12, 12], [9, 9, 9, 9], [6, 6, 6, 6]] == blockify(MockImage(img2), 2)
 
 def test_weight_fns():
@@ -41,7 +57,7 @@ def test_weight_fns():
     tally1 = [
         [1,1,1,1], [2,2,2,2], [3,3,3,3], [4,4,4,4]
     ]
-    assert tally1 == weigh_fn_pyramid(tally1, 2) # width < 3, so it's a no-op
+    assert tally1 == weigh_blocks(tally1, 2) # width < 3, so it's a no-op
     # 3x3x1 block size
     tally2 = [
         [1,1,1,
@@ -53,7 +69,7 @@ def test_weight_fns():
          0,2,0,
          0,0,0])
     ]
-    ret = weigh_fn_pyramid(tally2, 3)
+    ret = weigh_blocks(tally2, 3)
     comp = [np.array_equal(act, exp) for (act, exp) in zip(ret, expected2)]
     assert all(comp)
     # 3x3x4 block size
@@ -88,7 +104,7 @@ def test_weight_fns():
          0,5,0,
          0,0,0])
     ]
-    ret = weigh_fn_pyramid(tally3, 3)
+    ret = weigh_blocks(tally3, 3)
     comp = [np.array_equal(act, exp) for (act, exp) in zip(ret, expected3)]
     assert all(comp)
     # 4x4x1 block size
@@ -104,9 +120,6 @@ def test_weight_fns():
          0,0.5,0.5,0,
          0,0,0,0]),
     ]
-    ret = weigh_fn_pyramid(tally4, 4)
+    ret = weigh_blocks(tally4, 4)
     comp = [np.array_equal(act, exp) for (act, exp) in zip(ret, expected4)]
-    # TODO: work out the scaling!
-    #print(ret)
     assert all(comp)
-    # TODO: add for block size of 5 as it starts being a little different
