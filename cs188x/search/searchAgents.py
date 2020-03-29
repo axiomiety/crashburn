@@ -297,6 +297,8 @@ class CornersProblem(search.SearchProblem):
         "*** YOUR CODE HERE ***"
         
         cornersState = [False for _ in self.corners]
+        if self.startingPosition in self.corners:
+            cornerState[self.corners.index(self.startingPosition)] = True
         return (self.startingPosition, tuple(cornersState))
 
     def isGoalState(self, state):
@@ -376,13 +378,19 @@ def cornersHeuristic(state, problem):
 
     pos, cornersState = state
 
+    dists = []
+    minIdx, minDist, minPos = 0, 999999, (0,0)
+    def dist(p,q):
+        return abs(p[0] - q[0]) + abs(p[1] - q[1])
+
     distancesToUnfoundCorners = []
     for corner, cornerFound in zip(corners, cornersState):
         if not cornerFound:
-            d = abs(pos[0] - corner[0]) + abs(pos[1] - corner[1])
+            d = dist(pos, corner)
             distancesToUnfoundCorners.append(d)
-    "*** YOUR CODE HERE ***"
-    return sum(distancesToUnfoundCorners) if distancesToUnfoundCorners else 0 # Default to trivial solution
+   
+    
+    return min(distancesToUnfoundCorners) if distancesToUnfoundCorners else 0 # Default to trivial solution
 
 class AStarCornersAgent(SearchAgent):
     "A SearchAgent for FoodSearchProblem using A* and your foodHeuristic"
@@ -474,9 +482,20 @@ def foodHeuristic(state, problem):
     Subsequent calls to this heuristic can access
     problem.heuristicInfo['wallCount']
     """
-    position, foodGrid = state
+    #HACK
+    if len(state) == 2 and isinstance(state[1], int):
+        pos, foodGrid = state, problem.food
+    else:
+        pos, foodGrid = state
     "*** YOUR CODE HERE ***"
-    return 0
+    # distance to the closest food pellet?
+    dists = []
+    for pelletPos in foodGrid.asList():
+        if foodGrid[pelletPos[0]][pelletPos[1]]:
+            d = abs(pos[0] - pelletPos[0]) + abs(pos[1] - pelletPos[1])
+            dists.append(d)
+    
+    return min(dists) if dists else 0
 
 class ClosestDotSearchAgent(SearchAgent):
     "Search for all food using a sequence of searches"
@@ -505,10 +524,8 @@ class ClosestDotSearchAgent(SearchAgent):
         food = gameState.getFood()
         walls = gameState.getWalls()
         problem = AnyFoodSearchProblem(gameState)
-
-        "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
-
+        return AStarFoodSearchAgent().searchFunction(problem)
+        
 class AnyFoodSearchProblem(PositionSearchProblem):
     """
     A search problem for finding a path to any food.
@@ -541,9 +558,7 @@ class AnyFoodSearchProblem(PositionSearchProblem):
         complete the problem definition.
         """
         x,y = state
-
-        "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        return self.food[x][y]
 
 def mazeDistance(point1, point2, gameState):
     """

@@ -44,7 +44,7 @@ class GenericSearch:
                 return fringeItem.directions
             if fringeItem.state not in closed:
                 closed.add(fringeItem.state)
-                for child in problem.getSuccessors(fringeItem.state):
+                for child in reversed(problem.getSuccessors(fringeItem.state)):
                     fringe.push(GenericSearch.mkFringeItem(child, fringeItem, strategy))
     
 class SearchProblem:
@@ -114,11 +114,7 @@ def depthFirstSearch(problem):
     print "Is the start a goal?", problem.isGoalState(problem.getStartState())
     print "Start's successors:", problem.getSuccessors(problem.getStartState())
     """
-    "*** YOUR CODE HERE ***"
-    print "Start:", problem.getStartState()
-    print "Is the start a goal?", problem.isGoalState(problem.getStartState())
-    print "Start's successors:", problem.getSuccessors(problem.getStartState())
-
+    
     return GenericSearch.do(problem, util.Stack(), None)
     
     #util.raiseNotDefined()
