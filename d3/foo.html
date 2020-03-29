@@ -6,15 +6,15 @@
 
     document.addEventListener("DOMContentLoaded", function(e) {
    
-        var width = 600,
-            height = 600,
-            margin = 100;
+        var width   = 600,
+            height  = 600,
+            margin  = 100;
 
-        var svgSelection = d3.select("body").append("svg")
+        var svg = d3.select("body").append("svg")
                     .attr("width", width +2*margin)
                     .attr("height", height +2*margin)
                     .append("g")
-                    .attr("translate(" + margin + "," + margin + ")");
+                    .attr("transform", "translate(" + margin + "," + margin + ")");
 
 
         var yScale = d3.scaleLinear().range([height,0]).domain([-5,5]);
@@ -27,16 +27,55 @@
         svg.append("g")
         .attr("transform", "translate(" + width/2 + ",0)")
         .call(d3.axisLeft(yScale));
+/*
+        p = {x:2,y:-1,vx:1, vy:2, magnitude:Math.sqrt(5)};
+
+        svg.append("g")
+            .append("path")
+            .attr("d", "M" + xScale(0) + " " + yScale(0) + " L" + xScale(p.vx) + " " + yScale(p.vy))
+            //.attr("stroke", colorScale(p.magnitude))
+            .attr("stroke", "green")
+            .attr("stroke-width", 2)
+            .attr("fill", "none")
+            //.attr("transform", "translate(" + (xScale(p.x) - xScale(0)) + "," + (yScale(p.x) - yScale(0)) + ")")
+            ;
+
+            svg.append("g")
+            .append("circle")
+            .attr("r",3)
+            .attr("cx", xScale(p.vx))
+            .attr("cy", yScale(p.vy))
+            //.attr("transform", "translate(" + (xScale(p.x) - xScale(0)) + "," + (yScale(p.x) - yScale(0)) + ")")
+            ;
+    
+    svg.append("g")
+            .append("path")
+            .attr("d", "M" + xScale(0) + " " + yScale(0) + " L" + xScale(p.vx) + " " + yScale(p.vy))
+            //.attr("stroke", colorScale(p.magnitude))
+            .attr("stroke", "blue")
+            .attr("stroke-width", 2)
+            .attr("fill", "none")
+            .attr("transform", "translate(" + (xScale(p.x) - xScale(0)) + "," + (yScale(p.x) - yScale(0)) + ")")
+            ;
+
+            svg.append("g")
+            .append("circle")
+            .attr("r",3)
+            .attr("cx", xScale(p.vx))
+            .attr("cy", yScale(p.vy))
+            .attr("transform", "translate(" + (xScale(p.x) - xScale(0)) + "," + (yScale(p.vy) - yScale(0)) + ")")
+            ;*/
 
         var vfield = function(d) {
             d.vx = -d.y;
             d.vy = d.x;
-            d.magnitude = MAth.sqrt(d.vx*d.vx + d.vy*d.vy);
+            d.magnitude = Math.sqrt(d.vx*d.vx + d.vy*d.vy);
         }
 
+        var grid_spacing = 0.5;
         data = [];
-        for (var i=-5; i <= 10; i+= 0.5){
-            for (var j=-5; j<=10; j+= 0.5) {
+        for (var i=-5; i <= 5; i+= grid_spacing){
+            for (var j=-5; j<=5; j+= grid_spacing) {
                 var pt = {x:i, y:j};
                 vfield(pt);
                 data.push(pt);
@@ -47,26 +86,28 @@
             return (!isNaN(it.magnitude) && (max_ > it.magnitude)) ? max_ : it.magnitude;
         }, 0);
 
+        
+        var vscale = d3.scaleLinear().domain([0,max_magnitude]).range([0,grid_spacing]);
+        var colorScale = d3.scaleSequential(d3.interpolateInferno).domain([0,max_magnitude]);
+            
         data.forEach(function(p)
-    {
-        //TODO: fix that
-        if (!isNaN(p.magnitude))
         {
+            // we first scale down to a unit vector
             p.vx /= p.magnitude;
             p.vy /= p.magnitude;
+            // and now scale it to our own scale
+            p.vx *= vscale(p.magnitude);
+            p.vy *= vscale(p.magnitude);
 
-            p.vx *= 0.4;
-            p.vy *= 0.4;
-
-            var colorScale = d3.scaleSequential(d3.interpolateInferno).domain([0,max_magnitude]);
-
+            if (!isNaN(p.vx)) {
             svg.append("g")
             .append("path")
             .attr("d", "M" + xScale(0) + " " + yScale(0) + " L" + xScale(p.vx) + " " + yScale(p.vy))
             .attr("stroke", colorScale(p.magnitude))
-            .attr("stroke-width", 1)
+            //.attr("stroke", "blue")
+            .attr("stroke-width", 2)
             .attr("fill", "none")
-            .attr("transform", "translate(" + (xScale(p.x) - xScale(0)) + "," + (yScale(p.x) - yScale(0)) + ")")
+            .attr("transform", "translate(" + (xScale(p.x) - xScale(0)) + "," + (yScale(p.y) - yScale(0)) + ")")
             ;
 
             svg.append("g")
@@ -74,25 +115,16 @@
             .attr("r",2)
             .attr("cx", xScale(p.vx))
             .attr("cy", yScale(p.vy))
-            .attr("transform", "translate(" + (xScale(p.x) - xScale(0)) + "," + (yScale(p.x) - yScale(0)) + ")")
+            .attr("transform", "translate(" + (xScale(p.x) - xScale(0)) + "," + (yScale(p.y) - yScale(0)) + ")")
             ;
+            }
             
         }
 
-    });
+    );
 
-        // add the axis
-        var yScale = d3.scaleLinear()
-                             .domain([-5,5])
-                             .range([height-padding,padding]);
-        var yAxis = d3.svgAxis()
-            .orient("left")
-            .scale(yScale);
         
-            svgSelection.append("g")
-            .attr("transform", "translate("+padding+",0)")
-            .call(yAxis);
-
+        
     });
     </script>
   </head>

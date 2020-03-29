@@ -1,0 +1,5 @@
+*.swp
+*.beam
+*.pyc
+**/node_modules
+**/target
