@@ -8,7 +8,8 @@ import (
 
 func worker(ports, results chan int) {
 	for p := range ports {
-		address := fmt.Sprintf("scanme.nmap.org:%d", p)
+		//address := fmt.Sprintf("scanme.nmap.org:%d", p)
+		address := fmt.Sprintf("192.168.1.104:%d", p)
 		conn, err := net.Dial("tcp", address)
 		if err != nil {
 			results <- 0
@@ -29,7 +30,7 @@ func main() {
 	}
 
 	go func() {
-		for i := 1; i <= 1024; i++ {
+		for i := 50000; i <= 60000; i++ {
 			ports <- i
 		}
 	}()
