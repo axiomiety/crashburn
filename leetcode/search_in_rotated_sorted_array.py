@@ -4,11 +4,15 @@ class Solution:
     
         if len(nums) == 1:
             return 0 if nums[0] == target else -1
-    
-        # [5,6,1,2,3,4]
+        
         if nums[start] > nums[end]:
-            # we can do better!
-            pivot = nums.index(min(nums))
+            while start < end and nums[start] > nums[end]:
+                mid = start + (end-start)//2
+                if nums[start] < nums[mid]:
+                    start = mid+1
+                else:
+                    start += 1
+            pivot = start
         else:
             pivot = len(nums)-1
         
