@@ -28,3 +28,22 @@ class Solution:
                 continue
             ips.add(".".join(c for c in section))
         return list(ips)
+    
+    # once i remembered what backtracking was about...
+    def backtrackingSolution(self, s:str) -> List[str]:
+        solutions_space = set()       
+        def backtrack(segments,digits):
+            if not digits:
+                if len(segments) == 4:
+                    solutions_space.add(".".join(segment for segment in segments))
+                else:
+                    return
+            for i in range(min(len(digits),3)):
+                candidate, remaining = digits[:i+1], digits[i+1:]
+                if int(candidate) <= 255:
+                    if len(candidate) > 1 and candidate[0] == "0":
+                        continue
+                    backtrack([*segments,candidate], remaining)
+        
+        backtrack([], s)
+        return list(solutions_space)
