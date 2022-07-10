@@ -3,7 +3,7 @@
 #include "Sales_item.h"
 
 
-// gcc prog.cc -lstdc++ -I. -o prog && ./prog
+//gcc ex1.23.cc -std=c++17 -lstdc++ -I. -o prog && ./prog < 2books.txt
 int main()
 {
     std::map <std::string, Sales_item> ledger;
