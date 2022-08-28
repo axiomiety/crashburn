@@ -13,16 +13,23 @@ using std::map;
 using std::string;
 using std::vector;
 
-int biggest(int x, const int *y)
+void swap(int **x, int **y)
 {
-    if (x >= *y)
-        return x;
-    return *y;
+    int *tmp = *y;
+    *y = *x;
+    *x = tmp;
 }
 
 int main()
 {
     int a = 10, b = 22;
-    cout << biggest(a, &b) << endl;
+    int *pa = &a, *pb = &b;
+    cout << std::hex << pa << " : " << std::hex << pb << endl;
+    swap(&pa, &pb);
+    cout << std::hex << pa << " : " << std::hex << pb << endl;
+    cout << std::dec << a << " : " << b << endl;
+    cout << *pa << " : " << *pb << endl;
+    a = 11, b = 23;
+    cout << *pa << " : " << *pb << endl;
     return 0;
 }
