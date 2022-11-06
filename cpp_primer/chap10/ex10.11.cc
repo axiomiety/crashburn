@@ -36,12 +36,14 @@ using std::ostringstream;
 using std::string;
 using std::vector;
 
+typedef bool (*compare_func) (const string&, const string&);
+
 bool is_shorter(const string &s1, const string &s2)
 {
     return s1.size() < s2.size();
 }
 
-void elim_dupes(vector<string> &svec, void (*sort_fn)(vector<string>::iterator, vector<string>::iterator, bool (*)(const string&, const string&)) )
+void elim_dupes(vector<string> &svec, void (*sort_fn)(vector<string>::iterator, vector<string>::iterator, compare_func) )
 {
     // first we sort
     sort_fn(svec.begin(), svec.end(), is_shorter);
