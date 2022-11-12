@@ -38,19 +38,28 @@ using std::string;
 using std::vector;
 using namespace std::placeholders;
 
-bool is_str_length_greater_than(const string &s, uint sz)
-{
-    return s.size() > sz;
-}
-
 int main(int argc, char **argv)
 {
-    vector<string> svec;
-    string token;
-    while (cin >> token)
-        svec.push_back(token);
+    vector<int> ivec = {1, 2, 3, 4, 5, 6, 7, 8, 9};
+    list<int> il1, il2, il3;
 
-    auto len_gt_6 = std::bind(is_str_length_greater_than, _1, 3);
-    cout << count_if(svec.cbegin(), svec.cend(), len_gt_6) << endl;
+    auto ins = inserter(il1, il1.begin());
+    auto back_ins = back_inserter(il2);
+    auto front_inst = front_inserter(il3);
+    for (const int &i: ivec)
+    {
+        ins = i;
+        back_ins = i;
+        front_inst = i;
+    }
+    for (auto &ilist : {il1, il2, il3})
+    {
+        for (const int &i : ilist)
+        {
+            cout << i << ",";
+        }
+        cout << endl;
+    }
+    cout << endl;
     return EXIT_SUCCESS;
 }

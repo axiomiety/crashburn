@@ -36,21 +36,18 @@ using std::ostream;
 using std::ostringstream;
 using std::string;
 using std::vector;
+using std::iterator;
 using namespace std::placeholders;
-
-bool is_str_length_greater_than(const string &s, uint sz)
-{
-    return s.size() > sz;
-}
 
 int main(int argc, char **argv)
 {
-    vector<string> svec;
-    string token;
-    while (cin >> token)
-        svec.push_back(token);
+    vector<int> ivec = {1,1,2,5,5,5,9};
+    list<int> ilist;
 
-    auto len_gt_6 = std::bind(is_str_length_greater_than, _1, 3);
-    cout << count_if(svec.cbegin(), svec.cend(), len_gt_6) << endl;
+    std::unique_copy(ivec.cbegin(), ivec.cend(), inserter(ilist, ilist.begin()));
+    for (const int& i: ilist) {
+        cout << i << ",";
+    }
+    cout << endl;
     return EXIT_SUCCESS;
 }
