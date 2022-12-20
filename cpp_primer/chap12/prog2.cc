@@ -52,16 +52,12 @@ using std::shared_ptr;
 shared_ptr<vector<int>>
 build_on_heap(int val)
 {
-    //auto ivec = new vector<int>(val);
-    auto ivec = make_shared<vector<int>>(10);
-    //return make_shared<vector<int>>(ivec);
-    //return shared_ptr<vector<int>>(ivec);//, [](auto p){ cout << "destoyed" << endl; delete p;});
-    return ivec;
+    auto ivec = new vector<int>(val, 5);
+    return shared_ptr<vector<int>>(ivec, [](auto p){ cout << "destroyed" << endl; delete p;});
 }
 
 int main(int argc, char **argv)
 {
-    //shared_ptr<vector<int>> ivec(new vector<int>(4), [](auto p){ cout << "destoyed" << endl; delete p;});
     auto ivec = build_on_heap(std::stoi(argv[1]));
     for (auto const& v: *ivec)
         cout << v << ",";
