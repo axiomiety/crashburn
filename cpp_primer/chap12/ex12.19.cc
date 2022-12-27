@@ -31,6 +31,8 @@ class StrBlob {
         size_type size() const { return data->size(); }
         bool empty() const { return data->empty(); }
         void push_back(const string& t) { data->push_back(t); }
+        // move semantics, just because
+        void push_back(const string&& t) { cout << "rvalue ref" << endl; data->push_back(move(t)); }
         void pop_back();
         string& front();
         string & back();
@@ -89,7 +91,29 @@ shared_ptr<vector<string>> StrBlobPtr::check(size_t i, const string& msg) const
     return ret;
 }
 
+string& StrBlobPtr::deref() const
+{
+    auto p = check(curr, "dereference past end");
+    return (*p)[curr];
+}
+
+StrBlobPtr& StrBlobPtr::incr()
+{
+    check(curr, "increment past end of StrBlobPtr");
+    ++curr;
+    return *this;
+}
+
 int main(int argc, char **argv)
 {
+    auto blob = StrBlob({"the quick brown fox"});
+    blob.push_back(string("over the lazy dog"));
+    auto p = StrBlobPtr(blob);
+    cout << p.deref() << endl;
+    p.incr();
+    cout << p.deref() << endl;
+    p.incr();
+    p.incr();
+
     return EXIT_SUCCESS;
 }
