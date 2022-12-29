@@ -58,7 +58,7 @@ string& StrBlob::front()
 
 string& StrBlob::back()
 {
-    check(0, "back on empty StrBlobl");
+    check(0, "back on emtpy StrBlobl");
     return data->back();
 }
 
@@ -106,14 +106,27 @@ StrBlobPtr& StrBlobPtr::incr()
 
 int main(int argc, char **argv)
 {
-    auto blob = StrBlob({"the quick brown fox"});
-    blob.push_back(string("over the lazy dog"));
+    auto blob = StrBlob();
+    ifstream in(argv[1]);
+    string line;
+    while (getline(in, line))
+    {
+        blob.push_back(line);
+    }
     auto p = StrBlobPtr(blob);
-    cout << p.deref() << endl;
-    p.incr();
-    cout << p.deref() << endl;
-    p.incr();
-    p.incr();
-
+    while (1)
+    {
+        try
+        {
+            cout << p.deref() << endl;
+            p.incr();
+        }
+        catch(const out_of_range& e)
+        {
+            // nothing for us to do
+            break;
+        }
+        
+    }
     return EXIT_SUCCESS;
 }
