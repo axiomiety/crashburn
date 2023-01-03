@@ -21,22 +21,28 @@
 
 using namespace std;
 
+class QueryResult;
+
+class TextQuery
+{
+    public:
+        TextQuery(ifstream&);
+        QueryResult query(string) const;
+
+    private:
+        string s;
+};
+
+void runQueries(ifstream& infile)
+{
+    TextQuery tq(infile);
+
+}
+
 int main(int argc, char **argv)
 {
-    // can't use methods on the allocator from C++20
-    allocator<string> alloc;
-    allocator_traits<allocator<string>> at;
-    uint n = 10;
-    auto p = at.allocate(alloc, n);
-    string* q = p;
-    string s;
-    while (cin >> s && q != p + n)
-        at.construct(alloc, q++, s);
-    
-    while (q!=p)
-        at.destroy(alloc, --q);
-    
-    at.deallocate(alloc, p, n);
-    
+    // our input file
+    ifstream in(argv[1]);
+
     return EXIT_SUCCESS;
 }
