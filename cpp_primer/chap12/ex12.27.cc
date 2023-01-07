@@ -18,6 +18,7 @@
 #include <set>
 #include <cassert>
 #include <memory>
+#include <format>
 
 using namespace std;
 
@@ -39,9 +40,10 @@ class QueryResult
 {
     public:
         QueryResult() = default;
-        QueryResult(shared_ptr<vector<string>> lines, shared_ptr<set<line_no>> lineIndexes) : lines(lines), lineIndexes(lineIndexes) {};
-
-    private:
+        QueryResult(string token, shared_ptr<vector<string>> lines, shared_ptr<set<line_no>> lineIndexes) : token(token), lines(lines), lineIndexes(lineIndexes) {};
+        string toString();
+    //private:
+        string token;
         shared_ptr<vector<string>> lines;
         shared_ptr<set<line_no>> lineIndexes;
 };
@@ -58,7 +60,7 @@ TextQuery::TextQuery(ifstream& in) : lines(new vector<string>)
             auto& lineIndexes = wordToLines[token];
             if (!lineIndexes)
                 lineIndexes = make_shared<set<line_no>>();
-            lineIndexes->insert(lines->size());
+            lineIndexes->insert(lines->size()-1);
         }
     }
 
@@ -66,15 +68,24 @@ TextQuery::TextQuery(ifstream& in) : lines(new vector<string>)
 
 QueryResult TextQuery::query(string word) 
 {
+    static shared_ptr<set<line_no>> nodata(new set<line_no>);
     if (wordToLines.count(word) == 0)
-        return QueryResult();
-    
-    return QueryResult(shared_ptr<vector<string>>(lines), shared_ptr<set<line_no>>(wordToLines[word]));
+        return QueryResult(word, shared_ptr<vector<string>>(lines), nodata);
+    return QueryResult(word, shared_ptr<vector<string>>(lines), shared_ptr<set<line_no>>(wordToLines[word]));
+}
+
+string QueryResult::toString()
+{
+    ostringstream out;
+    out << token << " was found across " << lineIndexes->size() << " line(s)\n";
+    for (auto lineIdx: *lineIndexes)
+        out << "(line " << lineIdx+1 << ") " << lines->at(lineIdx) << endl;
+    return out.str();
 }
 
 ostream& print(ostream& out, QueryResult qr)
 {
-    out << "foobar";
+    out << qr.toString() << endl;
     return out;
 }
 
