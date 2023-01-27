@@ -34,19 +34,14 @@ public:
     void save(Folder &);
     void remove(Folder &);
     friend void swap(Message &lhs, Message &rhs);
-    ostream& print(ostream& out);
-    static bool cmpMsg(const Message* a, const Message* b) { return a->contents < b->contents; };
-private:
+    ostream &print(ostream &out);
     string contents;
+
+private:
     set<Folder *> folders;
     void add_to_folders(const Message &);
     void remove_from_folders();
 };
-
-ostream& Message::print(ostream& out)
-{
-    return out << contents << endl;
-}
 
 class Folder
 {
@@ -54,17 +49,32 @@ public:
     Folder(string s) : name(s) {}
     void addMsg(Message *);
     void remMsg(Message *);
+    string name;
 
 private:
-    string name;
-    set<Message *, decltype(Message::cmpMsg)*> messages;
+    set<Message *> messages;
 };
 
-void Folder::addMsg(Message* msg) {
+ostream &Message::print(ostream &out)
+{
+    out << contents << " (folders: ";
+    for (const auto f : folders)
+        out << f->name << " ";
+
+    return out << ")" << endl;
+}
+
+void Folder::addMsg(Message *msg)
+{
     messages.insert(msg);
 }
-void Folder::remMsg(Message* msg) {
-    messages.erase(msg);
+void Folder::remMsg(Message *msg)
+{
+    //auto num_removed = messages.erase(msg);
+    //cout << "removed " << num_removed << " messages" << endl;
+    if (messages.count(msg))
+        messages.erase(msg);
+    cout << messages.size() << endl;
 }
 
 void Message::save(Folder &f)
@@ -129,13 +139,13 @@ void swap(Message &lhs, Message &rhs)
 
 int main(int argc, char **argv)
 {
-    auto m1 = Message("message 1");
-    auto m2 = Message("message 2");
-    m1.print(cout);
-    auto f1 = Folder("folder 1");
-    auto f2 = Folder("folder 2");
-    m1.save(f1);
-    // m1.save(f2);
+    auto f1 = Folder("folder 1"), f2 = Folder("folder 2");
+    auto m1 = Message("message 1"), m2 = Message("message 2");
+        m1.save(f1);
+        m1.save(f2);
+
+        m1.print(cout);
+        m2.print(cout);
 
     return EXIT_SUCCESS;
 }
