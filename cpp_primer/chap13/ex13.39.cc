@@ -38,6 +38,7 @@ public:
 
 private:
     static allocator<string> alloc;
+    static allocator_traits<allocator<string>> at;
     void chk_n_alloc()
     {
         if (size() == capacity())
@@ -52,27 +53,29 @@ private:
 };
 
 allocator<string> StrVec::alloc;
+allocator_traits<allocator<string>> StrVec::at;
 
 void StrVec::push_back(const string &s)
 {
     chk_n_alloc();
-    alloc.construct(first_free++, s);
+    at.construct(alloc, first_free++, s);
 }
 
 pair<string *, string *>
 StrVec::alloc_n_copy(const string *b, const string *e)
 {
-    auto data = alloc.allocate(e - b);
+    auto data = at.allocate(alloc, e - b);
     return {data, uninitialized_copy(b, e, data)};
 }
 
 void StrVec::free()
 {
+    cout << "free called" << endl;
     if (elements)
     {
         for (auto p = first_free; p != elements;)
-            alloc.destroy(--p);
-        alloc.deallocate(elements, cap - elements);
+            at.destroy(alloc, --p);
+        at.deallocate(alloc, elements, cap - elements);
     }
 }
 StrVec::StrVec(const StrVec &s)
@@ -95,12 +98,13 @@ StrVec& StrVec::operator=(const StrVec &rhs)
 
 void StrVec::reallocate()
 {
+    cout << "realloc called" << endl;
     auto newcapacity = size() ? 2*size() : 1;
     auto newdata = alloc.allocate(newcapacity);
     auto dest = newdata;
     auto elem = elements;
     for (size_t i = 0; i != size(); ++i)
-        alloc.construct(dest++, move(*elem++));
+        at.construct(alloc, dest++, move(*elem++));
     free();
     elements = newdata;
     first_free = dest;
@@ -109,5 +113,10 @@ void StrVec::reallocate()
 
 int main(int argc, char **argv)
 {
+    auto svec = StrVec(), svec2 = StrVec();
+    svec.push_back("foobar");
+    svec2 = svec;
+    cout << "dtor" << endl;
     return EXIT_SUCCESS;
-}
+
+ 
