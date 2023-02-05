@@ -50,7 +50,7 @@ public:
     Bar() = default;
     Bar(int i) : x(i) {}
     Bar(const Bar&);
-    Bar(const Bar&&);
+    Bar(const Bar&&) noexcept;
     void print(ostream&);
 private:
     int x;
@@ -61,7 +61,7 @@ Bar::Bar(const Bar& f)
     cout << "copy ctor called" << endl;
     x = f.x;
 }
-Bar::Bar(const Bar&& f)
+Bar::Bar(const Bar&& f) noexcept
 {
     cout << "move ctor called" << endl;
     x = move(f.x);
