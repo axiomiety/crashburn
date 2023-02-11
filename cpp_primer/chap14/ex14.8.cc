@@ -23,18 +23,19 @@ using namespace std;
 
 class Foo
 {
+    friend ostream& operator<<(ostream &os, const Foo &item);
 public:
     Foo(vector<int> data) : data(data) { }
     Foo sorted() &&;
     Foo sorted() const &;
     string toString() const;
-    ostream& operator<<(ostream &os, const Foo &item);
 private:
     vector<int> data;
 };
 
-ostream& operator<<(ostream &os, const Foo &item {
-    os << 
+ostream& operator<<(ostream &os, const Foo &item) {
+    for (const auto& d : item.data)
+        os << d << ",";
     return os;
 }
 
@@ -52,14 +53,11 @@ Foo Foo::sorted() const& {
     return ret;
 }
 
-string Foo::toString() const {
-}
-
 int main(int argc, char **argv)
 {
     auto f1 = Foo({1,2,3});
     f1.sorted();
-    cout << f1.toString() << endl;
-    cout << Foo({3,2,1}).sorted().toString() << endl;
+    cout << f1 << endl;
+    cout << Foo({3,2,1}).sorted() << endl;
     return EXIT_SUCCESS;
 }
