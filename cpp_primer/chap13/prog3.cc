@@ -32,6 +32,7 @@ private:
     vector<int> data;
 };
 
+
 Foo
 Foo::sorted() &&
 {
@@ -47,11 +48,6 @@ Foo Foo::sorted() const& {
 }
 
 string Foo::toString() const {
-    stringstream ss;
-    for (const auto &i : data) {
-        ss << i << ",";
-    }
-    return ss.str();
 }
 
 int main(int argc, char **argv)
