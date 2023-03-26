@@ -69,8 +69,7 @@ class Mask
     def random_location
         loop do
             row = rand(@rows)
-            col = rand(@cols)
-
+            col = rand(@columns)
             return [row,col] if @bits[row][col]
         end
     end
