@@ -25,8 +25,17 @@ class BinaryTreeWithBias
             end
 
             # do a weighted sample
-            # total_weights = 
-            neighbor = neighbors[neighbors.keys.sample]
+            running_sum = 0
+            biases_boundaries = []
+            @@biases.each do |bias|
+                running_sum += @@relative_weights[bias]
+                biases_boundaries <<  running_sum
+            end
+
+            total_weights = @@biases.map { |bias| @@relative_weights[bias]}.sum()
+            selection = rand(total_weights)
+            neighbor = neighbors[@@biases[biases_boundaries.bsearch_index{|elem| elem >= selection}]]
+            #neighbor = neighbors[neighbors.keys.sample]
             cell.link(neighbor) if neighbor
         end
     end
