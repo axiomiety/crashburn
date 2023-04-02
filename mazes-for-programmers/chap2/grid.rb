@@ -1,6 +1,7 @@
 require 'cell'
 require 'chunky_png'
 
+
 class Grid
     attr_reader :rows, :columns
 
@@ -111,4 +112,52 @@ class Grid
         img
     end
 
+end
+
+class BitfieldGrid < Grid
+    attr_reader :rows, :columns
+
+    def initialize(rows, columns)
+        @rows = rows
+        @columns = columns
+        @grid = prepare_grid
+    end
+
+    def prepare_grid
+        Array.new(rows) do |row|
+            Array.new(columns) do |column|
+                0
+            end
+        end
+    end
+    
+    def each_row
+        @grid.each_with_index do |row, idx|
+            yield row, idx
+        end
+    end
+
+    def to_s
+        output = "+" + "---+" * columns + "\n"
+
+        each_row do |row, row_idx|
+            top = "|"
+            bottom = "+"
+
+            row.each_with_index do |val, col_idx|
+                body = "   "
+                east_boundary = @gid[row_idx][col_idx+1] ? " " : "|")
+                top << body << east_boundary
+
+                south_bounary = (@grid[row_idx=1][col_idx] ? "   " : "---")
+                corner = "+"
+                bottom << south_bounary << corner
+            end
+
+            output << top << "\n"
+            output << bottom << "\n"
+        end
+
+        output
+    end
 end
