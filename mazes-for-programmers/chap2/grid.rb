@@ -137,6 +137,18 @@ class BitfieldGrid < Grid
         end
     end
 
+    def each_cell
+        each_row do |row, row_idx|
+            row.each_with_index do |col, col_idx|
+                yield(row_idx, col_idx) if @grid[row_idx][col_idx]
+            end
+        end
+    end
+
+    def []=(row, column, val)
+        @grid[row][column] = val
+    end
+
     def to_s
         output = "+" + "---+" * columns + "\n"
 
@@ -146,10 +158,10 @@ class BitfieldGrid < Grid
 
             row.each_with_index do |val, col_idx|
                 body = "   "
-                east_boundary = @gid[row_idx][col_idx+1] ? " " : "|")
+                east_boundary = @gid[row_idx][col_idx+1] ? " " : "|"
                 top << body << east_boundary
 
-                south_bounary = (@grid[row_idx=1][col_idx] ? "   " : "---")
+                south_bounary = @grid[row_idx=1][col_idx] ? "   " : "---"
                 corner = "+"
                 bottom << south_bounary << corner
             end
