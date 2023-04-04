@@ -124,24 +124,29 @@ class BitfieldGrid < Grid
     end
 
     def prepare_grid
-        Array.new(rows) do |row|
-            Array.new(columns) do |column|
+        Array.new(@rows) do |row|
+            Array.new(@columns) do |column|
                 0
             end
         end
     end
     
     def each_row
-        @grid.each_with_index do |row, idx|
-            yield row, idx
+        @grid.each_index do |row_idx|
+            yield row_idx
         end
     end
 
     def each_cell
-        each_row do |row, row_idx|
-            row.each_with_index do |col, col_idx|
-                yield(row_idx, col_idx) if @grid[row_idx][col_idx]
+        @grid.each_index do |row_idx|
+            @grid[row_idx].each_index do |col_idx|
+            #    puts "#{@grid[row_idx].size}"
+                puts "#{row_idx}-#{col_idx}"
+            #puts "#{row_idx}"
+                yield row_idx, row_idx 
+                #yield [row_idx, col_idx].to_a
             end
+            puts "here"
         end
     end
 
@@ -152,16 +157,16 @@ class BitfieldGrid < Grid
     def to_s
         output = "+" + "---+" * columns + "\n"
 
-        each_row do |row, row_idx|
+        each_row do |row_idx|
             top = "|"
             bottom = "+"
 
-            row.each_with_index do |val, col_idx|
+            @grid[row_idx].each_with_index do |val, col_idx|
                 body = "   "
-                east_boundary = @gid[row_idx][col_idx+1] ? " " : "|"
+                east_boundary = @grid[row_idx][col_idx+1] ? " " : "|"
                 top << body << east_boundary
 
-                south_bounary = @grid[row_idx=1][col_idx] ? "   " : "---"
+                south_bounary = @grid[row_idx+1] ? "   " : "---"
                 corner = "+"
                 bottom << south_bounary << corner
             end
