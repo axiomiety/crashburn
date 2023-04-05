@@ -7,8 +7,10 @@ class BinaryTree
 
             neighbor = neighbors.sample
             if neighbor == :north
+                puts "setting #{row_idx-1}, #{col_idx} to 1"
                 grid[row_idx-1,col_idx] = 1
-            else
+            elsif neighbor == :east
+                puts "setting #{row_idx}, #{col_idx+1} to 1"
                 grid[row_idx,col_idx+1] = 1
             end
         end
