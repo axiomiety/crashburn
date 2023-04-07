@@ -2,16 +2,14 @@ class BinaryTree
     def self.onBitGrid(grid)
         grid.each_cell do |row_idx, col_idx|
             neighbors = []
-            neighbors << :north if grid[row_idx-1,col_idx]
+            neighbors << :south if grid[row_idx+1,col_idx]
             neighbors << :east if grid[row_idx,col_idx+1]
 
             neighbor = neighbors.sample
-            if neighbor == :north
-                puts "setting #{row_idx-1}, #{col_idx} to 1"
-                grid[row_idx-1,col_idx] = 1
+            if neighbor == :south
+                grid[row_idx,col_idx] = 0x10
             elsif neighbor == :east
-                puts "setting #{row_idx}, #{col_idx+1} to 1"
-                grid[row_idx,col_idx+1] = 1
+                grid[row_idx,col_idx] = 0x1
             end
         end
     end

@@ -71,6 +71,8 @@ class Grid
 
             row.each do |cell|
                 cell = Cell.new(-1,-1) unless cell
+
+                #body = " #{cell.neighbors ? 1 : 0} "
                 body = "   "
                 east_boundary = (cell.linked?(cell.east) ? " " : "|")
                 top << body << east_boundary
@@ -159,10 +161,11 @@ class BitfieldGrid < Grid
             @grid[row_idx].each_index do |col_idx|
                 #body = " #{self[row_idx,col_idx]} "
                 body = "   "
-                east_boundary = self[row_idx,col_idx+1] == 1 ? " " : "|"
+                cell = self[row_idx,col_idx]
+                east_boundary = (cell & 0x1 == 0x1) ? " " : "|"
                 top << body << east_boundary
-
-                south_bounary = self[row_idx+1,col_idx] == 1 ? "   " : "---"
+                
+                south_bounary = (cell & 0x10 == 0x10) ? "   " : "---"
                 corner = "+"
                 bottom << south_bounary << corner
             end
