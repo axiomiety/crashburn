@@ -133,20 +133,6 @@ class BitfieldGrid < Grid
         end
     end
     
-    def each_row
-        @grid.each_index do |row_idx|
-            yield row_idx
-        end
-    end
-
-    def each_cell
-        (0..@rows-1).each do |row_idx|
-            (0..@columns-1).each do |col_idx|
-                yield row_idx, col_idx 
-            end
-        end
-    end
-
     def []=(row, column, val)
         @grid[row][column] = val
     end
@@ -159,7 +145,6 @@ class BitfieldGrid < Grid
             bottom = "+"
 
             @grid[row_idx].each_index do |col_idx|
-                #body = " #{self[row_idx,col_idx]} "
                 body = "   "
                 cell = self[row_idx,col_idx]
                 east_boundary = (cell & 0x1 == 0x1) ? " " : "|"
