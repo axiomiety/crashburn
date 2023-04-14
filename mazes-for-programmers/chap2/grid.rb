@@ -133,6 +133,14 @@ class BitfieldGrid < Grid
         end
     end
     
+    def each_cell
+        (0..@rows-1).each do |row_idx|
+            (0..@columns-1).each do |col_idx|
+                yield row_idx, col_idx 
+            end
+        end
+    end
+
     def []=(row, column, val)
         @grid[row][column] = val
     end
