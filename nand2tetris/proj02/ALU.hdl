@@ -46,13 +46,12 @@ CHIP ALU {
     Xor16(a=y, b=y, out=zeroy);
 
     // pre-setting
-    // i messed up the wiring between the zx and nx
     Mux16(a=x,b=zerox, sel=zx, out=tempoutzx);
-    Not16(in=tempoutzx, out=outzx);
-    Mux16(a=outzx,b=notx, sel=nx, out=outnx);
     Mux16(a=y,b=zeroy, sel=zy, out=tempoutzy);
-    Not16(in=tempoutzy, out=outzy);
-    Mux16(a=outzy,b=noty, sel=ny, out=outny);
+    Not16(in=tempoutzx, out=notoutzx);
+    Not16(in=tempoutzy, out=notoutzy);
+    Mux16(a=tempoutzx,b=notoutzx, sel=nx, out=outnx);
+    Mux16(a=tempoutzy,b=notoutzy, sel=ny, out=outny);
 
     Add16(a=outnx, b=outny, out=xplusy);
     And16(a=outnx, b=outny, out=xandy);
