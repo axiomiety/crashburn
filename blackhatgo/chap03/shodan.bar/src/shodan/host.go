@@ -1,5 +1,11 @@
 package shodan
 
+import (
+	"encoding/json"
+	"fmt"
+	"net/http"
+)
+
 type HostLocation struct {
 	City         string  `json:"city"`
 	RegionCode   string  `json:"region_code"`
@@ -30,4 +36,19 @@ type Host struct {
 
 type HostSearch struct {
 	Matches []Host `json:"matches"`
+}
+
+func (s *Client) HostSearch(q string) (*HostSearch, error) {
+	res, err := http.Get(fmt.Sprintf("%s/shodan/host/search?key=%s&query=%s", BaseURL, s.apiKey, q))
+	if err != nil {
+		return nil, err
+	}
+	defer res.Body.Close()
+
+	var ret HostSearch
+	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
+		return nil, err
+	}
+
+	return &ret, nil
 }
