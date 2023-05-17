@@ -28,18 +28,3 @@ func (s *Client) APIInfo() (*APIInfo, error) {
 	}
 	return &ret, nil
 }
-
-func (s *client) HostSearch(q string) (*HostSearch, error) {
-	res, err := http.Get(fmt.Sprintf("%s/shodan/host/search?key=%s&query=%s", BaseURL, s.apiKey, q))
-	if err != nil {
-		return nil, err
-	}
-	defer res.Body.Close()
-
-	var ret HostSearch
-	if err := json.NewDecoder(res.Body).Decode(&ret); err != nil {
-		return nil, err
-	}
-
-	return &ret, nil
-}

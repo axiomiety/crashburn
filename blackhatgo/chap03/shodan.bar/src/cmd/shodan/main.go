@@ -4,13 +4,12 @@ import (
 	"os"
 	"log"
 	"fmt"
-
-	"shodan.bar/shodan/shodan"
+	"shodan/shodan"
 )
 
 func main() {
 	if len(os.Args) != 2 {
-		log.Fatallln("Usage: shodan searchterm")
+		log.Fatalln("Usage: shodan searchterm")
 	}
 	apiKey := os.Getenv("SHODAN_API_KEY")
 	s := shodan.New(apiKey)
@@ -19,8 +18,8 @@ func main() {
 		log.Panicln(err)
 	}
 
-	fm.Printf(
-		"Query Credits: %s\nScan Credits: %d\n\n", info.QueryCredits, info.ScanCredits,
+	fmt.Printf(
+		"Query Credits: %d\nScan Credits: %d\n\n", info.QueryCredits, info.ScanCredits,
 	)
 
 	hostSearch, err := s.HostSearch(os.Args[1])
