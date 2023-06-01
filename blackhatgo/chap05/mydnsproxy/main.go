@@ -6,7 +6,7 @@ import (
 	"net"
 )
 
-func reroute(w dns.ResponseWriter, req *dns.Msg) {
+func forward(w dns.ResponseWriter, req *dns.Msg) {
 	var serverAddr = "8.8.8.8:53"
 	log.Printf("%+v\n", req)
 	resp, err := dns.Exchange(req, serverAddr)
@@ -30,7 +30,7 @@ func localproxy(w dns.ResponseWriter, req *dns.Msg) {
 				Name:   q.Name,
 				Rrtype: dns.TypeA,
 				Class:  dns.ClassINET,
-				Ttl:    0,
+				Ttl:    10,
 			},
 			A: net.ParseIP("127.0.0.1").To4(),
 		}
@@ -41,7 +41,8 @@ func localproxy(w dns.ResponseWriter, req *dns.Msg) {
 
 func main() {
 
+	dns.HandleFunc(".", forward)
+	dns.HandleFunc("facebook.com", forward)
 	dns.HandleFunc("abc.facebook.com", localproxy)
-	dns.HandleFunc("facebook.com", reroute)
 	log.Fatal(dns.ListenAndServe(":53", "udp", nil))
 }
