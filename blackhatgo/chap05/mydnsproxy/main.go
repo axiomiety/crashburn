@@ -4,6 +4,9 @@ import (
 	"github.com/miekg/dns"
 	"log"
 	"net"
+	"os"
+	"os/signal"
+	"syscall"
 )
 
 func forward(w dns.ResponseWriter, req *dns.Msg) {
@@ -39,10 +42,39 @@ func localproxy(w dns.ResponseWriter, req *dns.Msg) {
 	w.WriteMsg(&resp)
 }
 
-func main() {
-
+func reload() {
+	log.Printf("reload called\n")
 	dns.HandleFunc(".", forward)
 	dns.HandleFunc("facebook.com", forward)
 	dns.HandleFunc("abc.facebook.com", localproxy)
-	log.Fatal(dns.ListenAndServe(":53", "udp", nil))
+}
+
+func main() {
+
+	log.Printf("PID: %d", os.Getpid())
+	go func() {
+		log.Fatal(dns.ListenAndServe(":53", "udp", nil))
+	}()
+
+	sigsStop := make(chan os.Signal, 1)
+	signal.Notify(sigsStop, syscall.SIGINT, syscall.SIGTERM)
+	sigHup := make(chan os.Signal, 1)
+	signal.Notify(sigHup, syscall.SIGHUP)
+	done := make(chan bool, 1)
+
+	go func() {
+		reload()
+		for {
+			<-sigHup
+			reload()
+		}
+	}()
+
+	go func() {
+		<-sigsStop
+		log.Printf("shutting down")
+		done <- true
+	}()
+
+	<-done
 }
