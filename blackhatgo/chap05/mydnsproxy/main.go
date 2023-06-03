@@ -1,7 +1,9 @@
 package main
 
 import (
+	"bufio"
 	"github.com/miekg/dns"
+	"golang.org/x/exp/slog"
 	"log"
 	"net"
 	"os"
@@ -42,16 +44,40 @@ func localproxy(w dns.ResponseWriter, req *dns.Msg) {
 	w.WriteMsg(&resp)
 }
 
-func reload() {
-	log.Printf("reload called\n")
+type holder struct {
+	Filename string
+	Domains  []string
+}
+
+func (data *holder) reload() {
+	// remove everything we currently have
+	for _, domain := range data.Domains {
+		dns.HandleRemove(domain)
+	}
+
+	// forward everything by default
 	dns.HandleFunc(".", forward)
-	dns.HandleFunc("facebook.com", forward)
-	dns.HandleFunc("abc.facebook.com", localproxy)
+
+	readFile, err := os.Open(data.Filename)
+	defer readFile.Close()
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	fileScanner := bufio.NewScanner(readFile)
+	fileScanner.Split(bufio.ScanLines)
+	for fileScanner.Scan() {
+		domain := fileScanner.Text()
+		dns.HandleFunc(domain, localproxy)
+		data.Domains = append(data.Domains, domain)
+	}
+	log.Printf("reloaded %d domains", len(data.Domains))
 }
 
 func main() {
-
-	log.Printf("PID: %d", os.Getpid())
+	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
+	logger.Info("starting", "pid", os.Getpid())
 	go func() {
 		log.Fatal(dns.ListenAndServe(":53", "udp", nil))
 	}()
@@ -62,11 +88,12 @@ func main() {
 	signal.Notify(sigHup, syscall.SIGHUP)
 	done := make(chan bool, 1)
 
+	data := holder{Filename: "domains.txt"}
 	go func() {
-		reload()
+		data.reload()
 		for {
 			<-sigHup
-			reload()
+			data.reload()
 		}
 	}()
 
