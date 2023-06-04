@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"flag"
 	"github.com/miekg/dns"
 	"golang.org/x/exp/slog"
 	"log"
@@ -9,10 +10,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
-	"flag"
 )
-
-
 
 func localproxy(w dns.ResponseWriter, req *dns.Msg) {
 	var resp dns.Msg
@@ -36,8 +34,8 @@ func localproxy(w dns.ResponseWriter, req *dns.Msg) {
 type DnsForwardFunc func(w dns.ResponseWriter, req *dns.Msg)
 
 type holder struct {
-	Filename string
-	Domains  []string
+	Filename    string
+	Domains     []string
 	ForwardFunc DnsForwardFunc
 }
 
@@ -64,14 +62,14 @@ func (data *holder) reload() {
 		dns.HandleFunc(domain, localproxy)
 		data.Domains = append(data.Domains, domain)
 	}
-	logger.Info("config reloaded",  "domains", len(data.Domains))
+	logger.Info("config reloaded", "domains", len(data.Domains))
 }
 
 var logger = slog.New(slog.NewJSONHandler(os.Stdout, nil))
 
 func main() {
-	serverAddr := flag.String("dns","8.8.8.8:53","<ip>:<port>")
-	domains := flag.String("domains","domains.txt","file containing a list of domains to sinkhole, one per line")
+	serverAddr := flag.String("dns", "8.8.8.8:53", "<ip>:<port>")
+	domains := flag.String("domains", "domains.txt", "file containing a list of domains to sinkhole, one per line")
 	flag.Parse()
 
 	logger.Info("starting", "pid", os.Getpid(), "dns", *serverAddr, "domains", *domains)
