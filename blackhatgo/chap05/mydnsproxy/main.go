@@ -9,27 +9,16 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"flag"
 )
 
-func forward(w dns.ResponseWriter, req *dns.Msg) {
-	var serverAddr = "8.8.8.8:53"
-	log.Printf("%+v\n", req)
-	resp, err := dns.Exchange(req, serverAddr)
-	if err != nil {
-		dns.HandleFailed(w, req)
-		return
-	}
-	if err := w.WriteMsg(resp); err != nil {
-		dns.HandleFailed(w, req)
-		return
-	}
-}
+
 
 func localproxy(w dns.ResponseWriter, req *dns.Msg) {
 	var resp dns.Msg
 	resp.SetReply(req)
 	for _, q := range req.Question {
-		log.Printf("sinkholing req for %s", q.Name)
+		logger.Info("sinkhole request", "domain", q.Name)
 		a := dns.A{
 			Hdr: dns.RR_Header{
 				Name:   q.Name,
@@ -44,9 +33,12 @@ func localproxy(w dns.ResponseWriter, req *dns.Msg) {
 	w.WriteMsg(&resp)
 }
 
+type DnsForwardFunc func(w dns.ResponseWriter, req *dns.Msg)
+
 type holder struct {
 	Filename string
 	Domains  []string
+	ForwardFunc DnsForwardFunc
 }
 
 func (data *holder) reload() {
@@ -56,7 +48,7 @@ func (data *holder) reload() {
 	}
 
 	// forward everything by default
-	dns.HandleFunc(".", forward)
+	dns.HandleFunc(".", data.ForwardFunc)
 
 	readFile, err := os.Open(data.Filename)
 	defer readFile.Close()
@@ -72,12 +64,17 @@ func (data *holder) reload() {
 		dns.HandleFunc(domain, localproxy)
 		data.Domains = append(data.Domains, domain)
 	}
-	log.Printf("reloaded %d domains", len(data.Domains))
+	logger.Info("config reloaded",  "domains", len(data.Domains))
 }
 
+var logger = slog.New(slog.NewJSONHandler(os.Stdout, nil))
+
 func main() {
-	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
-	logger.Info("starting", "pid", os.Getpid())
+	serverAddr := flag.String("dns","8.8.8.8:53","<ip>:<port>")
+	domains := flag.String("domains","domains.txt","file containing a list of domains to sinkhole, one per line")
+	flag.Parse()
+
+	logger.Info("starting", "pid", os.Getpid(), "dns", *serverAddr, "domains", *domains)
 	go func() {
 		log.Fatal(dns.ListenAndServe(":53", "udp", nil))
 	}()
@@ -88,7 +85,22 @@ func main() {
 	signal.Notify(sigHup, syscall.SIGHUP)
 	done := make(chan bool, 1)
 
-	data := holder{Filename: "domains.txt"}
+	forward := func(w dns.ResponseWriter, req *dns.Msg) {
+		resp, err := dns.Exchange(req, *serverAddr)
+		if err != nil {
+			dns.HandleFailed(w, req)
+			return
+		}
+		if err := w.WriteMsg(resp); err != nil {
+			dns.HandleFailed(w, req)
+			return
+		}
+		for _, q := range req.Question {
+			logger.Info("forward req", "domain", q.Name)
+		}
+	}
+
+	data := holder{Filename: *domains, ForwardFunc: forward}
 	go func() {
 		data.reload()
 		for {
@@ -99,7 +111,7 @@ func main() {
 
 	go func() {
 		<-sigsStop
-		log.Printf("shutting down")
+		logger.Info("signal received, shutting down")
 		done <- true
 	}()
 
