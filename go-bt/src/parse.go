@@ -5,7 +5,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"github.com/marksamman/bencode"
-	"go-bt/data"
+	// "go-bt/data"
 	"io"
 	"net/http"
 	"net/url"
@@ -43,6 +43,9 @@ func tracker_get(info_hash [20]byte, tracker_url string) {
 	}
 	defer resp.Body.Close()
 	bodyBytes, err := io.ReadAll(resp.Body)
+	f, _ := os.Create("tracker.response.beencoded")
+	f.Write(bodyBytes)
+	defer f.Close()
 	fmt.Println(string(bodyBytes))
 }
 
@@ -61,12 +64,12 @@ func main() {
 	for key, _ := range dict {
 		fmt.Println(key)
 	}
-	announceList, _ := dict["announce-list"].([]interface{})
-	torrent := data.Torrent{
-		Announce: dict["announce"].(string),
-		AnnounceList: announceList,
-	}
-	fmt.Println("%v", torrent)
+	// announceList, _ := dict["announce-list"].([]interface{})
+	// torrent := data.Torrent{
+	// 	Announce: dict["announce"].(string),
+	// 	AnnounceList: announceList,
+	// }
+	// fmt.Println("%v", torrent)
 	// sadly, 'cause the expression is of type interface{}
 	info := dict["info"].(map[string]interface{})
 	for k, v := range info {

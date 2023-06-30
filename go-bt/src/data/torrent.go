@@ -1,23 +1,23 @@
 package data
 
 import (
-	"github.com/marksamman/bencode"
-	"os"
 	"fmt"
+	"github.com/marksamman/bencode"
 	"log"
+	"os"
 )
 
 type Torrent struct {
-	Info Info
-	Announce string
+	Info         Info
+	Announce     string
 	AnnounceList []string
 }
 
 type Info struct {
-	Name string
-	PieceLength int64 // in bytes
-	Pieces string // byte string, 20-byte SHA1 for each piece
-	Length int64 // of file, in bytes
+	Name        string
+	PieceLength int64  // in bytes
+	Pieces      string // byte string, 20-byte SHA1 for each piece
+	Length      int64  // of file, in bytes
 }
 
 func check(err error) {
@@ -28,19 +28,19 @@ func check(err error) {
 
 func parseInfoDict(infoDict map[string]any) Info {
 	info := Info{}
-	for key, value := range(infoDict) {
+	for key, value := range infoDict {
 		switch key {
 		case "name":
 			info.Name = value.(string)
 		case "piece length":
 			if val, ok := value.(int64); ok {
-			info.PieceLength = val
+				info.PieceLength = val
 			}
 		case "pieces":
-			info.Pieces = ""//value.(string)
+			info.Pieces = "" //value.(string)
 		case "length":
 			if val, ok := value.(int64); ok {
-			info.Length = val
+				info.Length = val
 			}
 		default:
 			log.Printf("ignoring key %s", key)
@@ -56,14 +56,14 @@ func ParseTorrentFile(fname string) Torrent {
 	check(err)
 	torrent := Torrent{}
 
-	for key, value := range(dict) {
+	for key, value := range dict {
 		switch key {
 		case "announce":
 			torrent.Announce = value.(string)
 		case "announce-list":
 			// this may be an artefact of the bencode library
-			for _, val := range(value.([]interface{})) {
-			torrent.AnnounceList = append(torrent.AnnounceList, fmt.Sprintf("%v", val.([]interface{})[0]))
+			for _, val := range value.([]interface{}) {
+				torrent.AnnounceList = append(torrent.AnnounceList, fmt.Sprintf("%v", val.([]interface{})[0]))
 			}
 		case "info":
 			torrent.Info = parseInfoDict(value.(map[string]interface{}))
