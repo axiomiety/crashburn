@@ -3,7 +3,6 @@ package data
 import (
 	"bytes"
 	"github.com/marksamman/bencode"
-	"fmt"
 	"log"
 )
 
@@ -58,7 +57,7 @@ func parsePeer(dict map[string]any) Peer {
 func parsePeers(peersList []interface{}) []Peer {
 	peers := make([]Peer, 10)
 	for _, item := range(peersList) {
-		fmt.Printf("%v\n", parsePeer(item.(map[string]any)))
+		//fmt.Printf("%v\n", parsePeer(item.(map[string]any)))
 		peers = append(peers, parsePeer(item.(map[string]any)))
 	}
 	return peers

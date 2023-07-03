@@ -49,7 +49,7 @@ func tracker_get(info_hash [20]byte, tracker_url string) {
 	fmt.Println(string(bodyBytes))
 }
 
-func main() {
+func main2() {
 	fname := "ubuntu-22.04.2-live-server-amd64.iso.torrent"
 	file, err := os.Open(fname)
 	defer file.Close()
@@ -84,5 +84,5 @@ func main() {
 	tracker_get(sha1.Sum(bencode.Encode(dict["info"])), dict["announce"].(string))
 	test_hash, _ := hex.DecodeString("7cd350e5a70f0a61593e636543f9fc670ffa8a4d")
 	fmt.Println(format_hash(test_hash[:]))
-	fmt.Println("%7c%d3P%e5%a7%0f%0aaY%3eceC%f9%fcg%0f%fa%8aM")
+	//fmt.Println("%7c%d3P%e5%a7%0f%0aaY%3eceC%f9%fcg%0f%fa%8aM")
 }
