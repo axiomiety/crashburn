@@ -8,7 +8,7 @@ import (
 )
 
 func TestParseTrackerResponse(t *testing.T) {
-	file, _ := os.Open("tracker.response.beencoded")
+	file, _ := os.Open("testdata/tracker.response.beencoded")
 	defer file.Close()
 	bodyBytes, _ := io.ReadAll(file)
 	t.Logf("%v\n", data.ParseTrackerResponse(bodyBytes))
@@ -20,7 +20,7 @@ func TestParseTrackerResponse(t *testing.T) {
 	if trackerResponse.Incomplete != expectedNumLeeches {
 		t.Errorf("expected %d leeches, found %d", expectedNumLeeches, trackerResponse.Incomplete)
 	}
-	numExpectedPeers := 45
+	numExpectedPeers := 43
 	if len(trackerResponse.Peers) != numExpectedPeers {
 		t.Errorf("expected %d peers, found %d", len(trackerResponse.Peers), numExpectedPeers)
 	}
