@@ -36,6 +36,13 @@ func (h *Handshake) ToBytes() []byte {
 	return buffer.Bytes()
 }
 
+func (h *Message) ToBytes() []byte {
+	buffer := new(bytes.Buffer)
+	enc := gob.NewEncoder(buffer)
+	enc.Encode(h)
+	return buffer.Bytes()
+}
+
 type Message struct {
 	Length    [4]byte
 	MessageId byte

@@ -2,8 +2,15 @@ package data
 
 import (
 	"bytes"
-	"github.com/marksamman/bencode"
+	"encoding/hex"
+	"fmt"
+	"io"
 	"log"
+	"net/http"
+	"net/url"
+	"strings"
+
+	"github.com/marksamman/bencode"
 )
 
 /*
@@ -26,12 +33,12 @@ type TrackerResponse struct {
 	Complete   int64 // seeds
 	Incomplete int64 // leechers
 	Interval   int64 // in seconds
-	Peers []Peer
+	Peers      []Peer
 }
 
 type Peer struct {
-	Id string
-	IP string
+	Id   string
+	IP   string
 	Port int64
 }
 
@@ -56,7 +63,7 @@ func parsePeer(dict map[string]any) Peer {
 
 func parsePeers(peersList []interface{}) []Peer {
 	peers := make([]Peer, 10)
-	for _, item := range(peersList) {
+	for _, item := range peersList {
 		//fmt.Printf("%v\n", parsePeer(item.(map[string]any)))
 		peers = append(peers, parsePeer(item.(map[string]any)))
 	}
@@ -91,4 +98,35 @@ func ParseTrackerResponse(resp []byte) TrackerResponse {
 	}
 
 	return trackerResponse
+}
+
+func formatInfoHash(hash []byte) string {
+	// look at https://stackoverflow.com/questions/25192805/encoding-info-hash-for-request-torrent-tracker for inspiration
+	var sb strings.Builder
+	for idx, val := range hash {
+		if val <= 127 {
+			new_val := url.QueryEscape(string(val))
+			if string(new_val[0]) == "%" {
+				new_val = strings.ToLower(new_val)
+			}
+			sb.WriteString(new_val)
+		} else {
+			sb.WriteString(fmt.Sprintf("%%%s", hex.EncodeToString(hash[idx:idx+1])))
+		}
+	}
+	return sb.String()
+}
+
+func (torrent *Torrent) QueryTracker() TrackerResponse {
+	turl, err := url.Parse(torrent.Announce)
+	check(err)
+	peerId := "12345678901234567890"
+	port := 6882
+	turl.RawQuery = fmt.Sprintf("info_hash=%s&peer_id=%s&port=%d&uploaded=0&downloaded=0&left=0", formatInfoHash(torrent.InfoHash[:]), peerId, port)
+	resp, err := http.Get(turl.String())
+	check(err)
+	defer resp.Body.Close()
+	bodyBytes, err := io.ReadAll(resp.Body)
+	check(err)
+	return ParseTrackerResponse(bodyBytes)
 }

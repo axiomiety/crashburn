@@ -1,14 +1,17 @@
 package data
 
 import (
+	"crypto/sha1"
 	"fmt"
-	"github.com/marksamman/bencode"
 	"log"
 	"os"
+
+	"github.com/marksamman/bencode"
 )
 
 type Torrent struct {
 	Info         Info
+	InfoHash     [20]byte
 	Announce     string
 	AnnounceList []string
 }
@@ -54,7 +57,9 @@ func ParseTorrentFile(fname string) Torrent {
 	check(err)
 	dict, err := bencode.Decode(file)
 	check(err)
-	torrent := Torrent{}
+	torrent := Torrent{
+		InfoHash: sha1.Sum(bencode.Encode(dict["info"])),
+	}
 
 	for key, value := range dict {
 		switch key {
