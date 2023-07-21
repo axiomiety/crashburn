@@ -49,13 +49,14 @@ type Message struct {
 	Payload   []byte
 }
 
-func Request(index uint32, offset uint32, length uint32) Message {
+func Request(index uint32, offset uint32) Message {
 	lenBytes := make([]byte, 4)
 	binary.BigEndian.PutUint32(lenBytes, 13)
 	payload := make([]byte, 4)
 	payload = binary.BigEndian.AppendUint32(payload, index)
 	payload = binary.BigEndian.AppendUint32(payload, offset)
-	payload = binary.BigEndian.AppendUint32(payload, length)
+	// we request a fixed length - doesn't matter
+	payload = binary.BigEndian.AppendUint32(payload, 2^15)
 	msg := Message{
 		Length:    [4]byte(lenBytes),
 		MessageId: 6,
@@ -64,6 +65,7 @@ func Request(index uint32, offset uint32, length uint32) Message {
 	return msg
 }
 
+//func Request(index uint32, offset uint32, pieceLength uint32) Message {
 /*
 
  - find a piece we don't have
@@ -73,4 +75,5 @@ func Request(index uint32, offset uint32, length uint32) Message {
 	- if choked, move to the next peer
  - request piece
 
+ length of last piece = total legnth % piece length?
 */
