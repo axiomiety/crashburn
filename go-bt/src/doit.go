@@ -39,7 +39,10 @@ func Main() {
 	copy(peerId[:], "12345678901234567890")
 	log.Printf("piece length (bytes): %d\n", torrent.Info.PieceLength)
 	timeout := 5 * time.Second
-	for _, peer := range trackerResponse.Peers {
+	for idx, peer := range trackerResponse.Peers {
+		if idx < 3 {
+			continue
+		}
 		handshake := data.GetHanshake(torrent.InfoHash, peerId)
 		if peer.IP == "" && peer.Port == 0 {
 			continue
