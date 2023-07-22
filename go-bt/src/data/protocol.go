@@ -3,11 +3,10 @@ package data
 import (
 	"bytes"
 	"encoding/binary"
-	"encoding/gob"
 )
 
 type Handshake struct {
-	PstrLen  [4]byte
+	PstrLen  byte
 	Pstr     []byte
 	Reserved [8]byte
 	InfoHash [20]byte
@@ -15,13 +14,10 @@ type Handshake struct {
 }
 
 func GetHanshake(infoHash [20]byte, peerId [20]byte) Handshake {
-	b := make([]byte, 4)
-	binary.BigEndian.PutUint32(b, uint32(len("BitTorrent Protocol")))
-	pstrLen := [4]byte{}
-	copy(pstrLen[:], b)
+	pstr := []byte("BitTorrent protocol")
 	handshake := Handshake{
-		PstrLen:  pstrLen,
-		Pstr:     []byte("BitTorrent protocol"),
+		PstrLen:  byte(len(pstr)),
+		Pstr:     pstr,
 		InfoHash: infoHash,
 		PeerId:   peerId,
 	}
@@ -31,15 +27,19 @@ func GetHanshake(infoHash [20]byte, peerId [20]byte) Handshake {
 
 func (h *Handshake) ToBytes() []byte {
 	buffer := new(bytes.Buffer)
-	enc := gob.NewEncoder(buffer)
-	enc.Encode(h)
+	buffer.Write([]byte{h.PstrLen})
+	buffer.Write(h.Pstr)
+	buffer.Write(h.Reserved[:])
+	buffer.Write(h.InfoHash[:])
+	buffer.Write(h.PeerId[:])
 	return buffer.Bytes()
 }
 
-func (h *Message) ToBytes() []byte {
+func (m *Message) ToBytes() []byte {
 	buffer := new(bytes.Buffer)
-	enc := gob.NewEncoder(buffer)
-	enc.Encode(h)
+	buffer.Write(m.Length[:])
+	buffer.Write([]byte{m.MessageId})
+	buffer.Write(m.Payload)
 	return buffer.Bytes()
 }
 

@@ -40,7 +40,7 @@ func Main() {
 	log.Printf("piece length (bytes): %d\n", torrent.Info.PieceLength)
 	timeout := 5 * time.Second
 	for idx, peer := range trackerResponse.Peers {
-		if idx < 3 {
+		if idx < 1 {
 			continue
 		}
 		handshake := data.GetHanshake(torrent.InfoHash, peerId)
