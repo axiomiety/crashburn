@@ -5,7 +5,6 @@ https://releases.ubuntu.com/23.04/ubuntu-23.04-live-server-amd64.iso.torrent?_ga
 */
 
 import (
-	"encoding/binary"
 	"flag"
 	"fmt"
 	"go-bt/data"
@@ -40,7 +39,7 @@ func Main() {
 	log.Printf("piece length (bytes): %d\n", torrent.Info.PieceLength)
 	timeout := 5 * time.Second
 	for idx, peer := range trackerResponse.Peers {
-		if idx < 1 {
+		if idx < 4 {
 			continue
 		}
 		handshake := data.GetHanshake(torrent.InfoHash, peerId)
@@ -67,38 +66,13 @@ func Main() {
 		check(err)
 		defer conn.Close()
 		conn.Write(handshake.ToBytes())
-		msg := data.Request(0, 0)
+		respHandshake := ReadHandshake(conn)
+		log.Printf("response from peerId %v", respHandshake.PeerId)
+		msg := data.Request(1, 0)
 		conn.Write(msg.ToBytes())
 		log.Println("handshake + request")
-		piece := make([]byte, torrent.Info.PieceLength)
-		// TODO: extract to a global var
-		respBuf := make([]byte, 2^15)
-		totBytes := 0
-		seen := false
-		for {
-			numBytesRead, err := conn.Read(respBuf)
-			if !seen {
-				blockLen := binary.BigEndian.Uint32(respBuf[:4]) - 9
-				// big endian
-				index := respBuf[4]
-				pieceOffset := binary.BigEndian.Uint32(respBuf[5:9])
-				log.Printf("blockLen: %d, index:%d, pieceOffset:%d", blockLen, index, pieceOffset)
-				seen = true
-			}
-
-			totBytes += numBytesRead
-			log.Printf("number of bytes read: %d, total: %d\n", numBytesRead, totBytes)
-			if err != nil {
-				if err != io.EOF {
-					fmt.Println("read error:", err)
-				}
-				break
-			}
-			piece = append(piece, respBuf...)
-			if len(piece) == 2^15 {
-				log.Println("full piece!")
-			}
-		}
+		data.ReadResponse(conn)
+		// start by reading 4 bytes
 		time.Sleep(2 * time.Second)
 	}
 

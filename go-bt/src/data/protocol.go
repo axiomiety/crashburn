@@ -3,6 +3,8 @@ package data
 import (
 	"bytes"
 	"encoding/binary"
+	"io"
+	"log"
 )
 
 type Handshake struct {
@@ -38,7 +40,7 @@ func (h *Handshake) ToBytes() []byte {
 func (m *Message) ToBytes() []byte {
 	buffer := new(bytes.Buffer)
 	buffer.Write(m.Length[:])
-	buffer.Write([]byte{m.MessageId})
+	buffer.WriteByte(m.MessageId)
 	buffer.Write(m.Payload)
 	return buffer.Bytes()
 }
@@ -49,20 +51,60 @@ type Message struct {
 	Payload   []byte
 }
 
-func Request(index uint32, offset uint32) Message {
-	lenBytes := make([]byte, 4)
-	binary.BigEndian.PutUint32(lenBytes, 13)
-	payload := make([]byte, 4)
-	payload = binary.BigEndian.AppendUint32(payload, index)
-	payload = binary.BigEndian.AppendUint32(payload, offset)
+func Request(index uint16, offset uint16) Message {
+	length := make([]byte, 4)
+	binary.BigEndian.PutUint32(length, 13)
+	payload := make([]byte, 9)
+	binary.BigEndian.PutUint16(payload[0:], index)
+	binary.BigEndian.PutUint16(payload[2:], offset)
 	// we request a fixed length - doesn't matter
-	payload = binary.BigEndian.AppendUint32(payload, 2^15)
-	msg := Message{
-		Length:    [4]byte(lenBytes),
+	binary.BigEndian.PutUint32(payload[4:], 2^15)
+	return Message{
+		Length:    [4]byte(length),
 		MessageId: 6,
 		Payload:   payload,
 	}
-	return msg
+}
+
+type KeepAlive struct {
+	Message
+}
+
+func ReadHandshake(reader io.Reader) Handshake {
+	// read 1 byte for the len of Pstr
+	// then read 49 + len
+	buf := make([]byte, 1)
+	_, err := io.ReadFull(reader, buf)
+	check(err)
+	messageLength := buf[0]
+	buf = make([]byte, messageLength-1)
+	_, err = io.ReadFull(reader, buf)
+	check(err)
+	pstrOffset := messageLength - 49 - 1
+	return Handshake{
+		PstrLen:  messageLength,
+		Pstr:     buf[1:pstrOffset],
+		Reserved: [8]byte(buf[pstrOffset : pstrOffset+8]),
+		InfoHash: [20]byte(buf[pstrOffset+8 : pstrOffset+8+20]),
+		PeerId:   [20]byte(buf[pstrOffset+8+20:]),
+	}
+}
+
+func ReadResponse(reader io.Reader) []byte {
+	header := make([]byte, 4)
+	_, err := io.ReadFull(reader, header)
+	check(err)
+	length := binary.BigEndian.Uint32(header[:])
+
+	// check if it's a keep-alive message
+	if length == 0 {
+		log.Printf("found keep-alive")
+		return []byte{}
+	}
+
+	buffer := make([]byte, length)
+	_, err = io.ReadFull(reader, buffer)
+	return buffer
 }
 
 //func Request(index uint32, offset uint32, pieceLength uint32) Message {
