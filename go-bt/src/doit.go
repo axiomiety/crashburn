@@ -10,7 +10,6 @@ import (
 	"go-bt/data"
 	"io"
 	"log"
-	"net"
 	"os"
 	"time"
 )
@@ -37,41 +36,16 @@ func Main() {
 	var peerId [20]byte
 	copy(peerId[:], "12345678901234567890")
 	log.Printf("piece length (bytes): %d\n", torrent.Info.PieceLength)
-	timeout := 5 * time.Second
+
 	for idx, peer := range trackerResponse.Peers {
 		if idx < 4 {
 			continue
 		}
+		log.Printf("%v\n", peer)
 		handshake := data.GetHanshake(torrent.InfoHash, peerId)
-		if peer.IP == "" && peer.Port == 0 {
-			continue
-		}
-		ip := net.ParseIP(peer.IP)
-		if ip == nil {
-			continue
-		}
-		// need logic for both IPv4 and IPv6
-		var conn net.Conn
-		var err error
-		if ip.To4() != nil {
-			connStr := fmt.Sprintf("%s:%d", peer.IP, peer.Port)
-			log.Printf("attempting to connect to ipv4 %s", connStr)
-			conn, err = net.DialTimeout("tcp", connStr, timeout)
+		handler := data.PeerHandler{}
+		handler.HandlePeer(peer, handshake)
 
-		} else {
-			connStr := fmt.Sprintf("[%s]:%d", peer.IP, peer.Port)
-			log.Printf("attempting to connect to ipv6 %s", connStr)
-			conn, err = net.DialTimeout("tcp6", connStr, timeout)
-		}
-		check(err)
-		defer conn.Close()
-		conn.Write(handshake.ToBytes())
-		respHandshake := ReadHandshake(conn)
-		log.Printf("response from peerId %v", respHandshake.PeerId)
-		msg := data.Request(1, 0)
-		conn.Write(msg.ToBytes())
-		log.Println("handshake + request")
-		data.ReadResponse(conn)
 		// start by reading 4 bytes
 		time.Sleep(2 * time.Second)
 	}

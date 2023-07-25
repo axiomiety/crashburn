@@ -3,6 +3,7 @@ package data
 import (
 	"bytes"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -42,7 +43,7 @@ type Peer struct {
 	Port int64
 }
 
-func parsePeer(dict map[string]any) Peer {
+func parsePeer(dict map[string]any) (Peer, error) {
 	peer := Peer{}
 	for key, value := range dict {
 		switch key {
@@ -58,15 +59,24 @@ func parsePeer(dict map[string]any) Peer {
 			log.Printf("ignoring key %s", key)
 		}
 	}
-	return peer
+	var err error
+	if peer.IP == "" || peer.Port == 0 {
+		err = errors.New(fmt.Sprintf("invalid peer: IP=%s, port=%d", peer.IP, peer.Port))
+	}
+	return peer, err
 }
 
 func parsePeers(peersList []interface{}) []Peer {
-	peers := make([]Peer, 10)
+	var peers []Peer
 	for _, item := range peersList {
-		//fmt.Printf("%v\n", parsePeer(item.(map[string]any)))
-		peers = append(peers, parsePeer(item.(map[string]any)))
+		peer, err := parsePeer(item.(map[string]any))
+		if err != nil {
+			log.Printf("bad peer: %s\n", err)
+			continue
+		}
+		peers = append(peers, peer)
 	}
+	log.Printf("%v", peers)
 	return peers
 }
 
