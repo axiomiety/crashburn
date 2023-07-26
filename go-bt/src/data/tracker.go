@@ -76,7 +76,6 @@ func parsePeers(peersList []interface{}) []Peer {
 		}
 		peers = append(peers, peer)
 	}
-	log.Printf("%v", peers)
 	return peers
 }
 

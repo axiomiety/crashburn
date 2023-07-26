@@ -100,12 +100,14 @@ func (m *Message) IsKeepAlive() bool {
 func ReadResponse(reader io.Reader) Message {
 	header := make([]byte, 4)
 	_, err := io.ReadFull(reader, header)
-	check(err)
+	if err != io.EOF {
+		check(err)
+	}
 	length := binary.BigEndian.Uint32(header[:])
 
 	// check if it's a keep-alive message
+	// those have no id and no payload
 	if length == 0 {
-		log.Printf("found keep-alive")
 		return Message{}
 	}
 
@@ -124,6 +126,9 @@ func ReadResponse(reader io.Reader) Message {
 type PeerHandler struct {
 	PeerId    [20]byte
 	IsChocked bool
+	// use a bitfield - maybe?
+	// we check unint16 is enough when we parse the tracker
+	AvailablePieces map[uint16]bool
 }
 
 func connectToPeer(peer Peer) (net.Conn, error) {
@@ -154,6 +159,7 @@ func connectToPeer(peer Peer) (net.Conn, error) {
 const (
 	MsgChoke    byte = 0
 	MsgUnchoke       = 1
+	MsgHave          = 4
 	MsgBitfield      = 5
 	MsgPiece         = 6
 )
@@ -161,6 +167,7 @@ const (
 func (handler *PeerHandler) UpdatePeerPieces(m *Message) {
 
 }
+
 func (handler *PeerHandler) HandlePeer(peer Peer, handshake Handshake) {
 	conn, err := connectToPeer(peer)
 	if err != nil {
@@ -177,13 +184,21 @@ func (handler *PeerHandler) HandlePeer(peer Peer, handshake Handshake) {
 
 	var message Message
 	for {
+		if handler.IsChocked {
+			log.Println("peer is chocked, moving on")
+			break
+		}
 		message = ReadResponse(conn)
 		if message.IsKeepAlive() {
 			log.Printf("keep-alive received\n")
 		}
 		switch message.MessageId {
+		case MsgChoke:
+			handler.IsChocked = true
 		case MsgUnchoke:
 			handler.IsChocked = false
+		case MsgHave:
+			handler.AvailablePieces = ExtractPiecesFromBitfield(message.Payload)
 		case MsgBitfield:
 			handler.UpdatePeerPieces(&message)
 		default:

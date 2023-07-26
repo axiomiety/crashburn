@@ -36,14 +36,16 @@ func Main() {
 	var peerId [20]byte
 	copy(peerId[:], "12345678901234567890")
 	log.Printf("piece length (bytes): %d\n", torrent.Info.PieceLength)
+	log.Printf("number of pieces: %d\n", torrent.Info.Length/torrent.Info.PieceLength)
+	log.Printf("number of peers: %d\n", len(trackerResponse.Peers))
 
-	for idx, peer := range trackerResponse.Peers {
-		if idx < 4 {
-			continue
-		}
+	for _, peer := range trackerResponse.Peers {
+
 		log.Printf("%v\n", peer)
 		handshake := data.GetHanshake(torrent.InfoHash, peerId)
-		handler := data.PeerHandler{}
+		handler := data.PeerHandler{
+			AvailablePieces: make(map[uint16]bool),
+		}
 		handler.HandlePeer(peer, handshake)
 
 		// start by reading 4 bytes
