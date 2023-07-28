@@ -161,7 +161,7 @@ const (
 	MsgUnchoke       = 1
 	MsgHave          = 4
 	MsgBitfield      = 5
-	MsgPiece         = 6
+	MsgPiece         = 7
 )
 
 func GetPiecesFromBitField(bitfield []byte) map[uint16]bool {
@@ -177,7 +177,6 @@ func GetPiecesFromBitField(bitfield []byte) map[uint16]bool {
 }
 
 func (handler *PeerHandler) UpdatePeerPieces(m *Message) {
-
 }
 
 func (handler *PeerHandler) HandlePeer(peer Peer, handshake Handshake) {
@@ -212,13 +211,23 @@ func (handler *PeerHandler) HandlePeer(peer Peer, handshake Handshake) {
 		case MsgHave:
 			handler.AvailablePieces = ExtractPiecesFromBitfield(message.Payload)
 		case MsgBitfield:
-			handler.UpdatePeerPieces(&message)
+			// we don't need to merge - the bitfield has every piece the peer holds
+			handler.AvailablePieces = GetPiecesFromBitField(message.Payload)
+		case MsgPiece:
+			//<len=0009+X><id=7><index><begin><block>
+			pieceIndex := binary.BigEndian.Uint32(message.Payload[:4])
+			beginOffset := binary.BigEndian.Uint32(message.Payload[4:8])
+			log.Printf("piece: idx=%d, begin=%d\n", pieceIndex, beginOffset)
 		default:
 			log.Printf("unknown messageId=%d", message.MessageId)
 		}
-		// request a block
-		req := Request(1, 0)
-		conn.Write(req.ToBytes())
+
+		// request a piece
+		for pieceIdx := range handler.AvailablePieces {
+			req := Request(pieceIdx, 0)
+			conn.Write(req.ToBytes())
+			break
+		}
 	}
 }
 
