@@ -164,6 +164,18 @@ const (
 	MsgPiece         = 6
 )
 
+func GetPiecesFromBitField(bitfield []byte) map[uint16]bool {
+	pieces := make(map[uint16]bool)
+	for offset, row := range bitfield {
+		for i := 0; i < 8; i++ {
+			if row&(1<<i) > 0 {
+				pieces[uint16(offset*8+(7-i))] = true
+			}
+		}
+	}
+	return pieces
+}
+
 func (handler *PeerHandler) UpdatePeerPieces(m *Message) {
 
 }

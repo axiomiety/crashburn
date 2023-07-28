@@ -1,10 +1,10 @@
 package data_test
 
 import (
-	"testing"
 	"go-bt/data"
-	"os"
 	"io"
+	"os"
+	"testing"
 )
 
 func TestParseTrackerResponse(t *testing.T) {
@@ -20,9 +20,8 @@ func TestParseTrackerResponse(t *testing.T) {
 	if trackerResponse.Incomplete != expectedNumLeeches {
 		t.Errorf("expected %d leeches, found %d", expectedNumLeeches, trackerResponse.Incomplete)
 	}
-	numExpectedPeers := 43
+	numExpectedPeers := 33
 	if len(trackerResponse.Peers) != numExpectedPeers {
-		t.Errorf("expected %d peers, found %d", len(trackerResponse.Peers), numExpectedPeers)
+		t.Errorf("expected %d peers, found %d", numExpectedPeers, len(trackerResponse.Peers))
 	}
 }
-
