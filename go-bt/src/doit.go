@@ -10,6 +10,7 @@ import (
 	"go-bt/data"
 	"io"
 	"log"
+	"math/rand"
 	"os"
 	"time"
 )
@@ -38,6 +39,11 @@ func Main() {
 	log.Printf("piece length (bytes): %d\n", torrent.Info.PieceLength)
 	log.Printf("number of pieces: %d\n", torrent.Info.Length/torrent.Info.PieceLength)
 	log.Printf("number of peers: %d\n", len(trackerResponse.Peers))
+
+	// shuffle the peers!
+	rand.Shuffle(len(trackerResponse.Peers), func(i, j int) {
+		trackerResponse.Peers[i], trackerResponse.Peers[j] = trackerResponse.Peers[j], trackerResponse.Peers[i]
+	})
 
 	for _, peer := range trackerResponse.Peers {
 

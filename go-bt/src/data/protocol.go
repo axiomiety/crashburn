@@ -8,6 +8,7 @@ import (
 	"io"
 	"log"
 	"net"
+	"os"
 	"time"
 )
 
@@ -97,10 +98,15 @@ func (m *Message) IsKeepAlive() bool {
 	return binary.BigEndian.Uint32((m.Length[:])) == 0
 }
 
-func ReadResponse(reader io.Reader) Message {
+func ReadResponse(conn net.Conn) Message {
+	conn.SetReadDeadline(time.Now().Add(2 * time.Second))
 	header := make([]byte, 4)
-	_, err := io.ReadFull(reader, header)
+	_, err := io.ReadFull(conn, header)
 	if err != io.EOF {
+		if os.IsTimeout(err) {
+			log.Println("timed out reading from client")
+			return Message{MessageId: MsgTimeout}
+		}
 		check(err)
 	}
 	length := binary.BigEndian.Uint32(header[:])
@@ -112,7 +118,13 @@ func ReadResponse(reader io.Reader) Message {
 	}
 
 	buffer := make([]byte, length)
-	_, err = io.ReadFull(reader, buffer)
+	_, err = io.ReadFull(conn, buffer)
+	if err != io.EOF {
+		if os.IsTimeout(err) {
+			log.Println("timed out reading from client")
+			return Message{MessageId: MsgTimeout}
+		}
+	}
 	msg := Message{
 		Length:    [4]byte(header),
 		MessageId: buffer[0],
@@ -129,6 +141,7 @@ type PeerHandler struct {
 	// use a bitfield - maybe?
 	// we check unint16 is enough when we parse the tracker
 	AvailablePieces map[uint16]bool
+	TimeoutCount    uint8 // how many times we timed out reading from the peer
 }
 
 func connectToPeer(peer Peer) (net.Conn, error) {
@@ -162,6 +175,7 @@ const (
 	MsgHave          = 4
 	MsgBitfield      = 5
 	MsgPiece         = 7
+	MsgTimeout       = 99 // not part of the spec
 )
 
 func GetPiecesFromBitField(bitfield []byte) map[uint16]bool {
@@ -181,16 +195,17 @@ func (handler *PeerHandler) UpdatePeerPieces(m *Message) {
 
 func (handler *PeerHandler) HandlePeer(peer Peer, handshake Handshake) {
 	conn, err := connectToPeer(peer)
+	defer conn.Close()
 	if err != nil {
 		log.Printf("can't connect to peer: %s\n", err)
 		return
 	}
-	defer conn.Close()
-
+	log.Println("connected to peer, sending handshake")
 	// start with a handshake
 	conn.Write(handshake.ToBytes())
 	// we should receive one!
 	respHandshake := ReadHandshake(conn)
+	log.Println("received handshake")
 	handler.PeerId = respHandshake.PeerId
 
 	var message Message
@@ -199,7 +214,9 @@ func (handler *PeerHandler) HandlePeer(peer Peer, handshake Handshake) {
 			log.Println("peer is chocked, moving on")
 			break
 		}
+		// not all clients will send something at this point
 		message = ReadResponse(conn)
+
 		if message.IsKeepAlive() {
 			log.Printf("keep-alive received\n")
 		}
@@ -208,9 +225,10 @@ func (handler *PeerHandler) HandlePeer(peer Peer, handshake Handshake) {
 			handler.IsChocked = true
 		case MsgUnchoke:
 			handler.IsChocked = false
-		case MsgHave:
-			handler.AvailablePieces = ExtractPiecesFromBitfield(message.Payload)
+		//case MsgHave:
+		//handler.AvailablePieces = ExtractPiecesFromBitfield(message.Payload)
 		case MsgBitfield:
+			log.Printf("updating bitfield\n")
 			// we don't need to merge - the bitfield has every piece the peer holds
 			handler.AvailablePieces = GetPiecesFromBitField(message.Payload)
 		case MsgPiece:
@@ -218,6 +236,13 @@ func (handler *PeerHandler) HandlePeer(peer Peer, handshake Handshake) {
 			pieceIndex := binary.BigEndian.Uint32(message.Payload[:4])
 			beginOffset := binary.BigEndian.Uint32(message.Payload[4:8])
 			log.Printf("piece: idx=%d, begin=%d\n", pieceIndex, beginOffset)
+		case MsgTimeout:
+			handler.TimeoutCount += 1
+			log.Printf("timeout count: %d\n", handler.TimeoutCount)
+			if handler.TimeoutCount > 5 {
+				log.Println("timeout count > 5, bailing...")
+				break
+			}
 		default:
 			log.Printf("unknown messageId=%d", message.MessageId)
 		}
@@ -225,6 +250,7 @@ func (handler *PeerHandler) HandlePeer(peer Peer, handshake Handshake) {
 		// request a piece
 		for pieceIdx := range handler.AvailablePieces {
 			req := Request(pieceIdx, 0)
+			log.Printf("requesting piece %d\n", pieceIdx)
 			conn.Write(req.ToBytes())
 			break
 		}
