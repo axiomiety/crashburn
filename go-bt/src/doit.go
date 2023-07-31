@@ -50,7 +50,9 @@ func Main() {
 		log.Printf("%v\n", peer)
 		handshake := data.GetHanshake(torrent.InfoHash, peerId)
 		handler := data.PeerHandler{
-			AvailablePieces: make(map[uint16]bool),
+			AvailablePieces: make(map[uint32]bool),
+			IsChocked:       true,
+			IsInterested:    false,
 		}
 		handler.HandlePeer(peer, handshake)
 

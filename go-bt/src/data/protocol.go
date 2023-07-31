@@ -9,6 +9,7 @@ import (
 	"log"
 	"net"
 	"os"
+	"sync"
 	"time"
 )
 
@@ -56,14 +57,14 @@ type Message struct {
 	Payload   []byte
 }
 
-func Request(index uint16, offset uint16) Message {
+func Request(index uint32, offset uint32) Message {
 	length := make([]byte, 4)
 	binary.BigEndian.PutUint32(length, 13)
-	payload := make([]byte, 9)
-	binary.BigEndian.PutUint16(payload[0:], index)
-	binary.BigEndian.PutUint16(payload[2:], offset)
+	payload := make([]byte, 12)
+	binary.BigEndian.PutUint32(payload[0:], index)
+	binary.BigEndian.PutUint32(payload[4:], offset)
 	// we request a fixed length - doesn't matter
-	binary.BigEndian.PutUint32(payload[4:], 2^15)
+	binary.BigEndian.PutUint32(payload[8:], 2^14)
 	return Message{
 		Length:    [4]byte(length),
 		MessageId: 6,
@@ -99,17 +100,18 @@ func (m *Message) IsKeepAlive() bool {
 }
 
 func ReadResponse(conn net.Conn) Message {
-	conn.SetReadDeadline(time.Now().Add(2 * time.Second))
+	conn.SetReadDeadline(time.Now().Add(8 * time.Second))
 	header := make([]byte, 4)
 	_, err := io.ReadFull(conn, header)
 	if err != io.EOF {
 		if os.IsTimeout(err) {
-			log.Println("timed out reading from client")
+			log.Println("timed out reading length header from client")
 			return Message{MessageId: MsgTimeout}
 		}
 		check(err)
 	}
 	length := binary.BigEndian.Uint32(header[:])
+	log.Printf("length of message=%d", length)
 
 	// check if it's a keep-alive message
 	// those have no id and no payload
@@ -121,7 +123,7 @@ func ReadResponse(conn net.Conn) Message {
 	_, err = io.ReadFull(conn, buffer)
 	if err != io.EOF {
 		if os.IsTimeout(err) {
-			log.Println("timed out reading from client")
+			log.Println("timed out reading payload from client")
 			return Message{MessageId: MsgTimeout}
 		}
 	}
@@ -136,12 +138,24 @@ func ReadResponse(conn net.Conn) Message {
 }
 
 type PeerHandler struct {
-	PeerId    [20]byte
-	IsChocked bool
+	PeerId       [20]byte
+	IsChocked    bool
+	IsInterested bool
 	// use a bitfield - maybe?
 	// we check unint16 is enough when we parse the tracker
-	AvailablePieces map[uint16]bool
+	AvailablePieces map[uint32]bool
 	TimeoutCount    uint8 // how many times we timed out reading from the peer
+	CurrentPiece    uint32
+	PieceRequested  bool
+}
+
+func (handler *PeerHandler) findPieceToRequest() {
+	if !handler.PieceRequested {
+		for pieceIdx := range handler.AvailablePieces {
+			handler.CurrentPiece = pieceIdx
+			break
+		}
+	}
 }
 
 func connectToPeer(peer Peer) (net.Conn, error) {
@@ -170,27 +184,26 @@ func connectToPeer(peer Peer) (net.Conn, error) {
 }
 
 const (
-	MsgChoke    byte = 0
-	MsgUnchoke       = 1
-	MsgHave          = 4
-	MsgBitfield      = 5
-	MsgPiece         = 7
-	MsgTimeout       = 99 // not part of the spec
+	MsgChoke         byte = 0
+	MsgUnchoke            = 1
+	MsgInterested         = 2
+	MsgNotInterested      = 3
+	MsgHave               = 4
+	MsgBitfield           = 5
+	MsgPiece              = 7
+	MsgTimeout            = 99 // not part of the spec
 )
 
-func GetPiecesFromBitField(bitfield []byte) map[uint16]bool {
-	pieces := make(map[uint16]bool)
+func GetPiecesFromBitField(bitfield []byte) map[uint32]bool {
+	pieces := make(map[uint32]bool)
 	for offset, row := range bitfield {
 		for i := 0; i < 8; i++ {
 			if row&(1<<i) > 0 {
-				pieces[uint16(offset*8+(7-i))] = true
+				pieces[uint32(offset*8+(7-i))] = true
 			}
 		}
 	}
 	return pieces
-}
-
-func (handler *PeerHandler) UpdatePeerPieces(m *Message) {
 }
 
 func (handler *PeerHandler) HandlePeer(peer Peer, handshake Handshake) {
@@ -208,53 +221,97 @@ func (handler *PeerHandler) HandlePeer(peer Peer, handshake Handshake) {
 	log.Println("received handshake")
 	handler.PeerId = respHandshake.PeerId
 
-	var message Message
-	for {
-		if handler.IsChocked {
-			log.Println("peer is chocked, moving on")
-			break
-		}
-		// not all clients will send something at this point
-		message = ReadResponse(conn)
+	offsetChan := make(chan uint32)
+	var wg sync.WaitGroup
 
-		if message.IsKeepAlive() {
-			log.Printf("keep-alive received\n")
-		}
-		switch message.MessageId {
-		case MsgChoke:
-			handler.IsChocked = true
-		case MsgUnchoke:
-			handler.IsChocked = false
-		//case MsgHave:
-		//handler.AvailablePieces = ExtractPiecesFromBitfield(message.Payload)
-		case MsgBitfield:
-			log.Printf("updating bitfield\n")
-			// we don't need to merge - the bitfield has every piece the peer holds
-			handler.AvailablePieces = GetPiecesFromBitField(message.Payload)
-		case MsgPiece:
-			//<len=0009+X><id=7><index><begin><block>
-			pieceIndex := binary.BigEndian.Uint32(message.Payload[:4])
-			beginOffset := binary.BigEndian.Uint32(message.Payload[4:8])
-			log.Printf("piece: idx=%d, begin=%d\n", pieceIndex, beginOffset)
-		case MsgTimeout:
-			handler.TimeoutCount += 1
-			log.Printf("timeout count: %d\n", handler.TimeoutCount)
-			if handler.TimeoutCount > 5 {
-				log.Println("timeout count > 5, bailing...")
-				break
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		var message Message
+		for {
+
+			message = ReadResponse(conn)
+
+			if message.IsKeepAlive() {
+				log.Printf("keep-alive received\n")
 			}
-		default:
-			log.Printf("unknown messageId=%d", message.MessageId)
+			switch message.MessageId {
+			case MsgChoke:
+				handler.IsChocked = true
+			case MsgUnchoke:
+				handler.IsChocked = false
+			case MsgInterested:
+				handler.IsInterested = true
+			case MsgNotInterested:
+				handler.IsInterested = false
+			case MsgHave:
+				handler.AvailablePieces[uint32(binary.BigEndian.Uint32(message.Payload))] = true
+			case MsgBitfield:
+				log.Printf("updating bitfield\n")
+				// we don't need to merge - the bitfield has every piece the peer holds
+				handler.AvailablePieces = GetPiecesFromBitField(message.Payload)
+			case MsgPiece:
+				//<len=0009+X><id=7><index><begin><block>
+				pieceIndex := binary.BigEndian.Uint32(message.Payload[:4])
+				beginOffset := binary.BigEndian.Uint32(message.Payload[4:8])
+				log.Printf("piece: idx=%d, begin=%d, len=%d\n", pieceIndex, beginOffset, len(message.Payload)-8)
+				offsetChan <- uint32(len(message.Payload) - 8)
+			case MsgTimeout:
+				handler.TimeoutCount += 1
+				log.Printf("timeout count: %d\n", handler.TimeoutCount)
+			default:
+				log.Printf("unknown messageId=%d", message.MessageId)
+			}
 		}
+	}()
 
-		// request a piece
-		for pieceIdx := range handler.AvailablePieces {
-			req := Request(pieceIdx, 0)
-			log.Printf("requesting piece %d\n", pieceIdx)
-			conn.Write(req.ToBytes())
-			break
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+
+		for {
+			if handler.IsChocked {
+				log.Println("client is choked, waiting 5s")
+				time.Sleep(5 * time.Second)
+				continue
+			}
+
+			// does the client have a piece we're interested in?
+			if !handler.IsInterested {
+				length := make([]byte, 4)
+				binary.BigEndian.PutUint32(length, 1)
+				msg := Message{
+					Length:    [4]byte(length),
+					MessageId: MsgInterested,
+				}
+				conn.Write(msg.ToBytes())
+				handler.IsInterested = true
+				log.Println("told peer we're interested!")
+			}
+
+			handler.findPieceToRequest()
+			offset := uint32(0)
+			for {
+				log.Printf("requesting piece=%d at offset=%d", handler.CurrentPiece, offset)
+				req := Request(handler.CurrentPiece, offset)
+				conn.Write(req.ToBytes())
+				offset += <-offsetChan
+			}
+
 		}
-	}
+	}()
+	// // request a piece
+	// if !handler.PieceRequeusted {
+
+	// }
+	// for pieceIdx := range handler.AvailablePieces {
+	// 	req := Request(pieceIdx, 0)
+	// 	log.Printf("requesting piece %d\n", pieceIdx)
+	// 	conn.Write(req.ToBytes())
+	// 	break
+	// }
+	wg.Wait()
+	log.Println("exiting")
 }
 
 //func Request(index uint32, offset uint32, pieceLength uint32) Message {

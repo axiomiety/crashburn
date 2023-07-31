@@ -49,8 +49,8 @@ func parseInfoDict(infoDict map[string]any) Info {
 			log.Printf("ignoring key %s", key)
 		}
 	}
-	if info.Length/info.PieceLength > (1<<16)-1 {
-		panic(fmt.Sprintf("number of pieces larger than uint16 (%d) - Peer struct needs to change", info.Length/info.PieceLength))
+	if info.Length/info.PieceLength > (1<<32)-1 {
+		panic(fmt.Sprintf("number of pieces larger than uint32 (%d) - Peer struct needs to change", info.Length/info.PieceLength))
 	}
 	return info
 }
