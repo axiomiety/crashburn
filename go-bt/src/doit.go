@@ -54,7 +54,7 @@ func Main() {
 			IsChocked:       true,
 			IsInterested:    false,
 		}
-		handler.HandlePeer(peer, handshake)
+		handler.HandlePeer(peer, handshake, torrent)
 
 		// start by reading 4 bytes
 		time.Sleep(2 * time.Second)

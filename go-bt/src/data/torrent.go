@@ -18,9 +18,9 @@ type Torrent struct {
 
 type Info struct {
 	Name        string
-	PieceLength int64  // in bytes
+	PieceLength uint64 // bytes per piece
 	Pieces      string // byte string, 20-byte SHA1 for each piece
-	Length      int64  // of file, in bytes
+	Length      uint64 // of file, in bytes
 }
 
 func check(err error) {
@@ -36,19 +36,21 @@ func parseInfoDict(infoDict map[string]any) Info {
 		case "name":
 			info.Name = value.(string)
 		case "piece length":
-			if val, ok := value.(int64); ok {
+			if val, ok := value.(uint64); ok {
 				info.PieceLength = val
 			}
 		case "pieces":
 			info.Pieces = "" //value.(string)
 		case "length":
-			if val, ok := value.(int64); ok {
+			if val, ok := value.(uint64); ok {
 				info.Length = val
 			}
 		default:
 			log.Printf("ignoring key %s", key)
 		}
 	}
+	// so really, a piece should be around 2^8
+	// but just in case...
 	if info.Length/info.PieceLength > (1<<32)-1 {
 		panic(fmt.Sprintf("number of pieces larger than uint32 (%d) - Peer struct needs to change", info.Length/info.PieceLength))
 	}

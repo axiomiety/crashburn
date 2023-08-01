@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"math"
 	"net"
 	"os"
 	"sync"
@@ -64,7 +65,7 @@ func Request(index uint32, offset uint32) Message {
 	binary.BigEndian.PutUint32(payload[0:], index)
 	binary.BigEndian.PutUint32(payload[4:], offset)
 	// we request a fixed length - doesn't matter
-	binary.BigEndian.PutUint32(payload[8:], 2^14)
+	binary.BigEndian.PutUint32(payload[8:], uint32(math.Pow(2, 14)-1))
 	return Message{
 		Length:    [4]byte(length),
 		MessageId: 6,
@@ -96,7 +97,7 @@ func ReadHandshake(reader io.Reader) Handshake {
 }
 
 func (m *Message) IsKeepAlive() bool {
-	return binary.BigEndian.Uint32((m.Length[:])) == 0
+	return binary.BigEndian.Uint32((m.Length[:])) == 0 && m.MessageId != MsgTimeout
 }
 
 func ReadResponse(conn net.Conn) Message {
@@ -206,7 +207,7 @@ func GetPiecesFromBitField(bitfield []byte) map[uint32]bool {
 	return pieces
 }
 
-func (handler *PeerHandler) HandlePeer(peer Peer, handshake Handshake) {
+func (handler *PeerHandler) HandlePeer(peer Peer, handshake Handshake, torrent Torrent) {
 	conn, err := connectToPeer(peer)
 	defer conn.Close()
 	if err != nil {
@@ -222,6 +223,7 @@ func (handler *PeerHandler) HandlePeer(peer Peer, handshake Handshake) {
 	handler.PeerId = respHandshake.PeerId
 
 	offsetChan := make(chan uint32)
+	pieceChan := make(chan []byte, torrent.Info.PieceLength)
 	var wg sync.WaitGroup
 
 	wg.Add(1)
@@ -234,6 +236,8 @@ func (handler *PeerHandler) HandlePeer(peer Peer, handshake Handshake) {
 
 			if message.IsKeepAlive() {
 				log.Printf("keep-alive received\n")
+				time.Sleep(5 * time.Second)
+				continue
 			}
 			switch message.MessageId {
 			case MsgChoke:
@@ -256,6 +260,7 @@ func (handler *PeerHandler) HandlePeer(peer Peer, handshake Handshake) {
 				beginOffset := binary.BigEndian.Uint32(message.Payload[4:8])
 				log.Printf("piece: idx=%d, begin=%d, len=%d\n", pieceIndex, beginOffset, len(message.Payload)-8)
 				offsetChan <- uint32(len(message.Payload) - 8)
+				pieceChan <- message.Payload[8:]
 			case MsgTimeout:
 				handler.TimeoutCount += 1
 				log.Printf("timeout count: %d\n", handler.TimeoutCount)
@@ -291,11 +296,17 @@ func (handler *PeerHandler) HandlePeer(peer Peer, handshake Handshake) {
 
 			handler.findPieceToRequest()
 			offset := uint32(0)
+			pieceBuffer := new(bytes.Buffer)
 			for {
 				log.Printf("requesting piece=%d at offset=%d", handler.CurrentPiece, offset)
 				req := Request(handler.CurrentPiece, offset)
 				conn.Write(req.ToBytes())
+				pieceBuffer.Write(<-pieceChan)
 				offset += <-offsetChan
+				// if we're past a piece length, let's hash it
+				if offset >= uint32(torrent.Info.PieceLength) {
+
+				}
 			}
 
 		}
