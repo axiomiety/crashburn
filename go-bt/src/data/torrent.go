@@ -36,23 +36,24 @@ func parseInfoDict(infoDict map[string]any) Info {
 		case "name":
 			info.Name = value.(string)
 		case "piece length":
-			if val, ok := value.(uint64); ok {
-				info.PieceLength = val
+			if val, ok := value.(int64); ok {
+				info.PieceLength = uint64(val)
 			}
 		case "pieces":
-			info.Pieces = "" //value.(string)
+			info.Pieces = value.(string)
 		case "length":
-			if val, ok := value.(uint64); ok {
-				info.Length = val
+			if val, ok := value.(int64); ok {
+				info.Length = uint64(val)
 			}
 		default:
 			log.Printf("ignoring key %s", key)
 		}
 	}
+	log.Printf("length: %d, piece length: %d", info.Length, info.PieceLength)
 	// so really, a piece should be around 2^8
 	// but just in case...
 	if info.Length/info.PieceLength > (1<<32)-1 {
-		panic(fmt.Sprintf("number of pieces larger than uint32 (%d) - Peer struct needs to change", info.Length/info.PieceLength))
+		panic(fmt.Sprintf("number of pieces larger than uint32 (%d) - Peer struct needs to change", info.Length/uint64(info.PieceLength)))
 	}
 	return info
 }

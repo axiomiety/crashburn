@@ -2,7 +2,9 @@ package data
 
 import (
 	"bytes"
+	"crypto/sha1"
 	"encoding/binary"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"io"
@@ -58,14 +60,13 @@ type Message struct {
 	Payload   []byte
 }
 
-func Request(index uint32, offset uint32) Message {
+func Request(index uint32, offset uint32, blockLength uint32) Message {
 	length := make([]byte, 4)
 	binary.BigEndian.PutUint32(length, 13)
 	payload := make([]byte, 12)
 	binary.BigEndian.PutUint32(payload[0:], index)
 	binary.BigEndian.PutUint32(payload[4:], offset)
-	// we request a fixed length - doesn't matter
-	binary.BigEndian.PutUint32(payload[8:], uint32(math.Pow(2, 14)-1))
+	binary.BigEndian.PutUint32(payload[8:], blockLength)
 	return Message{
 		Length:    [4]byte(length),
 		MessageId: 6,
@@ -101,6 +102,7 @@ func (m *Message) IsKeepAlive() bool {
 }
 
 func ReadResponse(conn net.Conn) Message {
+	log.Println("reading response")
 	conn.SetReadDeadline(time.Now().Add(8 * time.Second))
 	header := make([]byte, 4)
 	_, err := io.ReadFull(conn, header)
@@ -261,6 +263,7 @@ func (handler *PeerHandler) HandlePeer(peer Peer, handshake Handshake, torrent T
 				log.Printf("piece: idx=%d, begin=%d, len=%d\n", pieceIndex, beginOffset, len(message.Payload)-8)
 				offsetChan <- uint32(len(message.Payload) - 8)
 				pieceChan <- message.Payload[8:]
+				log.Println("done processing block")
 			case MsgTimeout:
 				handler.TimeoutCount += 1
 				log.Printf("timeout count: %d\n", handler.TimeoutCount)
@@ -297,15 +300,30 @@ func (handler *PeerHandler) HandlePeer(peer Peer, handshake Handshake, torrent T
 			handler.findPieceToRequest()
 			offset := uint32(0)
 			pieceBuffer := new(bytes.Buffer)
+			maxBlockLength := uint32(math.Pow(2, 14) - 1)
 			for {
 				log.Printf("requesting piece=%d at offset=%d", handler.CurrentPiece, offset)
-				req := Request(handler.CurrentPiece, offset)
+				remaining := uint32(torrent.Info.PieceLength) - offset
+				var blockLength uint32
+				if remaining > maxBlockLength {
+					blockLength = maxBlockLength
+				} else {
+					blockLength = remaining
+				}
+				req := Request(handler.CurrentPiece, offset, blockLength)
 				conn.Write(req.ToBytes())
-				pieceBuffer.Write(<-pieceChan)
+				// order matters here, otherwise we'll deadlock with the reader!
 				offset += <-offsetChan
+				pieceBuffer.Write(<-pieceChan)
 				// if we're past a piece length, let's hash it
 				if offset >= uint32(torrent.Info.PieceLength) {
-
+					buf := pieceBuffer.Bytes()[:torrent.Info.PieceLength]
+					pieceHash := sha1.Sum(buf)
+					log.Printf("computed: %s", hex.EncodeToString(pieceHash[:]))
+					startIdx := 20 * handler.CurrentPiece
+					log.Printf("versus:   %s", hex.EncodeToString([]byte(torrent.Info.Pieces[startIdx:startIdx+20])))
+					// assuming it matches, now what??
+					break
 				}
 			}
 
