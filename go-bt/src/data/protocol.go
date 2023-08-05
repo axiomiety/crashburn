@@ -319,10 +319,15 @@ func (handler *PeerHandler) HandlePeer(peer Peer, handshake Handshake, torrent T
 				if offset >= uint32(torrent.Info.PieceLength) {
 					buf := pieceBuffer.Bytes()[:torrent.Info.PieceLength]
 					pieceHash := sha1.Sum(buf)
-					log.Printf("computed: %s", hex.EncodeToString(pieceHash[:]))
+					pieceHashStr := hex.EncodeToString(pieceHash[:])
 					startIdx := 20 * handler.CurrentPiece
-					log.Printf("versus:   %s", hex.EncodeToString([]byte(torrent.Info.Pieces[startIdx:startIdx+20])))
+					expectedHashStr := hex.EncodeToString([]byte(torrent.Info.Pieces[startIdx : startIdx+20]))
+					log.Printf("computed: %s", pieceHashStr)
+					log.Printf("versus:   %s", expectedHashStr)
 					// assuming it matches, now what??
+					if pieceHashStr == expectedHashStr {
+						WritePiece(handler.CurrentPiece, buf)
+					}
 					break
 				}
 			}
