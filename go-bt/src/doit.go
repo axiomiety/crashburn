@@ -74,10 +74,10 @@ func Main() {
 			Lock:              &mu,
 		}
 		wg.Add(1)
-		go func() {
+		go func(p data.Peer) {
 			defer wg.Done()
-			handler.HandlePeer(peer, handshake, torrent)
-		}()
+			handler.HandlePeer(p, handshake, torrent)
+		}(peer)
 	}
 	wg.Wait()
 
