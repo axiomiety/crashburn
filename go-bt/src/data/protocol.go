@@ -146,19 +146,24 @@ type PeerHandler struct {
 	IsInterested bool
 	// use a bitfield - maybe?
 	// we check unint16 is enough when we parse the tracker
-	AvailablePieces map[uint32]bool
-	TimeoutCount    uint8 // how many times we timed out reading from the peer
-	CurrentPiece    uint32
-	PieceRequested  bool
+	AvailablePieces   map[uint32]bool
+	AlreadyDownloaded map[uint32]bool
+	TimeoutCount      uint8 // how many times we timed out reading from the peer
+	CurrentPiece      uint32
+	Lock              *sync.Mutex
 }
 
-func (handler *PeerHandler) findPieceToRequest() {
-	if !handler.PieceRequested {
-		for pieceIdx := range handler.AvailablePieces {
+func (handler *PeerHandler) findPieceToRequest() error {
+	handler.Lock.Lock()
+	for pieceIdx := range handler.AvailablePieces {
+		_, ok := handler.AlreadyDownloaded[pieceIdx]
+		if !ok {
 			handler.CurrentPiece = pieceIdx
 			break
 		}
 	}
+	handler.Lock.Unlock()
+	return errors.New("no more pieces to request")
 }
 
 func connectToPeer(peer Peer) (net.Conn, error) {
@@ -297,7 +302,10 @@ func (handler *PeerHandler) HandlePeer(peer Peer, handshake Handshake, torrent T
 				log.Println("told peer we're interested!")
 			}
 
-			handler.findPieceToRequest()
+			err := handler.findPieceToRequest()
+			if err != nil {
+				break
+			}
 			offset := uint32(0)
 			pieceBuffer := new(bytes.Buffer)
 			maxBlockLength := uint32(math.Pow(2, 14) - 1)
@@ -327,6 +335,7 @@ func (handler *PeerHandler) HandlePeer(peer Peer, handshake Handshake, torrent T
 					// assuming it matches, now what??
 					if pieceHashStr == expectedHashStr {
 						WritePiece(handler.CurrentPiece, buf)
+						handler.AvailablePieces[handler.CurrentPiece] = true
 					}
 					break
 				}

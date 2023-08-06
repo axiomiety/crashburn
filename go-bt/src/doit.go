@@ -12,6 +12,8 @@ import (
 	"log"
 	"math/rand"
 	"os"
+	"os/user"
+	"sync"
 	"time"
 )
 
@@ -40,25 +42,47 @@ func Main() {
 	log.Printf("number of pieces: %d\n", torrent.Info.Length/torrent.Info.PieceLength)
 	log.Printf("number of peers: %d\n", len(trackerResponse.Peers))
 
+	// see what we have downloaded, if any
+
+	u, _ := user.Current()
+	directory := fmt.Sprintf("%s/tmp/blocks", u.HomeDir)
+	alreadyDownloaded := data.GetAlreadyDownloadedPieces(directory, torrent.Info.Pieces)
 	// shuffle the peers!
 	rand.Shuffle(len(trackerResponse.Peers), func(i, j int) {
 		trackerResponse.Peers[i], trackerResponse.Peers[j] = trackerResponse.Peers[j], trackerResponse.Peers[i]
 	})
+	var mu sync.Mutex
+	go func() {
+		for {
+			mu.Lock()
+			log.Printf("number of pieces downloaded: %d", len(alreadyDownloaded))
+			mu.Unlock()
+			time.Sleep(10 * time.Second)
+		}
+	}()
 
+	var wg sync.WaitGroup
 	for _, peer := range trackerResponse.Peers {
 
 		log.Printf("%v\n", peer)
 		handshake := data.GetHanshake(torrent.InfoHash, peerId)
 		handler := data.PeerHandler{
-			AvailablePieces: make(map[uint32]bool),
-			IsChocked:       true,
-			IsInterested:    false,
+			AvailablePieces:   make(map[uint32]bool),
+			IsChocked:         true,
+			IsInterested:      false,
+			AlreadyDownloaded: alreadyDownloaded,
+			Lock:              &mu,
 		}
-		handler.HandlePeer(peer, handshake, torrent)
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			handler.HandlePeer(peer, handshake, torrent)
+		}()
 
 		// start by reading 4 bytes
 		time.Sleep(2 * time.Second)
 	}
+	wg.Wait()
 
 	time.Sleep(10 * time.Second)
 

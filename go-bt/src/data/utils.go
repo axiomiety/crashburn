@@ -3,6 +3,7 @@ package data
 import (
 	"bytes"
 	"crypto/sha1"
+	"encoding/hex"
 	"fmt"
 	"io/fs"
 	"log"
@@ -26,16 +27,19 @@ func ExtractPiecesFromBitfield(bitfield []byte) map[uint32]bool {
 
 func WritePiece(pieceIdx uint32, data []byte) {
 	u, _ := user.Current()
-	//TODO: needs another layer of indirection o_O
-	fname := fmt.Sprintf("%s/tmp/blocks/%d", u.HomeDir, pieceIdx)
+	pieceHash := sha1.Sum(data)
+	pieceHashStr := hex.EncodeToString(pieceHash[:])
+	directory := fmt.Sprintf("%s/tmp/blocks/%s", u.HomeDir, pieceHashStr[:2])
+	os.MkdirAll(directory, 0644)
+	fname := filepath.Join(directory, strconv.FormatUint(uint64(pieceIdx), 10))
 	err := os.WriteFile(fname, data, 0644)
 	check(err)
-	log.Printf("wrote piece %s\n", fname)
+	log.Printf("wrote piece as %s\n", fname)
 }
 
 func GetAlreadyDownloadedPieces(path string, piecesHash string) map[uint32]bool {
 	m := map[uint32]bool{}
-	err := filepath.WalkDir("~/tmp/blocks", func(path string, entry fs.DirEntry, err error) error {
+	err := filepath.WalkDir(path, func(path string, entry fs.DirEntry, err error) error {
 		if !entry.IsDir() {
 			pieceIdx_, err := strconv.ParseUint(entry.Name(), 10, 32)
 			pieceIdx := uint32(pieceIdx_)
