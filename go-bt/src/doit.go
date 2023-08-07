@@ -62,6 +62,7 @@ func Main() {
 	}()
 
 	var wg sync.WaitGroup
+	maxPeers := make(chan int, 5)
 	for _, peer := range trackerResponse.Peers {
 
 		log.Printf("%v\n", peer)
@@ -73,11 +74,15 @@ func Main() {
 			AlreadyDownloaded: alreadyDownloaded,
 			Lock:              &mu,
 		}
+		maxPeers <- 1
 		wg.Add(1)
 		go func(p data.Peer) {
 			defer wg.Done()
 			handler.HandlePeer(p, handshake, torrent)
+			<-maxPeers
 		}(peer)
+
+		//handler.HandlePeer(peer, handshake, torrent)
 	}
 	wg.Wait()
 

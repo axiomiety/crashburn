@@ -101,7 +101,7 @@ func (m *Message) IsKeepAlive() bool {
 	return binary.BigEndian.Uint32((m.Length[:])) == 0 && m.MessageId != MsgTimeout
 }
 
-func ReadResponse(conn net.Conn) Message {
+func ReadResponse(conn net.Conn) (Message, error) {
 	log.Println("reading response")
 	conn.SetReadDeadline(time.Now().Add(8 * time.Second))
 	header := make([]byte, 4)
@@ -109,9 +109,9 @@ func ReadResponse(conn net.Conn) Message {
 	if err != io.EOF {
 		if os.IsTimeout(err) {
 			log.Println("timed out reading length header from client")
-			return Message{MessageId: MsgTimeout}
+			return Message{MessageId: MsgTimeout}, nil
 		}
-		check(err)
+		return Message{}, err
 	}
 	length := binary.BigEndian.Uint32(header[:])
 	log.Printf("length of message=%d", length)
@@ -119,7 +119,7 @@ func ReadResponse(conn net.Conn) Message {
 	// check if it's a keep-alive message
 	// those have no id and no payload
 	if length == 0 {
-		return Message{}
+		return Message{}, nil
 	}
 
 	buffer := make([]byte, length)
@@ -127,7 +127,7 @@ func ReadResponse(conn net.Conn) Message {
 	if err != io.EOF {
 		if os.IsTimeout(err) {
 			log.Println("timed out reading payload from client")
-			return Message{MessageId: MsgTimeout}
+			return Message{MessageId: MsgTimeout}, nil
 		}
 	}
 	msg := Message{
@@ -137,7 +137,7 @@ func ReadResponse(conn net.Conn) Message {
 	if len(buffer) > 1 {
 		msg.Payload = buffer[1:]
 	}
-	return msg
+	return msg, nil
 }
 
 type PeerHandler struct {
@@ -158,8 +158,10 @@ func (handler *PeerHandler) findPieceToRequest() error {
 	for pieceIdx := range handler.AvailablePieces {
 		_, ok := handler.AlreadyDownloaded[pieceIdx]
 		if !ok {
+			log.Printf("interested in %d\n", pieceIdx)
 			handler.CurrentPiece = pieceIdx
-			break
+			handler.Lock.Unlock()
+			return nil
 		}
 	}
 	handler.Lock.Unlock()
@@ -236,10 +238,13 @@ func (handler *PeerHandler) HandlePeer(peer Peer, handshake Handshake, torrent T
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		var message Message
 		for {
 
-			message = ReadResponse(conn)
+			message, err := ReadResponse(conn)
+			if err != nil {
+				log.Println("issue reading response, exiting")
+				break
+			}
 
 			if message.IsKeepAlive() {
 				log.Printf("keep-alive received\n")
@@ -304,6 +309,7 @@ func (handler *PeerHandler) HandlePeer(peer Peer, handshake Handshake, torrent T
 
 			err := handler.findPieceToRequest()
 			if err != nil {
+				log.Println("could not find a piece to request!")
 				break
 			}
 			offset := uint32(0)

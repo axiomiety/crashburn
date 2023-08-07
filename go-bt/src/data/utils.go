@@ -30,7 +30,7 @@ func WritePiece(pieceIdx uint32, data []byte) {
 	pieceHash := sha1.Sum(data)
 	pieceHashStr := hex.EncodeToString(pieceHash[:])
 	directory := fmt.Sprintf("%s/tmp/blocks/%s", u.HomeDir, pieceHashStr[:2])
-	os.MkdirAll(directory, 0644)
+	os.MkdirAll(directory, 0744)
 	fname := filepath.Join(directory, strconv.FormatUint(uint64(pieceIdx), 10))
 	err := os.WriteFile(fname, data, 0644)
 	check(err)
