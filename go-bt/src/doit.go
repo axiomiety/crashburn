@@ -82,7 +82,6 @@ func Main() {
 			<-maxPeers
 		}(peer)
 
-		//handler.HandlePeer(peer, handshake, torrent)
 	}
 	wg.Wait()
 

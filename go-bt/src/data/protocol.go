@@ -2,6 +2,7 @@ package data
 
 import (
 	"bytes"
+	"context"
 	"crypto/sha1"
 	"encoding/binary"
 	"encoding/hex"
@@ -78,23 +79,27 @@ type KeepAlive struct {
 	Message
 }
 
-func ReadHandshake(reader io.Reader) Handshake {
+func ReadHandshake(reader io.Reader) (Handshake, error) {
 	// read 1 byte for the len of Pstr
 	// then read 49 + len
 	buf := make([]byte, 1)
 	_, err := io.ReadFull(reader, buf)
-	check(err)
+	if err != nil {
+		return Handshake{}, err
+	}
 	pstrLength := buf[0]
 	buf = make([]byte, 49+pstrLength-1)
 	_, err = io.ReadFull(reader, buf)
-	check(err)
+	if err != nil {
+		return Handshake{}, err
+	}
 	return Handshake{
 		PstrLen:  pstrLength,
 		Pstr:     buf[1:pstrLength],
 		Reserved: [8]byte(buf[pstrLength : pstrLength+8]),
 		InfoHash: [20]byte(buf[pstrLength+8 : pstrLength+8+20]),
 		PeerId:   [20]byte(buf[pstrLength+8+20:]),
-	}
+	}, nil
 }
 
 func (m *Message) IsKeepAlive() bool {
@@ -102,11 +107,11 @@ func (m *Message) IsKeepAlive() bool {
 }
 
 func ReadResponse(conn net.Conn) (Message, error) {
-	log.Println("reading response")
+	//log.Println("reading response")
 	conn.SetReadDeadline(time.Now().Add(8 * time.Second))
 	header := make([]byte, 4)
 	_, err := io.ReadFull(conn, header)
-	if err != io.EOF {
+	if err != nil && err != io.EOF {
 		if os.IsTimeout(err) {
 			log.Println("timed out reading length header from client")
 			return Message{MessageId: MsgTimeout}, nil
@@ -114,7 +119,7 @@ func ReadResponse(conn net.Conn) (Message, error) {
 		return Message{}, err
 	}
 	length := binary.BigEndian.Uint32(header[:])
-	log.Printf("length of message=%d", length)
+	//log.Printf("length of message=%d", length)
 
 	// check if it's a keep-alive message
 	// those have no id and no payload
@@ -227,13 +232,18 @@ func (handler *PeerHandler) HandlePeer(peer Peer, handshake Handshake, torrent T
 	// start with a handshake
 	conn.Write(handshake.ToBytes())
 	// we should receive one!
-	respHandshake := ReadHandshake(conn)
+	respHandshake, err := ReadHandshake(conn)
+	if err != nil {
+		log.Printf("issue reading handshake from %v, exiting...", peer.Id)
+		return
+	}
 	log.Println("received handshake")
 	handler.PeerId = respHandshake.PeerId
 
 	offsetChan := make(chan uint32)
 	pieceChan := make(chan []byte, torrent.Info.PieceLength)
 	var wg sync.WaitGroup
+	_, cancelFunc := context.WithCancel(context.Background())
 
 	wg.Add(1)
 	go func() {
@@ -273,7 +283,7 @@ func (handler *PeerHandler) HandlePeer(peer Peer, handshake Handshake, torrent T
 				log.Printf("piece: idx=%d, begin=%d, len=%d\n", pieceIndex, beginOffset, len(message.Payload)-8)
 				offsetChan <- uint32(len(message.Payload) - 8)
 				pieceChan <- message.Payload[8:]
-				log.Println("done processing block")
+				//log.Println("done processing block")
 			case MsgTimeout:
 				handler.TimeoutCount += 1
 				log.Printf("timeout count: %d\n", handler.TimeoutCount)
@@ -286,11 +296,15 @@ func (handler *PeerHandler) HandlePeer(peer Peer, handshake Handshake, torrent T
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-
+		chokeCount := 0
 		for {
 			if handler.IsChocked {
-				log.Println("client is choked, waiting 5s")
+				log.Printf("client %v is choked, waiting 5s\n", peer.Id)
 				time.Sleep(5 * time.Second)
+				chokeCount += 1
+				if chokeCount > 10 {
+					cancelFunc()
+				}
 				continue
 			}
 
