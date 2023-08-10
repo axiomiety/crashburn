@@ -278,9 +278,9 @@ func (handler *PeerHandler) HandlePeer(peer Peer, handshake Handshake, torrent T
 				handler.AvailablePieces = GetPiecesFromBitField(message.Payload)
 			case MsgPiece:
 				//<len=0009+X><id=7><index><begin><block>
-				pieceIndex := binary.BigEndian.Uint32(message.Payload[:4])
-				beginOffset := binary.BigEndian.Uint32(message.Payload[4:8])
-				log.Printf("piece: idx=%d, begin=%d, len=%d\n", pieceIndex, beginOffset, len(message.Payload)-8)
+				// pieceIndex := binary.BigEndian.Uint32(message.Payload[:4])
+				// beginOffset := binary.BigEndian.Uint32(message.Payload[4:8])
+				//log.Printf("piece: idx=%d, begin=%d, len=%d\n", pieceIndex, beginOffset, len(message.Payload)-8)
 				offsetChan <- uint32(len(message.Payload) - 8)
 				pieceChan <- message.Payload[8:]
 				//log.Println("done processing block")
@@ -330,7 +330,7 @@ func (handler *PeerHandler) HandlePeer(peer Peer, handshake Handshake, torrent T
 			pieceBuffer := new(bytes.Buffer)
 			maxBlockLength := uint32(math.Pow(2, 14) - 1)
 			for {
-				log.Printf("requesting piece=%d at offset=%d", handler.CurrentPiece, offset)
+				//log.Printf("requesting piece=%d at offset=%d", handler.CurrentPiece, offset)
 				remaining := uint32(torrent.Info.PieceLength) - offset
 				var blockLength uint32
 				if remaining > maxBlockLength {
@@ -355,7 +355,9 @@ func (handler *PeerHandler) HandlePeer(peer Peer, handshake Handshake, torrent T
 					// assuming it matches, now what??
 					if pieceHashStr == expectedHashStr {
 						WritePiece(handler.CurrentPiece, buf)
-						handler.AvailablePieces[handler.CurrentPiece] = true
+						handler.Lock.Lock()
+						handler.AlreadyDownloaded[handler.CurrentPiece] = true
+						handler.Lock.Unlock()
 					}
 					break
 				}
