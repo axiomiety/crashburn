@@ -55,14 +55,14 @@ func Main() {
 	go func() {
 		for {
 			mu.Lock()
-			log.Printf("number of pieces downloaded: %d", len(alreadyDownloaded))
+			log.Printf("number of pieces downloaded: %d/%d=%.2f%%, ", len(alreadyDownloaded), torrent.GetNumPieces(), float64(100*len(alreadyDownloaded)/int(torrent.GetNumPieces())))
 			mu.Unlock()
 			time.Sleep(10 * time.Second)
 		}
 	}()
 
 	var wg sync.WaitGroup
-	maxPeers := make(chan int, 5)
+	maxPeers := make(chan int, 10)
 	for _, peer := range trackerResponse.Peers {
 
 		log.Printf("%v\n", peer)

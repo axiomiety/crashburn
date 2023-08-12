@@ -243,13 +243,18 @@ func (handler *PeerHandler) HandlePeer(peer Peer, handshake Handshake, torrent T
 	offsetChan := make(chan uint32)
 	pieceChan := make(chan []byte, torrent.Info.PieceLength)
 	var wg sync.WaitGroup
-	_, cancelFunc := context.WithCancel(context.Background())
+	context, cancelFunc := context.WithCancel(context.Background())
 
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
 		for {
-
+			select {
+			case <-context.Done():
+				return
+			default:
+				// proceed!
+			}
 			message, err := ReadResponse(conn)
 			if err != nil {
 				log.Println("issue reading response, exiting")
