@@ -32,6 +32,14 @@ func Foo() {
 	fmt.Printf("%v\n", data.ParseTrackerResponse(bodyBytes))
 }
 
+func Write() {
+	torrent := data.ParseTorrentFile("ubuntu.torrent")
+	u, _ := user.Current()
+	directory := fmt.Sprintf("%s/tmp/blocks", u.HomeDir)
+	outPath := fmt.Sprintf("%s/tmp/file.out", u.HomeDir)
+	data.WriteFile(directory, outPath, torrent.Info.Length, torrent.GetNumPieces())
+}
+
 func Main() {
 	torrent := data.ParseTorrentFile("ubuntu.torrent")
 	trackerResponse := torrent.QueryTracker()
@@ -62,7 +70,7 @@ func Main() {
 	}()
 
 	var wg sync.WaitGroup
-	maxPeers := make(chan int, 10)
+	maxPeers := make(chan int, 3)
 	for _, peer := range trackerResponse.Peers {
 
 		log.Printf("%v\n", peer)
@@ -91,8 +99,9 @@ func Main() {
 
 func main() {
 	registry := map[string]func(){
-		"Foo":  Foo,
-		"Main": Main,
+		"Foo":   Foo,
+		"Main":  Main,
+		"Write": Write,
 	}
 	var funcFlag = flag.String("n", "Foo", "function to run")
 	flag.Parse()

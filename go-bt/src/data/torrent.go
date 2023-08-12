@@ -59,7 +59,11 @@ func parseInfoDict(infoDict map[string]any) Info {
 }
 
 func (t *Torrent) GetNumPieces() uint64 {
-	return t.Info.Length / t.Info.PieceLength
+	numPieces := t.Info.Length / t.Info.PieceLength
+	if t.Info.Length%t.Info.PieceLength > 0 {
+		numPieces += 1
+	}
+	return numPieces
 }
 
 func ParseTorrentFile(fname string) Torrent {

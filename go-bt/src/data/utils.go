@@ -60,3 +60,47 @@ func GetAlreadyDownloadedPieces(path string, piecesHash string) map[uint32]bool 
 	}
 	return m
 }
+
+func piecesToPath(path string) map[uint32]string {
+	// piece to path
+	m := map[uint32]string{}
+	err := filepath.WalkDir(path, func(path string, entry fs.DirEntry, err error) error {
+		if !entry.IsDir() {
+			pieceIdx_, err := strconv.ParseUint(entry.Name(), 10, 32)
+			check(err)
+			pieceIdx := uint32(pieceIdx_)
+			m[pieceIdx] = path
+		}
+		return nil
+	})
+	if err != nil {
+		log.Fatalf("impossible to walk directories: %s", err)
+	}
+	return m
+}
+
+func WriteFile(blobsPath string, outPath string, fileSize uint64, numPieces uint64) {
+	m := piecesToPath(blobsPath)
+	f, err := os.Create(outPath)
+	defer f.Close()
+
+	check(err)
+	var i uint64
+	bytesRemaining := int(fileSize)
+	for i = 0; i < numPieces; i++ {
+		data, err := os.ReadFile(m[uint32(i)])
+		check(err)
+		if bytesRemaining >= len(data) {
+			f.Write(data)
+			bytesRemaining -= len(data)
+			log.Printf("bytes remaining: %d - read %s\n", bytesRemaining, m[uint32(i)])
+		} else {
+			left := len(data) - bytesRemaining
+			f.Write(data[:left])
+			log.Println("Finished writing")
+			break
+		}
+	}
+	f.Sync()
+	log.Println("all done")
+}

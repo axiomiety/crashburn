@@ -62,6 +62,7 @@ type Message struct {
 }
 
 func Request(index uint32, offset uint32, blockLength uint32) Message {
+	log.Printf("requesting %d at offset %d with blockLength %d\n", index, offset, blockLength)
 	length := make([]byte, 4)
 	binary.BigEndian.PutUint32(length, 13)
 	payload := make([]byte, 12)
@@ -170,7 +171,8 @@ func (handler *PeerHandler) findPieceToRequest() error {
 		}
 	}
 	handler.Lock.Unlock()
-	return errors.New("no more pieces to request")
+	return nil
+	//return errors.New("no more pieces to request")
 }
 
 func connectToPeer(peer Peer) (net.Conn, error) {
@@ -218,6 +220,7 @@ func GetPiecesFromBitField(bitfield []byte) map[uint32]bool {
 			}
 		}
 	}
+	log.Printf("found %d pieces\n", len(pieces))
 	return pieces
 }
 
@@ -336,7 +339,15 @@ func (handler *PeerHandler) HandlePeer(peer Peer, handshake Handshake, torrent T
 			maxBlockLength := uint32(math.Pow(2, 14) - 1)
 			for {
 				//log.Printf("requesting piece=%d at offset=%d", handler.CurrentPiece, offset)
-				remaining := uint32(torrent.Info.PieceLength) - offset
+				var remaining uint32
+				boundary := torrent.Info.PieceLength
+				if handler.CurrentPiece == uint32(torrent.GetNumPieces())-1 {
+					log.Println("requesting last piece!")
+					remaining = uint32(torrent.Info.Length%torrent.Info.PieceLength) - offset
+					boundary = torrent.Info.Length % torrent.Info.PieceLength
+				} else {
+					remaining = uint32(torrent.Info.PieceLength) - offset
+				}
 				var blockLength uint32
 				if remaining > maxBlockLength {
 					blockLength = maxBlockLength
@@ -349,8 +360,10 @@ func (handler *PeerHandler) HandlePeer(peer Peer, handshake Handshake, torrent T
 				offset += <-offsetChan
 				pieceBuffer.Write(<-pieceChan)
 				// if we're past a piece length, let's hash it
-				if offset >= uint32(torrent.Info.PieceLength) {
-					buf := pieceBuffer.Bytes()[:torrent.Info.PieceLength]
+				//TODO: need to figure that one out - i had to add the || on BlockLength
+				// and bypass the hash check
+				if offset >= uint32(boundary) {
+					buf := pieceBuffer.Bytes()[:boundary]
 					pieceHash := sha1.Sum(buf)
 					pieceHashStr := hex.EncodeToString(pieceHash[:])
 					startIdx := 20 * handler.CurrentPiece
