@@ -76,6 +76,17 @@ func Request(index uint32, offset uint32, blockLength uint32) Message {
 	}
 }
 
+func Bitfield(downloadedPieces map[uint32]bool) Message {
+	length := make([]byte, 4)
+	binary.BigEndian.PutUint32(length, 13)
+	payload := make([]byte, 12)
+	return Message{
+		Length:    [4]byte(length),
+		MessageId: MsgBitfield,
+		Payload:   payload,
+	}
+}
+
 type KeepAlive struct {
 	Message
 }
@@ -224,7 +235,7 @@ func GetPiecesFromBitField(bitfield []byte) map[uint32]bool {
 	return pieces
 }
 
-func (handler *PeerHandler) HandlePeer(peer Peer, handshake Handshake, torrent Torrent) {
+func (handler *PeerHandler) HandlePeer(peer Peer, handshake Handshake, torrent Torrent, newPieceDownloadedChan chan uint32) {
 	conn, err := connectToPeer(peer)
 	defer conn.Close()
 	if err != nil {
@@ -241,6 +252,8 @@ func (handler *PeerHandler) HandlePeer(peer Peer, handshake Handshake, torrent T
 		return
 	}
 	log.Println("received handshake")
+	// let's send them the pieces we have
+	conn.Write(Bitfield(handler.AlreadyDownloaded).ToBytes())
 	handler.PeerId = respHandshake.PeerId
 
 	offsetChan := make(chan uint32)
@@ -277,9 +290,9 @@ func (handler *PeerHandler) HandlePeer(peer Peer, handshake Handshake, torrent T
 			case MsgInterested:
 				handler.IsInterested = true
 			case MsgNotInterested:
-				handler.IsInterested = false
+				log.Printf("peer is not interested in our pieces")
 			case MsgHave:
-				handler.AvailablePieces[uint32(binary.BigEndian.Uint32(message.Payload))] = true
+				handler.AvailablePieces[binary.BigEndian.Uint32(message.Payload)] = true
 			case MsgBitfield:
 				log.Printf("updating bitfield\n")
 				// we don't need to merge - the bitfield has every piece the peer holds
@@ -332,6 +345,11 @@ func (handler *PeerHandler) HandlePeer(peer Peer, handshake Handshake, torrent T
 			err := handler.findPieceToRequest()
 			if err != nil {
 				log.Println("could not find a piece to request!")
+				// let's break here and find a peer that has pieces we need
+				// our priority is to download pieces right now, not serve them
+				// this peer can connect to us again later and hopefully we'll
+				// have pieces they're interested in
+				cancelFunc()
 				break
 			}
 			offset := uint32(0)
@@ -375,6 +393,9 @@ func (handler *PeerHandler) HandlePeer(peer Peer, handshake Handshake, torrent T
 						WritePiece(handler.CurrentPiece, buf)
 						handler.Lock.Lock()
 						handler.AlreadyDownloaded[handler.CurrentPiece] = true
+						// now that we have a brand new piece, we should advertise it
+						// to all our peers in case someone else needs it
+						newPieceDownloadedChan <- handler.CurrentPiece
 						handler.Lock.Unlock()
 					}
 					break

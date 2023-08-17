@@ -59,6 +59,10 @@ func Main() {
 	rand.Shuffle(len(trackerResponse.Peers), func(i, j int) {
 		trackerResponse.Peers[i], trackerResponse.Peers[j] = trackerResponse.Peers[j], trackerResponse.Peers[i]
 	})
+
+	// we'll receive pieceIdx on this channel
+	// and issue Have messages to all our connected peers
+	newPieceDownloadedChan := make(chan uint32, 10)
 	var mu sync.Mutex
 	go func() {
 		for {
@@ -70,7 +74,7 @@ func Main() {
 	}()
 
 	var wg sync.WaitGroup
-	maxPeers := make(chan int, 3)
+	maxPeers := make(chan uint32, 5)
 	for _, peer := range trackerResponse.Peers {
 
 		log.Printf("%v\n", peer)
@@ -86,7 +90,7 @@ func Main() {
 		wg.Add(1)
 		go func(p data.Peer) {
 			defer wg.Done()
-			handler.HandlePeer(p, handshake, torrent)
+			handler.HandlePeer(p, handshake, torrent, newPieceDownloadedChan)
 			<-maxPeers
 		}(peer)
 

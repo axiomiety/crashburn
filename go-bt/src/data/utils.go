@@ -25,6 +25,19 @@ func ExtractPiecesFromBitfield(bitfield []byte) map[uint32]bool {
 	return pieces
 }
 
+func MakeBitfieldFromPieces(numPieces uint32, pieces map[uint32]bool) []byte {
+	var i uint32
+	bitfield := make([]byte, numPieces/8)
+	for i = 0; i < numPieces; i++ {
+		b := bitfield[i/8]
+		_, ok := pieces[i]
+		if ok {
+			b |= byte(2 ^ (i % 8))
+		}
+	}
+	return bitfield
+}
+
 func WritePiece(pieceIdx uint32, data []byte) {
 	u, _ := user.Current()
 	pieceHash := sha1.Sum(data)
