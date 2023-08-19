@@ -253,7 +253,8 @@ func (handler *PeerHandler) HandlePeer(peer Peer, handshake Handshake, torrent T
 	}
 	log.Println("received handshake")
 	// let's send them the pieces we have
-	conn.Write(Bitfield(handler.AlreadyDownloaded).ToBytes())
+	bitfield := Bitfield(handler.AlreadyDownloaded)
+	conn.Write(bitfield.ToBytes())
 	handler.PeerId = respHandshake.PeerId
 
 	offsetChan := make(chan uint32)

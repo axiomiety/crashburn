@@ -17,7 +17,8 @@ func ExtractPiecesFromBitfield(bitfield []byte) map[uint32]bool {
 	pieces := make(map[uint32]bool)
 	for idx, byte_ := range bitfield {
 		for i := 0; i <= 7; i++ {
-			if byte_&byte(2^i) > 0 {
+			log.Printf("%d: %b vs %b, %b\n", i, byte_, byte(1<<i), byte_&byte(1<<i))
+			if byte_&byte(1<<i) > 0 {
 				pieces[uint32(idx*8+i)] = true
 			}
 		}
@@ -29,10 +30,9 @@ func MakeBitfieldFromPieces(numPieces uint32, pieces map[uint32]bool) []byte {
 	var i uint32
 	bitfield := make([]byte, numPieces/8)
 	for i = 0; i < numPieces; i++ {
-		b := bitfield[i/8]
 		_, ok := pieces[i]
 		if ok {
-			b |= byte(2 ^ (i % 8))
+			bitfield[i/8] |= byte(1 << (i % 8))
 		}
 	}
 	return bitfield
