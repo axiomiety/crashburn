@@ -17,7 +17,6 @@ func ExtractPiecesFromBitfield(bitfield []byte) map[uint32]bool {
 	pieces := make(map[uint32]bool)
 	for idx, byte_ := range bitfield {
 		for i := 0; i <= 7; i++ {
-			log.Printf("%d: %b vs %b, %b\n", i, byte_, byte(1<<i), byte_&byte(1<<i))
 			if byte_&byte(1<<i) > 0 {
 				pieces[uint32(idx*8+i)] = true
 			}
@@ -36,6 +35,20 @@ func MakeBitfieldFromPieces(numPieces uint32, pieces map[uint32]bool) []byte {
 		}
 	}
 	return bitfield
+}
+
+// original impl, which may be wrong!
+func _GetPiecesFromBitField(bitfield []byte) map[uint32]bool {
+	pieces := make(map[uint32]bool)
+	for offset, row := range bitfield {
+		for i := 0; i < 8; i++ {
+			if row&(1<<i) > 0 {
+				pieces[uint32(offset*8+(7-i))] = true
+			}
+		}
+	}
+	log.Printf("found %d pieces\n", len(pieces))
+	return pieces
 }
 
 func WritePiece(pieceIdx uint32, data []byte) {
