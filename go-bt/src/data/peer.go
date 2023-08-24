@@ -26,7 +26,6 @@ func connectToPeer(peer Peer) (net.Conn, error) {
 	if ip == nil {
 		return nil, errors.New(fmt.Sprintf("can't parse IP %s", peer.IP))
 	}
-	// need logic for both IPv4 and IPv6
 
 	timeout := 5 * time.Second
 	if ip.To4() != nil {

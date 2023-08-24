@@ -5,10 +5,12 @@ https://releases.ubuntu.com/23.04/ubuntu-23.04-live-server-amd64.iso.torrent?_ga
 */
 
 import (
+	"encoding/json"
 	"flag"
 	"fmt"
 	"go-bt/data"
 	"io"
+	"io/ioutil"
 	"log"
 	"math/rand"
 	"os"
@@ -23,7 +25,7 @@ func check(err error) {
 	}
 }
 
-func Foo() {
+func Foo(_ data.Configuration) {
 	fmt.Printf("%v\n", data.ParseTorrentFile("ubuntu.torrent"))
 
 	file, _ := os.Open("tracker.response.beencoded")
@@ -32,7 +34,7 @@ func Foo() {
 	fmt.Printf("%v\n", data.ParseTrackerResponse(bodyBytes))
 }
 
-func Write() {
+func Write(_ data.Configuration) {
 	torrent := data.ParseTorrentFile("ubuntu.torrent")
 	u, _ := user.Current()
 	directory := fmt.Sprintf("%s/tmp/blocks", u.HomeDir)
@@ -40,20 +42,19 @@ func Write() {
 	data.WriteFile(directory, outPath, torrent.Info.Length, torrent.GetNumPieces())
 }
 
-func Main() {
-	torrent := data.ParseTorrentFile("ubuntu.torrent")
+func Main(conf data.Configuration) {
+	torrent := data.ParseTorrentFile(conf.Torrent)
 	trackerResponse := torrent.QueryTracker()
 
 	var peerId [20]byte
-	copy(peerId[:], "12345678901234567890")
+	copy(peerId[:], []byte(conf.PeerId))
 	log.Printf("piece length (bytes): %d\n", torrent.Info.PieceLength)
 	log.Printf("number of pieces: %d\n", torrent.Info.Length/torrent.Info.PieceLength)
 	log.Printf("number of peers: %d\n", len(trackerResponse.Peers))
 
 	// see what we have downloaded, if any
 
-	u, _ := user.Current()
-	directory := fmt.Sprintf("%s/tmp/blocks", u.HomeDir)
+	directory := conf.PiecesPath
 	alreadyDownloaded := data.GetAlreadyDownloadedPieces(directory, torrent.Info.Pieces)
 	// shuffle the peers!
 	rand.Shuffle(len(trackerResponse.Peers), func(i, j int) {
@@ -101,14 +102,37 @@ func Main() {
 
 }
 
+func getConf(confPath string) data.Configuration {
+	confFile, err := os.Open(confPath)
+	if err != nil {
+		panic(err)
+	}
+	defer confFile.Close()
+	conf, err := ioutil.ReadAll(confFile)
+	if err != nil {
+		panic(err)
+	}
+	myConf := data.Configuration{}
+	err = json.Unmarshal(conf, &myConf)
+	if err != nil {
+		panic(err)
+	}
+	return myConf
+}
+
 func main() {
-	registry := map[string]func(){
+	registry := map[string]func(data.Configuration){
 		"Foo":   Foo,
 		"Main":  Main,
 		"Write": Write,
 	}
 	var funcFlag = flag.String("n", "Foo", "function to run")
+	var confFlag = flag.String("c", "", "path to JSON configuration file")
 	flag.Parse()
 	log.Printf("calling %s", *funcFlag)
-	registry[*funcFlag]()
+	var conf data.Configuration
+	if confFlag != nil {
+		conf = getConf(*confFlag)
+	}
+	registry[*funcFlag](conf)
 }

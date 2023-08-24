@@ -33,7 +33,7 @@ func TestGetHandshake(t *testing.T) {
 
 func TestGetPiecesFromBitField(t *testing.T) {
 	bitfield := []byte{128}
-	pieces := data.GetPiecesFromBitField(bitfield)
+	pieces := data.XXXGetPiecesFromBitField(bitfield)
 	expected := map[uint32]bool{0: true}
 	if !reflect.DeepEqual(pieces, expected) {
 		for key := range pieces {

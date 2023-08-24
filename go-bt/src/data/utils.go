@@ -38,7 +38,7 @@ func MakeBitfieldFromPieces(numPieces uint32, pieces map[uint32]bool) []byte {
 }
 
 // original impl, which may be wrong!
-func _GetPiecesFromBitField(bitfield []byte) map[uint32]bool {
+func XXXGetPiecesFromBitField(bitfield []byte) map[uint32]bool {
 	pieces := make(map[uint32]bool)
 	for offset, row := range bitfield {
 		for i := 0; i < 8; i++ {
