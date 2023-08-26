@@ -14,7 +14,6 @@ import (
 	"log"
 	"math/rand"
 	"os"
-	"os/user"
 	"sync"
 	"time"
 )
@@ -34,12 +33,9 @@ func Foo(_ data.Configuration) {
 	fmt.Printf("%v\n", data.ParseTrackerResponse(bodyBytes))
 }
 
-func Write(_ data.Configuration) {
-	torrent := data.ParseTorrentFile("ubuntu.torrent")
-	u, _ := user.Current()
-	directory := fmt.Sprintf("%s/tmp/blocks", u.HomeDir)
-	outPath := fmt.Sprintf("%s/tmp/file.out", u.HomeDir)
-	data.WriteFile(directory, outPath, torrent.Info.Length, torrent.GetNumPieces())
+func Write(conf data.Configuration) {
+	torrent := data.ParseTorrentFile(conf.Torrent)
+	data.WriteFile(conf.PiecesPath, conf.OutPath, torrent.Info.Length, torrent.GetNumPieces())
 }
 
 func Main(conf data.Configuration) {
@@ -48,50 +44,49 @@ func Main(conf data.Configuration) {
 
 	var peerId [20]byte
 	copy(peerId[:], []byte(conf.PeerId))
-	log.Printf("piece length (bytes): %d\n", torrent.Info.PieceLength)
-	log.Printf("number of pieces: %d\n", torrent.Info.Length/torrent.Info.PieceLength)
-	log.Printf("number of peers: %d\n", len(trackerResponse.Peers))
-
-	// see what we have downloaded, if any
-
 	directory := conf.PiecesPath
 	alreadyDownloaded := data.GetAlreadyDownloadedPieces(directory, torrent.Info.Pieces)
+
+	log.Printf("piece length (bytes): %d\n", torrent.Info.PieceLength)
+	log.Printf("total number of pieces: %d\n", torrent.Info.Length/torrent.Info.PieceLength)
+	log.Printf("number of pieces we have: %d\n", len(alreadyDownloaded))
+	log.Printf("number of peers: %d\n", len(trackerResponse.Peers))
+
 	// shuffle the peers!
 	rand.Shuffle(len(trackerResponse.Peers), func(i, j int) {
 		trackerResponse.Peers[i], trackerResponse.Peers[j] = trackerResponse.Peers[j], trackerResponse.Peers[i]
 	})
 
-	// we'll receive pieceIdx on this channel
-	// and issue Have messages to all our connected peers
-	newPieceDownloadedChan := make(chan uint32, 10)
+	// mutex used to update the global state
+
 	var mu sync.Mutex
-	go func() {
-		for {
-			mu.Lock()
-			log.Printf("number of pieces downloaded: %d/%d=%.2f%%, ", len(alreadyDownloaded), torrent.GetNumPieces(), float64(100*len(alreadyDownloaded)/int(torrent.GetNumPieces())))
-			mu.Unlock()
-			time.Sleep(10 * time.Second)
-		}
-	}()
+
+	state := data.State{
+		AlreadyDownloaded: alreadyDownloaded,
+		Peers:             make([]data.Peer, conf.MaxPeers),
+		Lock:              &mu,
+	}
+
+	// status poller
+	go state.LogStatus(uint32(torrent.GetNumPieces()))
 
 	var wg sync.WaitGroup
-	maxPeers := make(chan uint32, 5)
+	maxPeers := make(chan uint32, conf.MaxPeers)
 	for _, peer := range trackerResponse.Peers {
 
 		log.Printf("%v\n", peer)
 		handshake := data.GetHanshake(torrent.InfoHash, peerId)
 		handler := data.PeerHandler{
-			AvailablePieces:   make(map[uint32]bool),
-			IsChocked:         true,
-			IsInterested:      false,
-			AlreadyDownloaded: alreadyDownloaded,
-			Lock:              &mu,
+			AvailablePieces: make(map[uint32]bool),
+			IsChocked:       true,
+			IsInterested:    false,
+			State:           &state,
 		}
 		maxPeers <- 1
 		wg.Add(1)
 		go func(p data.Peer) {
 			defer wg.Done()
-			handler.HandlePeer(p, handshake, torrent, newPieceDownloadedChan)
+			handler.HandlePeer(p, handshake, torrent)
 			<-maxPeers
 		}(peer)
 

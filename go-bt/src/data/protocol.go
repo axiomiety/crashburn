@@ -7,7 +7,6 @@ import (
 	"log"
 	"net"
 	"os"
-	"sync"
 	"time"
 )
 
@@ -152,32 +151,13 @@ func ReadResponse(conn net.Conn) (Message, error) {
 }
 
 type PeerHandler struct {
-	PeerId       [20]byte
-	IsChocked    bool
-	IsInterested bool
-	// use a bitfield - maybe?
-	// we check unint16 is enough when we parse the tracker
-	AvailablePieces   map[uint32]bool
-	AlreadyDownloaded map[uint32]bool
-	TimeoutCount      uint8 // how many times we timed out reading from the peer
-	CurrentPiece      uint32
-	Lock              *sync.Mutex
-}
-
-func (handler *PeerHandler) findPieceToRequest() error {
-	handler.Lock.Lock()
-	for pieceIdx := range handler.AvailablePieces {
-		_, ok := handler.AlreadyDownloaded[pieceIdx]
-		if !ok {
-			log.Printf("interested in %d\n", pieceIdx)
-			handler.CurrentPiece = pieceIdx
-			handler.Lock.Unlock()
-			return nil
-		}
-	}
-	handler.Lock.Unlock()
-	return nil
-	//return errors.New("no more pieces to request")
+	PeerId          [20]byte
+	IsChocked       bool
+	IsInterested    bool
+	AvailablePieces map[uint32]bool
+	TimeoutCount    uint8 // how many times we timed out reading from the peer
+	CurrentPiece    uint32
+	State           *State
 }
 
 const (

@@ -41,7 +41,7 @@ func connectToPeer(peer Peer) (net.Conn, error) {
 	return conn, err
 }
 
-func (handler *PeerHandler) HandlePeer(peer Peer, handshake Handshake, torrent Torrent, newPieceDownloadedChan chan uint32) {
+func (handler *PeerHandler) HandlePeer(peer Peer, handshake Handshake, torrent Torrent) {
 	peerIdB64 := b64.StdEncoding.EncodeToString([]byte(peer.Id))
 	peerLogger := log.New(os.Stdout, fmt.Sprintf("[peer:%s]", peerIdB64), log.Ldate|log.Ltime)
 	log.Printf("mapping %s to %s", peer.Id, peerIdB64)
@@ -62,7 +62,7 @@ func (handler *PeerHandler) HandlePeer(peer Peer, handshake Handshake, torrent T
 	}
 	peerLogger.Println("received handshake")
 	// let's send them the pieces we have
-	bitfield := Bitfield(handler.AlreadyDownloaded)
+	bitfield := Bitfield(handler.State.AlreadyDownloaded)
 	conn.Write(bitfield.ToBytes())
 	handler.PeerId = respHandshake.PeerId
 
@@ -152,7 +152,7 @@ func (handler *PeerHandler) HandlePeer(peer Peer, handshake Handshake, torrent T
 				peerLogger.Println("told peer we're interested!")
 			}
 
-			err := handler.findPieceToRequest()
+			idx, err := handler.State.findPieceToRequest(handler.AvailablePieces)
 			if err != nil {
 				peerLogger.Println("could not find a piece to request!")
 				// let's break here and find a peer that has pieces we need
@@ -162,6 +162,8 @@ func (handler *PeerHandler) HandlePeer(peer Peer, handshake Handshake, torrent T
 				cancelFunc()
 				break
 			}
+			handler.CurrentPiece = idx
+
 			offset := uint32(0)
 			pieceBuffer := new(bytes.Buffer)
 			maxBlockLength := uint32(math.Pow(2, 14) - 1)
@@ -198,12 +200,7 @@ func (handler *PeerHandler) HandlePeer(peer Peer, handshake Handshake, torrent T
 					peerLogger.Printf("versus:   %s", expectedHashStr)
 					if pieceHashStr == expectedHashStr {
 						WritePiece(handler.CurrentPiece, buf)
-						handler.Lock.Lock()
-						handler.AlreadyDownloaded[handler.CurrentPiece] = true
-						// now that we have a brand new piece, we should advertise it
-						// to all our peers in case someone else needs it
-						newPieceDownloadedChan <- handler.CurrentPiece
-						handler.Lock.Unlock()
+						handler.State.ObtainedPiece(handler.CurrentPiece)
 					}
 					break
 				}
