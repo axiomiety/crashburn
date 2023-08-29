@@ -158,6 +158,7 @@ type PeerHandler struct {
 	TimeoutCount    uint8 // how many times we timed out reading from the peer
 	CurrentPiece    uint32
 	State           *State
+	Conn            net.Conn
 }
 
 const (

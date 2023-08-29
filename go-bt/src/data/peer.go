@@ -51,6 +51,7 @@ func (handler *PeerHandler) HandlePeer(peer Peer, handshake Handshake, torrent T
 		peerLogger.Printf("can't connect to peer: %s\n", err)
 		return
 	}
+	handler.Conn = conn
 	peerLogger.Println("connected to peer, sending handshake")
 	// start with a handshake
 	conn.Write(handshake.ToBytes())
@@ -71,7 +72,12 @@ func (handler *PeerHandler) HandlePeer(peer Peer, handshake Handshake, torrent T
 	var wg sync.WaitGroup
 	context, cancelFunc := context.WithCancel(context.Background())
 
+	defer func() {
+		cancelFunc()
+	}()
+
 	wg.Add(1)
+	// response reader
 	go func() {
 		defer wg.Done()
 		for {
@@ -108,13 +114,8 @@ func (handler *PeerHandler) HandlePeer(peer Peer, handshake Handshake, torrent T
 				// we don't need to merge - the bitfield has every piece the peer holds
 				handler.AvailablePieces = ExtractPiecesFromBitfield(message.Payload)
 			case MsgPiece:
-				//<len=0009+X><id=7><index><begin><block>
-				// pieceIndex := binary.BigEndian.Uint32(message.Payload[:4])
-				// beginOffset := binary.BigEndian.Uint32(message.Payload[4:8])
-				//log.Printf("piece: idx=%d, begin=%d, len=%d\n", pieceIndex, beginOffset, len(message.Payload)-8)
 				offsetChan <- uint32(len(message.Payload) - 8)
 				pieceChan <- message.Payload[8:]
-				//log.Println("done processing block")
 			case MsgTimeout:
 				handler.TimeoutCount += 1
 				peerLogger.Printf("timeout count: %d\n", handler.TimeoutCount)
@@ -125,6 +126,7 @@ func (handler *PeerHandler) HandlePeer(peer Peer, handshake Handshake, torrent T
 	}()
 
 	wg.Add(1)
+	// writer
 	go func() {
 		defer wg.Done()
 		chokeCount := 0
@@ -167,6 +169,8 @@ func (handler *PeerHandler) HandlePeer(peer Peer, handshake Handshake, torrent T
 			offset := uint32(0)
 			pieceBuffer := new(bytes.Buffer)
 			maxBlockLength := uint32(math.Pow(2, 14) - 1)
+
+			// iterate through a whole piece, block by block
 			for {
 				//log.Printf("requesting piece=%d at offset=%d", handler.CurrentPiece, offset)
 				var remaining uint32
