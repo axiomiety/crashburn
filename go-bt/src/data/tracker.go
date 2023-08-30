@@ -139,3 +139,25 @@ func (torrent *Torrent) QueryTracker() TrackerResponse {
 	check(err)
 	return ParseTrackerResponse(bodyBytes)
 }
+
+type Tracker struct {
+	InfoHashes map[[20]byte][]byte
+}
+
+func (tracker *Tracker) trackerQuery(w http.ResponseWriter, req *http.Request) {
+	query := req.URL.Query()
+	infoHash := [20]byte{}
+	copy(infoHash[:], query.Get("info_hash"))
+	if _, ok := tracker.InfoHashes[infoHash]; ok {
+		peerId := query.Get("peer_id")
+		peerPort := query.Get("port")
+		// maybe look at X-FORWARDED-FOR?
+		log.Printf("got request from %s:%s - %v", req.RemoteAddr, peerPort, peerId)
+
+	}
+}
+
+func (tracker *Tracker) Serve(port int) {
+	http.HandleFunc("/", tracker.trackerQuery)
+	http.ListenAndServe(fmt.Sprintf(":%d", port), nil)
+}

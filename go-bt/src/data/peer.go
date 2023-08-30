@@ -27,6 +27,8 @@ func connectToPeer(peer Peer) (net.Conn, error) {
 		return nil, errors.New(fmt.Sprintf("can't parse IP %s", peer.IP))
 	}
 
+	//TODO: check we're not connecting to ourselves!
+
 	timeout := 5 * time.Second
 	if ip.To4() != nil {
 		connStr := fmt.Sprintf("%s:%d", peer.IP, peer.Port)

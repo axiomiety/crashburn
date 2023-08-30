@@ -60,15 +60,19 @@ func Main(conf data.Configuration) {
 	// mutex used to update the global state
 
 	var mu sync.Mutex
+	var pieceChan = make(chan uint32, 1)
 
 	state := data.State{
 		AlreadyDownloaded: alreadyDownloaded,
-		Peers:             make([]data.Peer, conf.MaxPeers),
+		PeerHandlers:      make([]data.PeerHandler, conf.MaxPeers),
 		Lock:              &mu,
+		PieceChan:         pieceChan,
 	}
 
 	// status poller
 	go state.LogStatus(uint32(torrent.GetNumPieces()))
+	// notify all peers once we have a new piece
+	go state.PeersNotify()
 
 	var wg sync.WaitGroup
 	maxPeers := make(chan uint32, conf.MaxPeers)
