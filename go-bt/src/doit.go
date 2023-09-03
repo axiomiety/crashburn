@@ -38,7 +38,13 @@ func Write(conf data.Configuration) {
 	data.WriteFile(conf.PiecesPath, conf.OutPath, torrent.Info.Length, torrent.GetNumPieces())
 }
 
+func Serve(conf data.Configuration) {
+	tracker := data.Tracker{}
+	tracker.Serve(8088, conf.TorrentsPath)
+}
+
 func Main(conf data.Configuration) {
+
 	torrent := data.ParseTorrentFile(conf.Torrent)
 	trackerResponse := torrent.QueryTracker()
 
@@ -124,6 +130,7 @@ func main() {
 		"Foo":   Foo,
 		"Main":  Main,
 		"Write": Write,
+		"Serve": Serve,
 	}
 	var funcFlag = flag.String("n", "Foo", "function to run")
 	var confFlag = flag.String("c", "", "path to JSON configuration file")

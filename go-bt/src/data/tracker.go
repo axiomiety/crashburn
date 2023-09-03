@@ -142,8 +142,7 @@ func (torrent *Torrent) QueryTracker() TrackerResponse {
 }
 
 type Tracker struct {
-	InfoHashes           map[[20]byte]Torrent
-	TrackerConfiguration TrackerConfiguration
+	InfoHashes map[[20]byte]Torrent
 }
 
 func (tracker *Tracker) list(w http.ResponseWriter, req *http.Request) {
@@ -164,14 +163,17 @@ func (tracker *Tracker) trackerQuery(w http.ResponseWriter, req *http.Request) {
 }
 
 func (tracker *Tracker) loadTorrents(path string) {
-	files, err := ioutil.ReadDir("path")
+	files, err := ioutil.ReadDir(path)
 	if err != nil {
 		panic(err)
 	}
 
 	for _, filename := range files {
-		torrent := ParseTorrentFile(filename.Name())
-		tracker.InfoHashes[torrent.InfoHash] = torrent
+		if strings.HasSuffix(filename.Name(), ".torrent") {
+			log.Printf("torrent file found: %s\n", filename.Name())
+			torrent := ParseTorrentFile(filename.Name())
+			tracker.InfoHashes[torrent.InfoHash] = torrent
+		}
 	}
 
 }

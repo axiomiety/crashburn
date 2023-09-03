@@ -11,6 +11,8 @@ We expect a configuration file to be passed in of the following format:
 		"maxPeers": int, // max number of peers to connect to
 		"torrentsPath": "/all/your/torrents/are/belong/to/us" - optional
 	}
+
+	ideally the first 3 would be a list of torrents - to support more than one at a time
 */
 type Configuration struct {
 	Torrent      string `json:"torrent"`
