@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"net/url"
@@ -141,9 +142,15 @@ func (torrent *Torrent) QueryTracker() TrackerResponse {
 }
 
 type Tracker struct {
-	InfoHashes map[[20]byte][]byte
+	InfoHashes           map[[20]byte]Torrent
+	TrackerConfiguration TrackerConfiguration
 }
 
+func (tracker *Tracker) list(w http.ResponseWriter, req *http.Request) {
+	for _, val := range tracker.InfoHashes {
+		io.WriteString(w, fmt.Sprintf("%s\n", val.Info.Name))
+	}
+}
 func (tracker *Tracker) trackerQuery(w http.ResponseWriter, req *http.Request) {
 	query := req.URL.Query()
 	infoHash := [20]byte{}
@@ -153,11 +160,28 @@ func (tracker *Tracker) trackerQuery(w http.ResponseWriter, req *http.Request) {
 		peerPort := query.Get("port")
 		// maybe look at X-FORWARDED-FOR?
 		log.Printf("got request from %s:%s - %v", req.RemoteAddr, peerPort, peerId)
-
 	}
 }
 
-func (tracker *Tracker) Serve(port int) {
-	http.HandleFunc("/", tracker.trackerQuery)
+func (tracker *Tracker) loadTorrents(path string) {
+	files, err := ioutil.ReadDir("path")
+	if err != nil {
+		panic(err)
+	}
+
+	for _, filename := range files {
+		torrent := ParseTorrentFile(filename.Name())
+		tracker.InfoHashes[torrent.InfoHash] = torrent
+	}
+
+}
+
+func (tracker *Tracker) Serve(port int, torrentsPath string) {
+	if tracker.InfoHashes == nil {
+		tracker.InfoHashes = map[[20]byte]Torrent{}
+	}
+	tracker.loadTorrents(torrentsPath)
+	http.HandleFunc("/list", tracker.list)
+	http.HandleFunc("/tracker", tracker.trackerQuery)
 	http.ListenAndServe(fmt.Sprintf(":%d", port), nil)
 }
