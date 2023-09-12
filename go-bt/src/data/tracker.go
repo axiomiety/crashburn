@@ -10,6 +10,7 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 
 	"github.com/marksamman/bencode"
@@ -142,7 +143,7 @@ func (torrent *Torrent) QueryTracker() TrackerResponse {
 }
 
 type Tracker struct {
-	InfoHashes map[[20]byte]Torrent
+	InfoHashes map[[20]byte]TrackerResponse
 }
 
 func (tracker *Tracker) list(w http.ResponseWriter, req *http.Request) {
@@ -156,9 +157,20 @@ func (tracker *Tracker) trackerQuery(w http.ResponseWriter, req *http.Request) {
 	copy(infoHash[:], query.Get("info_hash"))
 	if _, ok := tracker.InfoHashes[infoHash]; ok {
 		peerId := query.Get("peer_id")
-		peerPort := query.Get("port")
+		peerPortStr := query.Get("port")
 		// maybe look at X-FORWARDED-FOR?
-		log.Printf("got request from %s:%s - %v", req.RemoteAddr, peerPort, peerId)
+		log.Printf("got request from %s:%s - %v", req.RemoteAddr, peerPortStr, peerId)
+		// add the Peer to the list
+		peer := Peer{
+			Id: peerId,
+			IP: req.RemoteAddr,
+		}
+		if peerPort, err := strconv.ParseInt(peerPortStr, 10, 64); err != nil {
+			peer.Port = peerPort
+		}
+		// we likely need to de-dupe peers - maybe this isn't the right type!
+		m := tracker.InfoHashes[infoHash]
+		m.Peers = append(tracker.InfoHashes[infoHash].Peers, peer)
 	}
 }
 
@@ -172,7 +184,12 @@ func (tracker *Tracker) loadTorrents(path string) {
 		if strings.HasSuffix(filename.Name(), ".torrent") {
 			log.Printf("torrent file found: %s\n", filename.Name())
 			torrent := ParseTorrentFile(filename.Name())
-			tracker.InfoHashes[torrent.InfoHash] = torrent
+			tracker.InfoHashes[torrent.InfoHash] = TrackerResponse{
+				Complete:   0,
+				Incomplete: 0,
+				Peers:      make([]Peer, 5),
+				Interval:   30,
+			}
 		}
 	}
 
