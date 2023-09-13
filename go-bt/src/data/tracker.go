@@ -147,8 +147,9 @@ type Tracker struct {
 }
 
 func (tracker *Tracker) list(w http.ResponseWriter, req *http.Request) {
-	for _, val := range tracker.InfoHashes {
-		io.WriteString(w, fmt.Sprintf("%s\n", val.Info.Name))
+	w.Header().Add("Content-Type", "application/text")
+	for key, val := range tracker.InfoHashes {
+		io.WriteString(w, fmt.Sprintf("%s:%v\n", key, val))
 	}
 }
 func (tracker *Tracker) trackerQuery(w http.ResponseWriter, req *http.Request) {
@@ -171,7 +172,17 @@ func (tracker *Tracker) trackerQuery(w http.ResponseWriter, req *http.Request) {
 		// we likely need to de-dupe peers - maybe this isn't the right type!
 		m := tracker.InfoHashes[infoHash]
 		m.Peers = append(tracker.InfoHashes[infoHash].Peers, peer)
+
 	}
+}
+
+func encodeTrackerResponse(resp TrackerResponse) []byte {
+	m := map[string]any{}
+	m["complete"] = resp.Complete
+	m["incomplete"] = resp.Incomplete
+	m["interval"] = resp.Interval
+	m["peers"] = resp.Peers
+	return bencode.Encode(m)
 }
 
 func (tracker *Tracker) loadTorrents(path string) {
@@ -197,7 +208,7 @@ func (tracker *Tracker) loadTorrents(path string) {
 
 func (tracker *Tracker) Serve(port int, torrentsPath string) {
 	if tracker.InfoHashes == nil {
-		tracker.InfoHashes = map[[20]byte]Torrent{}
+		tracker.InfoHashes = map[[20]byte]TrackerResponse{}
 	}
 	tracker.loadTorrents(torrentsPath)
 	http.HandleFunc("/list", tracker.list)
