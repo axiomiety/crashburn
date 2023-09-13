@@ -181,12 +181,13 @@ func encodeTrackerResponse(resp TrackerResponse) []byte {
 	m["complete"] = resp.Complete
 	m["incomplete"] = resp.Incomplete
 	m["interval"] = resp.Interval
-	peers := [][]byte{}
+	peers := []map[string]any{}
 	for _, peer := range resp.Peers {
 		peerMap := map[string]any{}
 		peerMap["peer id"] = peer.Id
 		peerMap["ip"] = peer.IP
 		peerMap["port"] = peer.Port
+		peers = append(peers, peerMap)
 	}
 	m["peers"] = peers
 	return bencode.Encode(m)
