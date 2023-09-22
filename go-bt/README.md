@@ -12,4 +12,4 @@ mkfile 9m ~/tmp/file.out
 
 (choosing 9 so it's not a power of 2).
 
-`file.torrent` contains the sample torrent file.
+`file.torrent` contains the sample torrent file. The `md5sum` should be `b82b4ab87e44976024abc14a1670dac0`.

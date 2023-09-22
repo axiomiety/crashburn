@@ -12,6 +12,7 @@ import (
 	"io"
 	"io/ioutil"
 	"log"
+	"math"
 	"math/rand"
 	"os"
 	"sync"
@@ -41,6 +42,21 @@ func Write(conf data.Configuration) {
 func Serve(conf data.Configuration) {
 	tracker := data.Tracker{}
 	tracker.Serve(8088, conf.TorrentsPath)
+}
+
+func Create(conf data.Configuration) {
+	f, err := os.Open(fmt.Sprintf("%s/%s", conf.Create.Directory, conf.Create.Filename))
+	check(err)
+
+	fi, err := f.Stat()
+	check(err)
+
+	// that's a multiple of 16kb, but not sure how it's chosen
+	pieceLength := 32768
+	numberOfPieces := int(math.Ceil(float64(fi.Size()) / float64(pieceLength)))
+	fmt.Printf("filesize: %d, numPieces:%d\n", fi.Size(), numberOfPieces)
+
+	// concatenate the 20-bytes hash of each block
 }
 
 func Main(conf data.Configuration) {
@@ -127,10 +143,11 @@ func getConf(confPath string) data.Configuration {
 
 func main() {
 	registry := map[string]func(data.Configuration){
-		"Foo":   Foo,
-		"Main":  Main,
-		"Write": Write,
-		"Serve": Serve,
+		"Foo":    Foo,
+		"Main":   Main,
+		"Write":  Write,
+		"Serve":  Serve,
+		"Create": Create,
 	}
 	var funcFlag = flag.String("n", "Foo", "function to run")
 	var confFlag = flag.String("c", "", "path to JSON configuration file")
