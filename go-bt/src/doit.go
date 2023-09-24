@@ -95,9 +95,19 @@ func Create(conf data.Configuration) {
 		AnnounceList: []string{},
 	}
 	tfile := fmt.Sprintf("%s/file.torrent", conf.Create.Directory)
-	torrentFile, err := os.Open(tfile)
+	torrentFile, err := os.Create(tfile)
 	check(err)
-	torrentFile.Write(bencode.Encode(torrent))
+	infoDict := map[string]any{
+		"name":         "gt-bt 101",
+		"piece length": info.PieceLength,
+		"pieces":       info.Pieces,
+		"length":       info.Length,
+	}
+	dict := map[string]any{
+		"info":     infoDict,
+		"announce": torrent.Announce,
+	}
+	torrentFile.Write(bencode.Encode(dict))
 	log.Printf("torrent file written to %s\n", tfile)
 }
 

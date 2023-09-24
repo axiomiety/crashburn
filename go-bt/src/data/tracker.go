@@ -6,10 +6,10 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"net/url"
+	"os"
 	"strconv"
 	"strings"
 
@@ -149,7 +149,7 @@ type Tracker struct {
 func (tracker *Tracker) list(w http.ResponseWriter, req *http.Request) {
 	w.Header().Add("Content-Type", "application/text")
 	for key, val := range tracker.InfoHashes {
-		io.WriteString(w, fmt.Sprintf("%s:%v\n", key, val))
+		io.WriteString(w, fmt.Sprintf("%s:%v\n", hex.EncodeToString(key[:]), val))
 	}
 }
 func (tracker *Tracker) trackerQuery(w http.ResponseWriter, req *http.Request) {
@@ -194,7 +194,7 @@ func encodeTrackerResponse(resp TrackerResponse) []byte {
 }
 
 func (tracker *Tracker) loadTorrents(path string) {
-	files, err := ioutil.ReadDir(path)
+	files, err := os.ReadDir(path)
 	if err != nil {
 		panic(err)
 	}
@@ -202,7 +202,7 @@ func (tracker *Tracker) loadTorrents(path string) {
 	for _, filename := range files {
 		if strings.HasSuffix(filename.Name(), ".torrent") {
 			log.Printf("torrent file found: %s\n", filename.Name())
-			torrent := ParseTorrentFile(filename.Name())
+			torrent := ParseTorrentFile(fmt.Sprintf("%s/%s", path, filename.Name()))
 			tracker.InfoHashes[torrent.InfoHash] = TrackerResponse{
 				Complete:   0,
 				Incomplete: 0,
