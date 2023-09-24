@@ -5,18 +5,22 @@ https://releases.ubuntu.com/23.04/ubuntu-23.04-live-server-amd64.iso.torrent?_ga
 */
 
 import (
+	"bufio"
+	"bytes"
+	"crypto/sha1"
 	"encoding/json"
 	"flag"
 	"fmt"
 	"go-bt/data"
 	"io"
-	"io/ioutil"
 	"log"
 	"math"
 	"math/rand"
 	"os"
 	"sync"
 	"time"
+
+	"github.com/marksamman/bencode"
 )
 
 func check(err error) {
@@ -45,7 +49,9 @@ func Serve(conf data.Configuration) {
 }
 
 func Create(conf data.Configuration) {
-	f, err := os.Open(fmt.Sprintf("%s/%s", conf.Create.Directory, conf.Create.Filename))
+	fname := fmt.Sprintf("%s/%s", conf.Create.Directory, conf.Create.Filename)
+	log.Printf("fname: %s\n", fname)
+	f, err := os.Open(fname)
 	check(err)
 
 	fi, err := f.Stat()
@@ -57,6 +63,42 @@ func Create(conf data.Configuration) {
 	fmt.Printf("filesize: %d, numPieces:%d\n", fi.Size(), numberOfPieces)
 
 	// concatenate the 20-bytes hash of each block
+	reader := bufio.NewReader(f)
+	buf := make([]byte, pieceLength)
+
+	hashes := &bytes.Buffer{}
+
+	for {
+		_, err := reader.Read(buf)
+		if err != nil {
+			if err != io.EOF {
+				log.Fatal(err)
+			}
+			break
+		}
+		pieceHash := sha1.Sum(buf)
+		hashes.Write(pieceHash[:])
+	}
+	allHashes := hashes.Bytes()
+
+	info := data.Info{
+		Name:        conf.Create.Filename,
+		PieceLength: uint64(pieceLength),
+		Pieces:      string(allHashes),
+		Length:      uint64(fi.Size()),
+	}
+
+	torrent := data.Torrent{
+		Info:         info,
+		InfoHash:     sha1.Sum(bencode.Encode(info)),
+		Announce:     "http://localhost:8088",
+		AnnounceList: []string{},
+	}
+	tfile := fmt.Sprintf("%s/file.torrent", conf.Create.Directory)
+	torrentFile, err := os.Open(tfile)
+	check(err)
+	torrentFile.Write(bencode.Encode(torrent))
+	log.Printf("torrent file written to %s\n", tfile)
 }
 
 func Main(conf data.Configuration) {
@@ -129,7 +171,7 @@ func getConf(confPath string) data.Configuration {
 		panic(err)
 	}
 	defer confFile.Close()
-	conf, err := ioutil.ReadAll(confFile)
+	conf, err := io.ReadAll(confFile)
 	if err != nil {
 		panic(err)
 	}
