@@ -44,7 +44,20 @@ func Write(conf data.Configuration) {
 }
 
 func Serve(conf data.Configuration) {
-	tracker := data.Tracker{}
+	var mu sync.Mutex
+
+	tracker := data.Tracker{
+		PeerLatestHeartBeat: map[string]int64{},
+		Lock:                &mu,
+	}
+
+	ticker := time.NewTicker(30 * time.Second)
+	go func() {
+		for range ticker.C {
+			tracker.EjectExpiredPeers(time.Now())
+		}
+	}()
+
 	tracker.Serve(8088, conf.TorrentsPath)
 }
 

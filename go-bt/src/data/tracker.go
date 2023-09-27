@@ -2,6 +2,7 @@ package data
 
 import (
 	"bytes"
+	b64 "encoding/base64"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -12,6 +13,8 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"sync"
+	"time"
 
 	"github.com/marksamman/bencode"
 )
@@ -143,7 +146,9 @@ func (torrent *Torrent) QueryTracker() TrackerResponse {
 }
 
 type Tracker struct {
-	InfoHashes map[[20]byte]TrackerResponse
+	InfoHashes          map[[20]byte]TrackerResponse
+	PeerLatestHeartBeat map[string]int64
+	Lock                *sync.Mutex
 }
 
 func (tracker *Tracker) list(w http.ResponseWriter, req *http.Request) {
@@ -172,7 +177,7 @@ func (tracker *Tracker) trackerQuery(w http.ResponseWriter, req *http.Request) {
 		// we likely need to de-dupe peers - maybe this isn't the right type!
 		m := tracker.InfoHashes[infoHash]
 		m.Peers = append(tracker.InfoHashes[infoHash].Peers, peer)
-
+		tracker.PeerLatestHeartBeat[peerId] = time.Now().Unix()
 	}
 }
 
@@ -212,6 +217,19 @@ func (tracker *Tracker) loadTorrents(path string) {
 		}
 	}
 
+}
+
+func (tracker *Tracker) EjectExpiredPeers(now time.Time) {
+	tracker.Lock.Lock()
+	for peerId, lastHeartBeat := range tracker.PeerLatestHeartBeat {
+		if (now.Unix() + 30) > lastHeartBeat {
+			log.Printf("ejecting %v", b64.StdEncoding.EncodeToString([]byte(peerId)))
+			delete(tracker.PeerLatestHeartBeat, peerId)
+			// TODO: iterate through all trackers and remove the peers
+			// from the trackers
+		}
+	}
+	defer tracker.Lock.Unlock()
 }
 
 func (tracker *Tracker) Serve(port int, torrentsPath string) {

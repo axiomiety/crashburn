@@ -42,3 +42,7 @@ You can then `curl http://localhost:8088/list` which should dump some basic info
 ## Setting up the seed
 
 We need a client that can seed the dummy file.
+
+# TODO
+
+ - tracker should purge clients that don't heart-beat in the given timeframe
