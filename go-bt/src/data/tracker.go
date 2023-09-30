@@ -114,7 +114,7 @@ func ParseTrackerResponse(resp []byte) TrackerResponse {
 	return trackerResponse
 }
 
-func formatInfoHash(hash []byte) string {
+func FormatInfoHash(hash []byte) string {
 	// look at https://stackoverflow.com/questions/25192805/encoding-info-hash-for-request-torrent-tracker for inspiration
 	var sb strings.Builder
 	for idx, val := range hash {
@@ -136,7 +136,7 @@ func (torrent *Torrent) QueryTracker() TrackerResponse {
 	check(err)
 	peerId := "12345678901234567890"
 	port := 6882
-	turl.RawQuery = fmt.Sprintf("info_hash=%s&peer_id=%s&port=%d&uploaded=0&downloaded=0&left=0", formatInfoHash(torrent.InfoHash[:]), peerId, port)
+	turl.RawQuery = fmt.Sprintf("info_hash=%s&peer_id=%s&port=%d&uploaded=0&downloaded=0&left=0", FormatInfoHash(torrent.InfoHash[:]), peerId, port)
 	resp, err := http.Get(turl.String())
 	check(err)
 	defer resp.Body.Close()
@@ -157,7 +157,7 @@ func (tracker *Tracker) list(w http.ResponseWriter, req *http.Request) {
 		io.WriteString(w, fmt.Sprintf("%s:%v\n", hex.EncodeToString(key[:]), val))
 	}
 }
-func (tracker *Tracker) trackerQuery(w http.ResponseWriter, req *http.Request) {
+func (tracker *Tracker) TrackerQuery(w http.ResponseWriter, req *http.Request) {
 	query := req.URL.Query()
 	infoHash := [20]byte{}
 	copy(infoHash[:], query.Get("info_hash"))
@@ -176,8 +176,23 @@ func (tracker *Tracker) trackerQuery(w http.ResponseWriter, req *http.Request) {
 		}
 		// we likely need to de-dupe peers - maybe this isn't the right type!
 		m := tracker.InfoHashes[infoHash]
-		m.Peers = append(tracker.InfoHashes[infoHash].Peers, peer)
+		peerExistsForInfoHash := false
+		for _, existingPeer := range m.Peers {
+			if existingPeer.Id == peer.Id {
+				peerExistsForInfoHash = true
+				break
+			}
+		}
+		if !peerExistsForInfoHash {
+			m.Peers = append(m.Peers, peer)
+		}
 		tracker.PeerLatestHeartBeat[peerId] = time.Now().Unix()
+		w.Write(encodeTrackerResponse(TrackerResponse{
+			Complete:   0,
+			Incomplete: 0,
+			Interval:   30,
+			Peers:      m.Peers,
+		}))
 	}
 }
 
@@ -198,7 +213,7 @@ func encodeTrackerResponse(resp TrackerResponse) []byte {
 	return bencode.Encode(m)
 }
 
-func (tracker *Tracker) loadTorrents(path string) {
+func (tracker *Tracker) LoadTorrents(path string) {
 	files, err := os.ReadDir(path)
 	if err != nil {
 		panic(err)
@@ -236,8 +251,8 @@ func (tracker *Tracker) Serve(port int, torrentsPath string) {
 	if tracker.InfoHashes == nil {
 		tracker.InfoHashes = map[[20]byte]TrackerResponse{}
 	}
-	tracker.loadTorrents(torrentsPath)
+	tracker.LoadTorrents(torrentsPath)
 	http.HandleFunc("/list", tracker.list)
-	http.HandleFunc("/tracker", tracker.trackerQuery)
+	http.HandleFunc("/tracker", tracker.TrackerQuery)
 	http.ListenAndServe(fmt.Sprintf(":%d", port), nil)
 }

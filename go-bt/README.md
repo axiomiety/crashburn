@@ -45,4 +45,4 @@ We need a client that can seed the dummy file.
 
 # TODO
 
- - tracker should purge clients that don't heart-beat in the given timeframe
+ - 
