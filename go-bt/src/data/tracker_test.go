@@ -54,9 +54,17 @@ func TestTrackerHandling(t *testing.T) {
 	tracker.TrackerQuery(w, req)
 
 	resp := w.Result()
-	body, _ := io.ReadAll(resp.Body)
+	bodyBytes, _ := io.ReadAll(resp.Body)
+	trackerResponse := data.ParseTrackerResponse(bodyBytes)
+
+	// there should only be 1 peer - us
+	if numPeers := len(trackerResponse.Peers); numPeers != 1 {
+		t.Errorf("expecting 1 peer, found %d", numPeers)
+	}
+	// check we've been added as one of the peers
 	expected := []byte{}
-	if !reflect.DeepEqual(body, expected) {
+	// and that updating the tracker again doesn't add a dupe
+	if !reflect.DeepEqual(bodyBytes, expected) {
 		//t.Errorf("response didn't match")
 	}
 }
