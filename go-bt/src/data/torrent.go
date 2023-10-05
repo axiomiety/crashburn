@@ -3,6 +3,7 @@ package data
 import (
 	"crypto/sha1"
 	"fmt"
+	"io"
 	"log"
 	"os"
 
@@ -25,7 +26,9 @@ type Info struct {
 
 func check(err error) {
 	if err != nil {
-		panic(err)
+		if err != io.EOF {
+			panic(err)
+		}
 	}
 }
 

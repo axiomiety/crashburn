@@ -169,11 +169,12 @@ func (tracker *Tracker) TrackerQuery(w http.ResponseWriter, req *http.Request) {
 		// add the Peer to the list
 		peer := Peer{
 			Id: peerId,
-			IP: req.RemoteAddr,
+			IP: strings.Split(req.RemoteAddr, ":")[0],
 		}
-		if peerPort, err := strconv.ParseInt(peerPortStr, 10, 64); err != nil {
+		if peerPort, err := strconv.ParseInt(peerPortStr, 10, 64); err == nil {
 			peer.Port = peerPort
 		}
+
 		// we likely need to de-dupe peers - maybe this isn't the right type!
 		m := tracker.InfoHashes[infoHash]
 		peerExistsForInfoHash := false
@@ -186,31 +187,36 @@ func (tracker *Tracker) TrackerQuery(w http.ResponseWriter, req *http.Request) {
 		if !peerExistsForInfoHash {
 			m.Peers = append(m.Peers, peer)
 		}
+		tracker.InfoHashes[infoHash] = m
 		tracker.PeerLatestHeartBeat[peerId] = time.Now().Unix()
-		w.Write(encodeTrackerResponse(TrackerResponse{
+		w.Write(encodeTrackerResponse(&TrackerResponse{
 			Complete:   0,
 			Incomplete: 0,
 			Interval:   30,
-			Peers:      m.Peers,
+			Peers:      tracker.InfoHashes[infoHash].Peers,
 		}))
 	}
 }
 
-func encodeTrackerResponse(resp TrackerResponse) []byte {
-	m := map[string]any{}
+func encodeTrackerResponse(resp *TrackerResponse) []byte {
+	m := make(map[string]interface{})
 	m["complete"] = resp.Complete
 	m["incomplete"] = resp.Incomplete
 	m["interval"] = resp.Interval
-	peers := []map[string]any{}
+	peers := make([]interface{}, 1)
 	for _, peer := range resp.Peers {
-		peerMap := map[string]any{}
-		peerMap["peer id"] = peer.Id
+		peerMap := make(map[string]interface{})
 		peerMap["ip"] = peer.IP
+		peerMap["peer id"] = peer.Id
 		peerMap["port"] = peer.Port
+		log.Printf("peer port: %d\n", peer.Port)
 		peers = append(peers, peerMap)
 	}
+	log.Printf("added %d peer", len(peers))
 	m["peers"] = peers
-	return bencode.Encode(m)
+	val := bencode.Encode(m)
+	log.Printf("enc: %v", string(val))
+	return val
 }
 
 func (tracker *Tracker) LoadTorrents(path string) {

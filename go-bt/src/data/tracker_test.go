@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"go-bt/data"
 	"io"
+	"log"
 	"net/http/httptest"
 	"net/url"
 	"os"
@@ -40,6 +41,10 @@ func TestTrackerHandling(t *testing.T) {
 		PeerLatestHeartBeat: map[string]int64{},
 	}
 	tracker.LoadTorrents("testdata")
+	// clear the peers - it's a struct in a map so we need to re-assign
+	m := tracker.InfoHashes[torrent.InfoHash]
+	m.Peers = []data.Peer{}
+	tracker.InfoHashes[torrent.InfoHash] = m
 
 	// args passed in to the tracker
 	peerId := "12345678901234567890"
@@ -55,11 +60,12 @@ func TestTrackerHandling(t *testing.T) {
 
 	resp := w.Result()
 	bodyBytes, _ := io.ReadAll(resp.Body)
+	log.Printf("bodyBytes: %s\n", string(bodyBytes))
 	trackerResponse := data.ParseTrackerResponse(bodyBytes)
 
 	// there should only be 1 peer - us
 	if numPeers := len(trackerResponse.Peers); numPeers != 1 {
-		t.Errorf("expecting 1 peer, found %d", numPeers)
+		t.Errorf("expecting 1 peer, found %d, %v", numPeers, trackerResponse)
 	}
 	// check we've been added as one of the peers
 	expected := []byte{}
