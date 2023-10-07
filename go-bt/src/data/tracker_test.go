@@ -4,11 +4,10 @@ import (
 	"fmt"
 	"go-bt/data"
 	"io"
-	"log"
 	"net/http/httptest"
 	"net/url"
 	"os"
-	"reflect"
+	"strings"
 	"testing"
 )
 
@@ -60,17 +59,30 @@ func TestTrackerHandling(t *testing.T) {
 
 	resp := w.Result()
 	bodyBytes, _ := io.ReadAll(resp.Body)
-	log.Printf("bodyBytes: %s\n", string(bodyBytes))
 	trackerResponse := data.ParseTrackerResponse(bodyBytes)
 
 	// there should only be 1 peer - us
 	if numPeers := len(trackerResponse.Peers); numPeers != 1 {
 		t.Errorf("expecting 1 peer, found %d, %v", numPeers, trackerResponse)
 	}
+
+	thisPeer := trackerResponse.Peers[0]
 	// check we've been added as one of the peers
-	expected := []byte{}
+
+	if peerIP := strings.Split(req.RemoteAddr, ":")[0]; peerIP != thisPeer.IP {
+		t.Errorf("expected peer IP to be %s, found %s instead", peerIP, thisPeer.IP)
+	}
+
 	// and that updating the tracker again doesn't add a dupe
-	if !reflect.DeepEqual(bodyBytes, expected) {
-		//t.Errorf("response didn't match")
+
+	w = httptest.NewRecorder()
+	tracker.TrackerQuery(w, req)
+	resp = w.Result()
+	bodyBytes, _ = io.ReadAll(resp.Body)
+	trackerResponse = data.ParseTrackerResponse(bodyBytes)
+
+	// there should still only be 1
+	if numPeers := len(trackerResponse.Peers); numPeers != 1 {
+		t.Errorf("expecting 1 peer, found %d, %v", numPeers, trackerResponse)
 	}
 }

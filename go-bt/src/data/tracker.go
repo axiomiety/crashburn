@@ -181,13 +181,14 @@ func (tracker *Tracker) TrackerQuery(w http.ResponseWriter, req *http.Request) {
 		for _, existingPeer := range m.Peers {
 			if existingPeer.Id == peer.Id {
 				peerExistsForInfoHash = true
+				log.Printf("peer %s is already known\n", existingPeer.Id)
 				break
 			}
 		}
 		if !peerExistsForInfoHash {
 			m.Peers = append(m.Peers, peer)
+			tracker.InfoHashes[infoHash] = m
 		}
-		tracker.InfoHashes[infoHash] = m
 		tracker.PeerLatestHeartBeat[peerId] = time.Now().Unix()
 		w.Write(encodeTrackerResponse(&TrackerResponse{
 			Complete:   0,
@@ -212,10 +213,9 @@ func encodeTrackerResponse(resp *TrackerResponse) []byte {
 		log.Printf("peer port: %d\n", peer.Port)
 		peers = append(peers, peerMap)
 	}
-	log.Printf("added %d peer", len(peers))
 	m["peers"] = peers
 	val := bencode.Encode(m)
-	log.Printf("enc: %v", string(val))
+	log.Printf("num peers: %d\n%s\n", len(peers), string(val))
 	return val
 }
 
