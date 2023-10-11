@@ -44,5 +44,6 @@ You can then `curl http://localhost:8088/list` which should dump some basic info
 We need a client that can seed the dummy file.
 
 # TODO
-
- - 
+ - make the listening port part of the config
+ - fix cache eviction from the tracker once the heartbeat period expires
+ - client should query the tracker straight away instead of waiting for the interval to lapse

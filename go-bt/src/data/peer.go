@@ -11,11 +11,29 @@ import (
 	"fmt"
 	"log"
 	"math"
+	"math/rand"
 	"net"
 	"os"
 	"sync"
 	"time"
 )
+
+func RefreshPeers(peerId [20]byte, torrent *Torrent, peersChan chan []Peer) {
+
+	trackerResponse := torrent.QueryTracker(peerId)
+	ticker := time.NewTicker(time.Duration(trackerResponse.Interval) / 2 * time.Second)
+	for range ticker.C {
+		log.Println("refreshing tracker")
+		trackerResponse := torrent.QueryTracker(peerId)
+		log.Printf("found %d peer(s)\n", len(trackerResponse.Peers))
+		// shuffle the peers!
+		rand.Shuffle(len(trackerResponse.Peers), func(i, j int) {
+			trackerResponse.Peers[i], trackerResponse.Peers[j] = trackerResponse.Peers[j], trackerResponse.Peers[i]
+		})
+
+		peersChan <- trackerResponse.Peers[:]
+	}
+}
 
 func connectToPeer(peer Peer) (net.Conn, error) {
 
@@ -44,8 +62,17 @@ func connectToPeer(peer Peer) (net.Conn, error) {
 }
 
 func (handler *PeerHandler) HandlePeer(peer Peer, handshake Handshake, torrent Torrent) {
+	var peerId [20]byte
+	copy(peerId[:], []byte(peer.Id))
+	if bytes.Equal(handler.PeerId[:], peerId[:]) {
+		log.Println("that's us! ignoring...")
+	}
+	log.Printf("%v\n", handler.PeerId)
+	log.Printf("%v\n", peerId)
+
 	peerIdB64 := b64.StdEncoding.EncodeToString([]byte(peer.Id))
 	peerLogger := log.New(os.Stdout, fmt.Sprintf("[peer:%s]", peerIdB64), log.Ldate|log.Ltime)
+
 	log.Printf("mapping %s to %s", peer.Id, peerIdB64)
 	conn, err := connectToPeer(peer)
 	defer conn.Close()

@@ -2,7 +2,6 @@ package data
 
 import (
 	"bytes"
-	b64 "encoding/base64"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -131,10 +130,9 @@ func FormatInfoHash(hash []byte) string {
 	return sb.String()
 }
 
-func (torrent *Torrent) QueryTracker() TrackerResponse {
+func (torrent *Torrent) QueryTracker(peerId [20]byte) TrackerResponse {
 	turl, err := url.Parse(torrent.Announce)
 	check(err)
-	peerId := "12345678901234567890"
 	port := 6882
 	turl.RawQuery = fmt.Sprintf("info_hash=%s&peer_id=%s&port=%d&uploaded=0&downloaded=0&left=0", FormatInfoHash(torrent.InfoHash[:]), peerId, port)
 	resp, err := http.Get(turl.String())
@@ -186,6 +184,7 @@ func (tracker *Tracker) TrackerQuery(w http.ResponseWriter, req *http.Request) {
 			}
 		}
 		if !peerExistsForInfoHash {
+			log.Printf("existing peers: %d\n", len(m.Peers))
 			m.Peers = append(m.Peers, peer)
 			tracker.InfoHashes[infoHash] = m
 		}
@@ -210,12 +209,11 @@ func encodeTrackerResponse(resp *TrackerResponse) []byte {
 		peerMap["ip"] = peer.IP
 		peerMap["peer id"] = peer.Id
 		peerMap["port"] = peer.Port
-		log.Printf("peer port: %d\n", peer.Port)
 		peers = append(peers, peerMap)
 	}
 	m["peers"] = peers
 	val := bencode.Encode(m)
-	log.Printf("num peers: %d\n%s\n", len(peers), string(val))
+	log.Printf("num peers: %d\n", len(resp.Peers))
 	return val
 }
 
@@ -232,7 +230,7 @@ func (tracker *Tracker) LoadTorrents(path string) {
 			tracker.InfoHashes[torrent.InfoHash] = TrackerResponse{
 				Complete:   0,
 				Incomplete: 0,
-				Peers:      make([]Peer, 5),
+				Peers:      nil,
 				Interval:   30,
 			}
 		}
@@ -244,7 +242,7 @@ func (tracker *Tracker) EjectExpiredPeers(now time.Time) {
 	tracker.Lock.Lock()
 	for peerId, lastHeartBeat := range tracker.PeerLatestHeartBeat {
 		if (now.Unix() + 30) > lastHeartBeat {
-			log.Printf("ejecting %v", b64.StdEncoding.EncodeToString([]byte(peerId)))
+			log.Printf("ejecting %s", string(peerId))
 			delete(tracker.PeerLatestHeartBeat, peerId)
 			// TODO: iterate through all trackers and remove the peers
 			// from the trackers
@@ -260,5 +258,6 @@ func (tracker *Tracker) Serve(port int, torrentsPath string) {
 	tracker.LoadTorrents(torrentsPath)
 	http.HandleFunc("/list", tracker.list)
 	http.HandleFunc("/tracker", tracker.TrackerQuery)
+	http.HandleFunc("/", tracker.TrackerQuery)
 	http.ListenAndServe(fmt.Sprintf(":%d", port), nil)
 }

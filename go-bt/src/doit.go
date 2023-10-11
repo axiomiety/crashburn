@@ -15,7 +15,6 @@ import (
 	"io"
 	"log"
 	"math"
-	"math/rand"
 	"os"
 	"sync"
 	"time"
@@ -127,7 +126,6 @@ func Create(conf data.Configuration) {
 func Main(conf data.Configuration) {
 
 	torrent := data.ParseTorrentFile(conf.Torrent)
-	trackerResponse := torrent.QueryTracker()
 
 	var peerId [20]byte
 	copy(peerId[:], []byte(conf.PeerId))
@@ -137,15 +135,8 @@ func Main(conf data.Configuration) {
 	log.Printf("piece length (bytes): %d\n", torrent.Info.PieceLength)
 	log.Printf("total number of pieces: %d\n", torrent.Info.Length/torrent.Info.PieceLength)
 	log.Printf("number of pieces we have: %d\n", len(alreadyDownloaded))
-	log.Printf("number of peers: %d\n", len(trackerResponse.Peers))
-
-	// shuffle the peers!
-	rand.Shuffle(len(trackerResponse.Peers), func(i, j int) {
-		trackerResponse.Peers[i], trackerResponse.Peers[j] = trackerResponse.Peers[j], trackerResponse.Peers[i]
-	})
 
 	// mutex used to update the global state
-
 	var mu sync.Mutex
 	var pieceChan = make(chan uint32, 1)
 
@@ -163,29 +154,39 @@ func Main(conf data.Configuration) {
 
 	var wg sync.WaitGroup
 	maxPeers := make(chan uint32, conf.MaxPeers)
-	for _, peer := range trackerResponse.Peers {
 
-		log.Printf("%v\n", peer)
-		handshake := data.GetHanshake(torrent.InfoHash, peerId)
-		handler := data.PeerHandler{
-			AvailablePieces: make(map[uint32]bool),
-			IsChocked:       true,
-			IsInterested:    false,
-			State:           &state,
+	// this channel contains slices of peers
+	peersChan := make(chan []data.Peer, conf.MaxPeers)
+	go data.RefreshPeers(peerId, &torrent, peersChan)
+	// we should really update the list of peers continuously
+	// we also need to query the tracker periodically to keep ourselves "alive"
+	for {
+		select {
+		case peers := <-peersChan:
+			for _, peer := range peers {
+				log.Printf("%v\n", peer)
+				handshake := data.GetHanshake(torrent.InfoHash, peerId)
+				handler := data.PeerHandler{
+					AvailablePieces: make(map[uint32]bool),
+					IsChocked:       true,
+					IsInterested:    false,
+					State:           &state,
+					PeerId:          peerId,
+				}
+				maxPeers <- 1
+				wg.Add(1)
+				go func(p data.Peer) {
+					defer wg.Done()
+					handler.HandlePeer(p, handshake, torrent)
+					<-maxPeers
+				}(peer)
+			}
 		}
-		maxPeers <- 1
-		wg.Add(1)
-		go func(p data.Peer) {
-			defer wg.Done()
-			handler.HandlePeer(p, handshake, torrent)
-			<-maxPeers
-		}(peer)
 
 	}
-	wg.Wait()
-
-	time.Sleep(10 * time.Second)
-
+	// we should ideally have a signal handler that helps break out
+	// of the above
+	// wg.Wait()
 }
 
 func getConf(confPath string) data.Configuration {
