@@ -18,20 +18,26 @@ import (
 	"time"
 )
 
+func refreshPeers(peerId [20]byte, torrent *Torrent, peersChan chan []Peer) TrackerResponse {
+	log.Println("refreshing tracker")
+	trackerResponse := torrent.QueryTracker(peerId)
+	log.Printf("found %d peer(s)\n", len(trackerResponse.Peers))
+	// shuffle the peers!
+	rand.Shuffle(len(trackerResponse.Peers), func(i, j int) {
+		trackerResponse.Peers[i], trackerResponse.Peers[j] = trackerResponse.Peers[j], trackerResponse.Peers[i]
+	})
+
+	peersChan <- trackerResponse.Peers[:]
+	return trackerResponse
+}
+
 func RefreshPeers(peerId [20]byte, torrent *Torrent, peersChan chan []Peer) {
 
-	trackerResponse := torrent.QueryTracker(peerId)
+	trackerResponse := refreshPeers(peerId, torrent, peersChan)
+
 	ticker := time.NewTicker(time.Duration(trackerResponse.Interval) / 2 * time.Second)
 	for range ticker.C {
-		log.Println("refreshing tracker")
-		trackerResponse := torrent.QueryTracker(peerId)
-		log.Printf("found %d peer(s)\n", len(trackerResponse.Peers))
-		// shuffle the peers!
-		rand.Shuffle(len(trackerResponse.Peers), func(i, j int) {
-			trackerResponse.Peers[i], trackerResponse.Peers[j] = trackerResponse.Peers[j], trackerResponse.Peers[i]
-		})
-
-		peersChan <- trackerResponse.Peers[:]
+		refreshPeers(peerId, torrent, peersChan)
 	}
 }
 
@@ -66,6 +72,7 @@ func (handler *PeerHandler) HandlePeer(peer Peer, handshake Handshake, torrent T
 	copy(peerId[:], []byte(peer.Id))
 	if bytes.Equal(handler.PeerId[:], peerId[:]) {
 		log.Println("that's us! ignoring...")
+		return
 	}
 	log.Printf("%v\n", handler.PeerId)
 	log.Printf("%v\n", peerId)

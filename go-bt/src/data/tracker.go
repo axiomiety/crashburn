@@ -144,7 +144,7 @@ func (torrent *Torrent) QueryTracker(peerId [20]byte) TrackerResponse {
 }
 
 type Tracker struct {
-	InfoHashes          map[[20]byte]TrackerResponse
+	InfoHashes          map[[20]byte]*TrackerResponse
 	PeerLatestHeartBeat map[string]int64
 	Lock                *sync.Mutex
 }
@@ -227,7 +227,7 @@ func (tracker *Tracker) LoadTorrents(path string) {
 		if strings.HasSuffix(filename.Name(), ".torrent") {
 			log.Printf("torrent file found: %s\n", filename.Name())
 			torrent := ParseTorrentFile(fmt.Sprintf("%s/%s", path, filename.Name()))
-			tracker.InfoHashes[torrent.InfoHash] = TrackerResponse{
+			tracker.InfoHashes[torrent.InfoHash] = &TrackerResponse{
 				Complete:   0,
 				Incomplete: 0,
 				Peers:      nil,
@@ -240,20 +240,32 @@ func (tracker *Tracker) LoadTorrents(path string) {
 
 func (tracker *Tracker) EjectExpiredPeers(now time.Time) {
 	tracker.Lock.Lock()
+	defer tracker.Lock.Unlock()
 	for peerId, lastHeartBeat := range tracker.PeerLatestHeartBeat {
 		if (now.Unix() + 30) > lastHeartBeat {
 			log.Printf("ejecting %s", string(peerId))
 			delete(tracker.PeerLatestHeartBeat, peerId)
-			// TODO: iterate through all trackers and remove the peers
-			// from the trackers
+			for name, trackerItem := range tracker.InfoHashes {
+				peers := trackerItem.Peers[:0]
+				for _, peer := range trackerItem.Peers {
+					if bytes.Equal([]byte(peerId), []byte(peer.Id)) {
+						log.Printf("removing %s from %s\n", string(peerId), name)
+					} else {
+						peers = append(peers, peer)
+					}
+				}
+				trackerItem.Peers = peers
+			}
 		}
 	}
-	defer tracker.Lock.Unlock()
+	for name, trackerItem := range tracker.InfoHashes {
+		log.Printf("tracker %s has %d peers\n", name, len(trackerItem.Peers))
+	}
 }
 
 func (tracker *Tracker) Serve(port int, torrentsPath string) {
 	if tracker.InfoHashes == nil {
-		tracker.InfoHashes = map[[20]byte]TrackerResponse{}
+		tracker.InfoHashes = map[[20]byte]*TrackerResponse{}
 	}
 	tracker.LoadTorrents(torrentsPath)
 	http.HandleFunc("/list", tracker.list)
