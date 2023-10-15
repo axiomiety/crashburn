@@ -67,6 +67,14 @@ func connectToPeer(peer Peer) (net.Conn, error) {
 	return conn, err
 }
 
+func GetBlock(payload []byte) []byte {
+	index := binary.BigEndian.Uint32(payload[0:])
+	offset := binary.BigEndian.Uint32(payload[4:])
+	blockLength := binary.BigEndian.Uint32(payload[8:])
+	log.Printf("peer requested block %d:%d(%d)\n", index, offset, blockLength)
+	return []byte{}
+}
+
 func (handler *PeerHandler) HandlePeer(peer Peer, handshake Handshake, torrent Torrent) {
 	var peerId [20]byte
 	copy(peerId[:], []byte(peer.Id))
@@ -152,6 +160,9 @@ func (handler *PeerHandler) HandlePeer(peer Peer, handshake Handshake, torrent T
 			case MsgPiece:
 				offsetChan <- uint32(len(message.Payload) - 8)
 				pieceChan <- message.Payload[8:]
+			case MsgRequest:
+				data := GetBlock(message.Payload)
+				conn.Write(data)
 			case MsgTimeout:
 				handler.TimeoutCount += 1
 				peerLogger.Printf("timeout count: %d\n", handler.TimeoutCount)
@@ -239,7 +250,7 @@ func (handler *PeerHandler) HandlePeer(peer Peer, handshake Handshake, torrent T
 					peerLogger.Printf("computed: %s", pieceHashStr)
 					peerLogger.Printf("versus:   %s", expectedHashStr)
 					if pieceHashStr == expectedHashStr {
-						WritePiece(handler.CurrentPiece, buf)
+						WritePiece(handler.PiecesPath, handler.CurrentPiece, buf)
 						handler.State.ObtainedPiece(handler.CurrentPiece)
 					}
 					break

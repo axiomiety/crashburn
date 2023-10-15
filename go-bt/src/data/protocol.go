@@ -159,6 +159,7 @@ type PeerHandler struct {
 	CurrentPiece    uint32
 	State           *State
 	Conn            net.Conn
+	PiecesPath      string
 }
 
 const (

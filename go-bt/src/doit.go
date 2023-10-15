@@ -75,11 +75,15 @@ func Create(conf data.Configuration) {
 	fmt.Printf("filesize: %d, numPieces:%d\n", fi.Size(), numberOfPieces)
 
 	// concatenate the 20-bytes hash of each block
+	// and create blocks for serving later
+	// TODO: this is doubling the size of the file - is there a bette
+	os.Mkdir(conf.PiecesPath, 0744)
 	reader := bufio.NewReader(f)
 	buf := make([]byte, pieceLength)
 
 	hashes := &bytes.Buffer{}
 
+	pieceIdx := 0
 	for {
 		_, err := reader.Read(buf)
 		if err != nil {
@@ -90,6 +94,8 @@ func Create(conf data.Configuration) {
 		}
 		pieceHash := sha1.Sum(buf)
 		hashes.Write(pieceHash[:])
+		data.WritePiece(conf.PiecesPath, uint32(pieceIdx), buf)
+		pieceIdx += 1
 	}
 	allHashes := hashes.Bytes()
 
@@ -121,6 +127,7 @@ func Create(conf data.Configuration) {
 	}
 	torrentFile.Write(bencode.Encode(dict))
 	log.Printf("torrent file written to %s\n", tfile)
+
 }
 
 func Main(conf data.Configuration) {
@@ -172,6 +179,7 @@ func Main(conf data.Configuration) {
 					IsInterested:    false,
 					State:           &state,
 					PeerId:          peerId,
+					PiecesPath:      conf.PiecesPath,
 				}
 				maxPeers <- 1
 				wg.Add(1)

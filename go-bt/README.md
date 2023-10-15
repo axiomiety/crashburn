@@ -45,5 +45,5 @@ We need a client that can seed the dummy file.
 
 # TODO
  - make the listening port part of the config
- - fix cache eviction from the tracker once the heartbeat period expires
- - client should query the tracker straight away instead of waiting for the interval to lapse
+ - client should publish number of completed/missing blocks to tracker
+ - client should serve blocks!
