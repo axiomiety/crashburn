@@ -12,6 +12,19 @@ import (
 	"strconv"
 )
 
+func HashByPiece(hash string) map[uint32]string {
+	m := map[uint32]string{}
+	idx := 0
+	for {
+		m[uint32(idx)] = hash[idx*20 : (idx+1)*20]
+		idx += 1
+		if idx*20 == len(hash) {
+			break
+		}
+	}
+	return m
+}
+
 func ExtractPiecesFromBitfield(bitfield []byte) map[uint32]bool {
 	pieces := make(map[uint32]bool)
 	for idx, byte_ := range bitfield {

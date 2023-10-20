@@ -54,6 +54,21 @@ type Message struct {
 	Payload   []byte
 }
 
+func RequestResponse(index uint32, offset uint32, data []byte) Message {
+	length := uint32(8 + len(data)/4)
+	lenBuf := make([]byte, 4)
+	binary.BigEndian.PutUint32(lenBuf, length)
+	payload := make([]byte, length)
+	binary.BigEndian.PutUint32(payload[0:], index)
+	binary.BigEndian.PutUint32(payload[4:], offset)
+	copy(payload[8:], data)
+	return Message{
+		Length:    [4]byte(lenBuf),
+		MessageId: MsgPiece,
+		Payload:   payload,
+	}
+}
+
 func Request(index uint32, offset uint32, blockLength uint32) Message {
 	log.Printf("requesting %d at offset %d with blockLength %d\n", index, offset, blockLength)
 	length := make([]byte, 4)
@@ -160,6 +175,7 @@ type PeerHandler struct {
 	State           *State
 	Conn            net.Conn
 	PiecesPath      string
+	PiecesHash      map[uint32]string
 }
 
 const (

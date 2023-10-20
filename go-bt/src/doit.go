@@ -164,23 +164,27 @@ func Main(conf data.Configuration) {
 
 	// this channel contains slices of peers
 	peersChan := make(chan []data.Peer, conf.MaxPeers)
-	go data.RefreshPeers(peerId, &torrent, peersChan)
-	// we should really update the list of peers continuously
-	// we also need to query the tracker periodically to keep ourselves "alive"
+	// we need to listen to incoming connections
+	handler := data.PeerHandler{
+		AvailablePieces: make(map[uint32]bool),
+		IsChocked:       false,
+		IsInterested:    false,
+		State:           &state,
+		PeerId:          peerId,
+		PiecesPath:      conf.PiecesPath,
+		PiecesHash:      data.HashByPiece(torrent.Info.Pieces),
+	}
+	handshake := data.GetHanshake(torrent.InfoHash, peerId)
+	// TODO: can we listen to the same port for different torrents?
+	go handler.ListenForPeers(conf.ListeningPort, torrent, handshake)
+	// this is also used for heart-beating the tracker
+	go data.RefreshPeers(peerId, &torrent, conf.ListeningPort, peersChan)
 	for {
 		select {
 		case peers := <-peersChan:
 			for _, peer := range peers {
 				log.Printf("%v\n", peer)
-				handshake := data.GetHanshake(torrent.InfoHash, peerId)
-				handler := data.PeerHandler{
-					AvailablePieces: make(map[uint32]bool),
-					IsChocked:       true,
-					IsInterested:    false,
-					State:           &state,
-					PeerId:          peerId,
-					PiecesPath:      conf.PiecesPath,
-				}
+
 				maxPeers <- 1
 				wg.Add(1)
 				go func(p data.Peer) {

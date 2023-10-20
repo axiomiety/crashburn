@@ -130,11 +130,10 @@ func FormatInfoHash(hash []byte) string {
 	return sb.String()
 }
 
-func (torrent *Torrent) QueryTracker(peerId [20]byte) TrackerResponse {
+func (torrent *Torrent) QueryTracker(peerId [20]byte, listeningPort int) TrackerResponse {
 	turl, err := url.Parse(torrent.Announce)
 	check(err)
-	port := 6882
-	turl.RawQuery = fmt.Sprintf("info_hash=%s&peer_id=%s&port=%d&uploaded=0&downloaded=0&left=0", FormatInfoHash(torrent.InfoHash[:]), peerId, port)
+	turl.RawQuery = fmt.Sprintf("info_hash=%s&peer_id=%s&port=%d&uploaded=0&downloaded=0&left=0", FormatInfoHash(torrent.InfoHash[:]), peerId, listeningPort)
 	resp, err := http.Get(turl.String())
 	check(err)
 	defer resp.Body.Close()

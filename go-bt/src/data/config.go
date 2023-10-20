@@ -20,13 +20,14 @@ We expect a configuration file to be passed in of the following format:
 	ideally the first 3 would be a list of torrents - to support more than one at a time
 */
 type Configuration struct {
-	Torrent      string     `json:"torrent"`
-	PiecesPath   string     `json:"piecesPath"`
-	OutPath      string     `json:"outPath"`
-	PeerId       string     `json:"peerId"`
-	MaxPeers     uint8      `json:"maxPeers"`
-	TorrentsPath string     `json:"torrentsPath"`
-	Create       CreateConf `json:"create"`
+	Torrent       string     `json:"torrent"`
+	PiecesPath    string     `json:"piecesPath"`
+	OutPath       string     `json:"outPath"`
+	PeerId        string     `json:"peerId"`
+	MaxPeers      uint8      `json:"maxPeers"`
+	TorrentsPath  string     `json:"torrentsPath"`
+	Create        CreateConf `json:"create"`
+	ListeningPort int        `json:"listeningPort"`
 }
 
 type CreateConf struct {

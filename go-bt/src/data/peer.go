@@ -14,13 +14,34 @@ import (
 	"math/rand"
 	"net"
 	"os"
+	"path/filepath"
+	"strconv"
 	"sync"
 	"time"
 )
 
-func refreshPeers(peerId [20]byte, torrent *Torrent, peersChan chan []Peer) TrackerResponse {
+func (handler *PeerHandler) ListenForPeers(listeningPort int, torrent Torrent, handshake Handshake) {
+	listener, err := net.Listen("tcp6", fmt.Sprintf("[::1]:%d", listeningPort))
+	check(err)
+	defer listener.Close()
+
+	for {
+		conn, err := listener.Accept()
+		if err != nil {
+			log.Println("error accepting incoming connections:", err)
+			continue
+		} else {
+			log.Printf("incoming connection! %v\n", conn)
+		}
+		peerLogger := log.New(os.Stdout, fmt.Sprintf("[peer:%s]", conn.RemoteAddr().String()), log.Ldate|log.Ltime)
+		//TODO: need to tell the peer we're not chocked
+		go handler.handlePeer(conn, peerLogger, torrent, handshake)
+	}
+}
+
+func refreshPeers(peerId [20]byte, torrent *Torrent, listeningPort int, peersChan chan []Peer) TrackerResponse {
 	log.Println("refreshing tracker")
-	trackerResponse := torrent.QueryTracker(peerId)
+	trackerResponse := torrent.QueryTracker(peerId, listeningPort)
 	log.Printf("found %d peer(s)\n", len(trackerResponse.Peers))
 	// shuffle the peers!
 	rand.Shuffle(len(trackerResponse.Peers), func(i, j int) {
@@ -31,13 +52,13 @@ func refreshPeers(peerId [20]byte, torrent *Torrent, peersChan chan []Peer) Trac
 	return trackerResponse
 }
 
-func RefreshPeers(peerId [20]byte, torrent *Torrent, peersChan chan []Peer) {
+func RefreshPeers(peerId [20]byte, torrent *Torrent, listeningPort int, peersChan chan []Peer) {
 
-	trackerResponse := refreshPeers(peerId, torrent, peersChan)
+	trackerResponse := refreshPeers(peerId, torrent, listeningPort, peersChan)
 
 	ticker := time.NewTicker(time.Duration(trackerResponse.Interval) / 2 * time.Second)
 	for range ticker.C {
-		refreshPeers(peerId, torrent, peersChan)
+		refreshPeers(peerId, torrent, listeningPort, peersChan)
 	}
 }
 
@@ -46,9 +67,9 @@ func connectToPeer(peer Peer) (net.Conn, error) {
 	var conn net.Conn
 	var err error
 
-	ip := net.ParseIP(peer.IP)
+	ip := net.ParseIP("::1") //peer.IP)
 	if ip == nil {
-		return nil, errors.New(fmt.Sprintf("can't parse IP %s", peer.IP))
+		return nil, errors.New(fmt.Sprintf("can't parse IP %v", peer.IP))
 	}
 
 	//TODO: check we're not connecting to ourselves!
@@ -60,19 +81,24 @@ func connectToPeer(peer Peer) (net.Conn, error) {
 		conn, err = net.DialTimeout("tcp", connStr, timeout)
 
 	} else {
-		connStr := fmt.Sprintf("[%s]:%d", peer.IP, peer.Port)
+		//connStr := fmt.Sprintf("[%s]:%d", peer.IP, peer.Port)
+		connStr := fmt.Sprintf("[::1]:%d", peer.Port)
 		log.Printf("attempting to connect to ipv6 %s", connStr)
 		conn, err = net.DialTimeout("tcp6", connStr, timeout)
 	}
 	return conn, err
 }
 
-func GetBlock(payload []byte) []byte {
-	index := binary.BigEndian.Uint32(payload[0:])
-	offset := binary.BigEndian.Uint32(payload[4:])
-	blockLength := binary.BigEndian.Uint32(payload[8:])
-	log.Printf("peer requested block %d:%d(%d)\n", index, offset, blockLength)
-	return []byte{}
+func (handler *PeerHandler) getBlockPath(pieceIdx uint32) string {
+	baseDir := fmt.Sprintf("%s/%s", handler.PiecesPath, handler.PiecesHash[pieceIdx][:2])
+	return filepath.Join(baseDir, strconv.FormatUint(uint64(pieceIdx), 10))
+}
+
+func GetBlock(path string, offset uint32, length uint32) []byte {
+	// TODO: check path exists!
+	data, err := os.ReadFile(path)
+	check(err)
+	return data[offset : offset+length]
 }
 
 func (handler *PeerHandler) HandlePeer(peer Peer, handshake Handshake, torrent Torrent) {
@@ -82,19 +108,21 @@ func (handler *PeerHandler) HandlePeer(peer Peer, handshake Handshake, torrent T
 		log.Println("that's us! ignoring...")
 		return
 	}
-	log.Printf("%v\n", handler.PeerId)
-	log.Printf("%v\n", peerId)
-
+	log.Printf("%v", peer)
 	peerIdB64 := b64.StdEncoding.EncodeToString([]byte(peer.Id))
 	peerLogger := log.New(os.Stdout, fmt.Sprintf("[peer:%s]", peerIdB64), log.Ldate|log.Ltime)
 
 	log.Printf("mapping %s to %s", peer.Id, peerIdB64)
 	conn, err := connectToPeer(peer)
-	defer conn.Close()
 	if err != nil {
 		peerLogger.Printf("can't connect to peer: %s\n", err)
 		return
 	}
+	handler.handlePeer(conn, peerLogger, torrent, handshake)
+}
+
+func (handler *PeerHandler) handlePeer(conn net.Conn, peerLogger *log.Logger, torrent Torrent, handshake Handshake) {
+	defer conn.Close()
 	handler.Conn = conn
 	peerLogger.Println("connected to peer, sending handshake")
 	// start with a handshake
@@ -102,7 +130,7 @@ func (handler *PeerHandler) HandlePeer(peer Peer, handshake Handshake, torrent T
 	// we should receive one!
 	respHandshake, err := ReadHandshake(conn)
 	if err != nil {
-		peerLogger.Printf("issue reading handshake from %v, exiting...", peer.Id)
+		peerLogger.Println("issue reading handshake, exiting...", err)
 		return
 	}
 	peerLogger.Println("received handshake")
@@ -161,8 +189,14 @@ func (handler *PeerHandler) HandlePeer(peer Peer, handshake Handshake, torrent T
 				offsetChan <- uint32(len(message.Payload) - 8)
 				pieceChan <- message.Payload[8:]
 			case MsgRequest:
-				data := GetBlock(message.Payload)
-				conn.Write(data)
+				index := binary.BigEndian.Uint32(message.Payload[0:])
+				offset := binary.BigEndian.Uint32(message.Payload[4:])
+				blockLength := binary.BigEndian.Uint32(message.Payload[8:])
+				log.Printf("peer requested block %d:%d(%d)\n", index, offset, blockLength)
+
+				data := GetBlock(handler.getBlockPath(index), offset, blockLength)
+				resp := RequestResponse(index, offset, data)
+				conn.Write(resp.ToBytes())
 			case MsgTimeout:
 				handler.TimeoutCount += 1
 				peerLogger.Printf("timeout count: %d\n", handler.TimeoutCount)
@@ -179,7 +213,7 @@ func (handler *PeerHandler) HandlePeer(peer Peer, handshake Handshake, torrent T
 		chokeCount := 0
 		for {
 			if handler.IsChocked {
-				peerLogger.Printf("client %v is choked, waiting 5s\n", peer.Id)
+				peerLogger.Printf("client %v is choked, waiting 5s\n", handler.PeerId)
 				time.Sleep(5 * time.Second)
 				chokeCount += 1
 				if chokeCount > 10 {
