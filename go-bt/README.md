@@ -44,6 +44,6 @@ You can then `curl http://localhost:8088/list` which should dump some basic info
 We need a client that can seed the dummy file.
 
 # TODO
- - make the listening port part of the config
+ - fix the hardcoding of ::1 everywhere...
  - client should publish number of completed/missing blocks to tracker
  - client should serve blocks!
