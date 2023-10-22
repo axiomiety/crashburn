@@ -84,14 +84,13 @@ func Request(index uint32, offset uint32, blockLength uint32) Message {
 	}
 }
 
-func Bitfield(downloadedPieces map[uint32]bool) Message {
+func Bitfield(numberOfPieces uint32, downloadedPieces map[uint32]bool) Message {
 	length := make([]byte, 4)
 	binary.BigEndian.PutUint32(length, 13)
-	payload := make([]byte, 12)
 	return Message{
 		Length:    [4]byte(length),
 		MessageId: MsgBitfield,
-		Payload:   payload,
+		Payload:   MakeBitfieldFromPieces(numberOfPieces, downloadedPieces),
 	}
 }
 

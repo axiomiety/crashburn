@@ -21,8 +21,17 @@ import (
 )
 
 func (handler *PeerHandler) ListenForPeers(listeningPort int, torrent Torrent, handshake Handshake) {
-	listener, err := net.Listen("tcp6", fmt.Sprintf("[::1]:%d", listeningPort))
-	check(err)
+	addr := GetIPAddr(torrent.Announce, true)
+	var listener net.Listener
+	var err error
+	if ipv4 := addr.(*net.TCPAddr).IP.To4(); ipv4 != nil {
+		listener, err = net.Listen("tcp", fmt.Sprintf("%s:%d", addr.(*net.TCPAddr).IP.String(), listeningPort))
+		check(err)
+	} else {
+		listener, err = net.Listen("tcp6", fmt.Sprintf("[%s]:%d", addr.(*net.TCPAddr).IP.String(), listeningPort))
+		check(err)
+
+	}
 	defer listener.Close()
 
 	for {
@@ -90,7 +99,7 @@ func connectToPeer(peer Peer) (net.Conn, error) {
 }
 
 func (handler *PeerHandler) getBlockPath(pieceIdx uint32) string {
-	baseDir := fmt.Sprintf("%s/%s", handler.PiecesPath, handler.PiecesHash[pieceIdx][:2])
+	baseDir := fmt.Sprintf("%s/%s", handler.PiecesPath, hex.EncodeToString([]byte(handler.PiecesHash[pieceIdx]))[:2])
 	return filepath.Join(baseDir, strconv.FormatUint(uint64(pieceIdx), 10))
 }
 
@@ -135,8 +144,9 @@ func (handler *PeerHandler) handlePeer(conn net.Conn, peerLogger *log.Logger, to
 	}
 	peerLogger.Println("received handshake")
 	// let's send them the pieces we have
-	bitfield := Bitfield(handler.State.AlreadyDownloaded)
+	bitfield := Bitfield(uint32(torrent.Info.Length/torrent.Info.PieceLength), handler.State.AlreadyDownloaded)
 	conn.Write(bitfield.ToBytes())
+	peerLogger.Println("sent bitfield")
 	handler.PeerId = respHandshake.PeerId
 
 	offsetChan := make(chan uint32)
@@ -186,6 +196,9 @@ func (handler *PeerHandler) handlePeer(conn net.Conn, peerLogger *log.Logger, to
 				// we don't need to merge - the bitfield has every piece the peer holds
 				handler.AvailablePieces = ExtractPiecesFromBitfield(message.Payload)
 			case MsgPiece:
+				index := binary.BigEndian.Uint32(message.Payload[:4])
+				offset := binary.BigEndian.Uint32(message.Payload[4:8])
+				peerLogger.Printf("received piece %d with offset %d\n", index, offset)
 				offsetChan <- uint32(len(message.Payload) - 8)
 				pieceChan <- message.Payload[8:]
 			case MsgRequest:
@@ -233,17 +246,18 @@ func (handler *PeerHandler) handlePeer(conn net.Conn, peerLogger *log.Logger, to
 				conn.Write(msg.ToBytes())
 				handler.IsInterested = true
 				peerLogger.Println("told peer we're interested!")
+				// now we should ideally wait until we receive a bitfield from the client
+				continue
 			}
 
 			idx, err := handler.State.findPieceToRequest(handler.AvailablePieces)
 			if err != nil {
 				peerLogger.Println("could not find a piece to request!")
-				// let's break here and find a peer that has pieces we need
-				// our priority is to download pieces right now, not serve them
-				// this peer can connect to us again later and hopefully we'll
-				// have pieces they're interested in
-				cancelFunc()
-				break
+				// let's... wait?
+				//TODO: we need to manage peers that haven't given us
+				// anything interesting for a while
+				time.Sleep(5 * time.Second)
+				continue
 			}
 			handler.CurrentPiece = idx
 

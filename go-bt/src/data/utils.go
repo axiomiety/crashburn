@@ -7,10 +7,28 @@ import (
 	"fmt"
 	"io/fs"
 	"log"
+	"net"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strconv"
 )
+
+func GetIPAddr(trackerUrl string, ipv6 bool) net.Addr {
+	// our IP should be the one we use to connect to the tracker
+	parsedUrl, err := url.Parse(trackerUrl)
+	check(err)
+
+	var conn net.Conn
+	if ipv6 {
+		conn, err = net.Dial("tcp6", parsedUrl.Host)
+	} else {
+		conn, err = net.Dial("tcp", parsedUrl.Host)
+	}
+	check(err)
+	defer conn.Close()
+	return conn.LocalAddr()
+}
 
 func HashByPiece(hash string) map[uint32]string {
 	m := map[uint32]string{}

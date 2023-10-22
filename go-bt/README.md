@@ -44,6 +44,11 @@ You can then `curl http://localhost:8088/list` which should dump some basic info
 We need a client that can seed the dummy file.
 
 # TODO
- - fix the hardcoding of ::1 everywhere...
- - client should publish number of completed/missing blocks to tracker
+ - de-dupe peers (if they're on the tracker but we already received an incoming connection)
  - client should serve blocks!
+ - client should publish number of completed/missing blocks to tracker
+ - need to manage choke/unchock better
+ - client shouldn't die when a peer requests a block it doesn't have
+
+# DONE
+ - fix the hardcoding of ::1 everywhere...
