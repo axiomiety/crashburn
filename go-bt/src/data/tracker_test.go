@@ -36,7 +36,7 @@ func TestTrackerHandling(t *testing.T) {
 	torrent := data.ParseTorrentFile("testdata/ubuntu.torrent")
 	// our tracker
 	tracker := data.Tracker{
-		InfoHashes:          map[[20]byte]data.TrackerResponse{},
+		InfoHashes:          map[[20]byte]*data.TrackerResponse{},
 		PeerLatestHeartBeat: map[string]int64{},
 	}
 	tracker.LoadTorrents("testdata")
