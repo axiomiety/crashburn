@@ -14,22 +14,6 @@ func parseInt(data []byte) int {
 	return i
 }
 
-func readUntilE(r *bufio.Reader) []byte {
-	buff := make([]byte, 4098)
-	offset := 0
-	for {
-		b, err := r.ReadByte()
-		check(err)
-		switch b {
-		case 'e':
-			return buff[:offset]
-		default:
-			buff[offset] = b
-			offset += 1
-		}
-	}
-}
-
 type Container struct {
 	List []interface{}
 	Dict map[string]interface{}
@@ -42,7 +26,7 @@ func (c *Container) add(value interface{}) {
 		c.List = append(c.List, value)
 	} else if c.Dict != nil {
 		if c.Key == "" {
-			c.Key = value.(string)
+			c.Key = string(value.([]byte))
 		} else {
 			c.Dict[c.Key] = value
 			c.Key = ""
@@ -74,12 +58,31 @@ func parse(container Container, reader *bufio.Reader) Container {
 	case 'e':
 		return container
 	case 'i':
-		val, err := strconv.Atoi(string(readUntilE(reader)))
+		buff, err := reader.ReadBytes('e')
+		check(err)
+		val, err := strconv.Atoi(string(buff[:len(buff)-1]))
 		check(err)
 		container.add(val)
 	case 'l':
 		return parse(Container{List: make([]interface{}, 0)}, reader)
-
+	case 'd':
+		return parse(Container{Dict: make(map[string]interface{})}, reader)
+	case '0', '1', '2', '3', '4', '5', '6', '7', '8', '9':
+		buff, err := reader.ReadBytes(':')
+		check(err)
+		strLen := string(b)
+		if len(buff) > 1 {
+			strLen += string(buff[:len(buff)-1])
+		}
+		strLenInt, err := strconv.Atoi(strLen)
+		check(err)
+		val := make([]byte, 0)
+		for i := 0; i < strLenInt; i++ {
+			b, err = reader.ReadByte()
+			val = append(val, b)
+		}
+		container.add(val)
+		return parse(container, reader)
 	}
 	return container
 }
