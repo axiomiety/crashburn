@@ -2,6 +2,7 @@ package data
 
 import (
 	"bufio"
+	"fmt"
 	"io"
 	"log"
 	"strconv"
@@ -32,35 +33,61 @@ func readUntilE(r *bufio.Reader) []byte {
 type Container struct {
 	List []interface{}
 	Dict map[string]interface{}
+	Key  string
+	Val  interface{}
 }
 
 func (c *Container) add(value interface{}) {
-	c.List = append(c.List, value)
+	if c.List != nil {
+		c.List = append(c.List, value)
+	} else if c.Dict != nil {
+		if c.Key == "" {
+			c.Key = value.(string)
+		} else {
+			c.Dict[c.Key] = value
+			c.Key = ""
+		}
+	} else {
+		c.Val = value
+	}
 }
 
-type Curried func(val interface{}) interface{}
+func (c *Container) obj() interface{} {
+	if c.List != nil {
+		return c.List
+	} else if c.Dict != nil {
+		return c.Dict
+	} else if c.Val != nil {
+		return c.Val
+	} else {
+		panic("don't know what to return!")
+	}
+}
 
-/*
-would some sort of stack-based approach work best?
-*/
-func ParseBencoded(r io.Reader) interface{} {
-	reader := bufio.NewReader(r)
-	var container interface{}
+func parse(container Container, reader *bufio.Reader) Container {
+	b, err := reader.ReadByte()
+	if err != nil {
+		log.Printf("end reached")
+		return container
+	}
+	switch b {
+	case 'e':
+		return container
+	case 'i':
+		val, err := strconv.Atoi(string(readUntilE(reader)))
+		check(err)
+		container.add(val)
+	case 'l':
+		return parse(Container{List: make([]interface{}, 0)}, reader)
 
-	parse = func(reader *bufio.Reader) interface{} {
-		b, err := reader.ReadByte()
-		if err != nil {
-			log.Printf("end reached")
-		}
-		switch b {
-		case 'e':
-		case 'i':
-			val, err := strconv.Atoi(string(readUntilE(reader)))
-			check(err)
-
-		case 'l':
-
-		}
 	}
 	return container
+}
+
+func ParseBencoded(r io.Reader) interface{} {
+	reader := bufio.NewReader(r)
+
+	container := parse(Container{}, reader)
+	fmt.Printf("%v\n", container)
+	return container.obj()
 }
