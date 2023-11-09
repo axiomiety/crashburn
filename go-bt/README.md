@@ -49,7 +49,7 @@ We need a client that can seed the dummy file.
  - client should publish number of completed/missing blocks to tracker
  - need to manage choke/unchock better
  - client shouldn't die when a peer requests a block it doesn't have
- - bencode - handle nested dicts
 
 # DONE
  - fix the hardcoding of ::1 everywhere...
+ - bencode - handle nested dicts

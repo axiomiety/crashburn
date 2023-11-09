@@ -6,12 +6,6 @@ import (
 	"strconv"
 )
 
-func parseInt(data []byte) int {
-	i, err := strconv.Atoi(string(data))
-	check(err)
-	return i
-}
-
 type Container struct {
 	List []interface{}
 	Dict map[string]interface{}
@@ -27,6 +21,7 @@ func (c *Container) add(value interface{}) {
 			c.Key = string(value.([]byte))
 		} else {
 			c.Dict[c.Key] = value
+			// reset the key
 			c.Key = ""
 		}
 	} else {
@@ -62,7 +57,6 @@ func parse(container Container, reader *bufio.Reader) Container {
 		container.add(val)
 		return parse(container, reader)
 	case 'l':
-		//TODO: we need the below for nested lists
 		c := parse(Container{List: make([]interface{}, 0)}, reader)
 		if container.List != nil || container.Dict != nil {
 			container.add(c.List)
@@ -71,7 +65,13 @@ func parse(container Container, reader *bufio.Reader) Container {
 		}
 		return parse(container, reader)
 	case 'd':
-		return parse(Container{Dict: make(map[string]interface{})}, reader)
+		c := parse(Container{Dict: make(map[string]interface{})}, reader)
+		if container.List != nil || container.Dict != nil {
+			container.add(c.Dict)
+		} else {
+			container = c
+		}
+		return parse(container, reader)
 	case '0', '1', '2', '3', '4', '5', '6', '7', '8', '9':
 		buff, err := reader.ReadBytes(':')
 		check(err)
@@ -96,6 +96,5 @@ func ParseBencoded(r io.Reader) interface{} {
 	reader := bufio.NewReader(r)
 
 	container := parse(Container{}, reader)
-	//fmt.Printf("%v\n", container)
 	return container.obj()
 }
