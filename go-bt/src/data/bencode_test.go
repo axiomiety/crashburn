@@ -40,13 +40,21 @@ func TestBencodeParsing(t *testing.T) {
 	r = bytes.NewReader([]byte("li42ei43ee"))
 	retSlice, _ = data.ParseBencoded(r).([]interface{})
 	if len(retSlice) != 2 && retSlice[0] != 42 && retSlice[1] != 43 {
-		t.Errorf("expected [42], got %v", ret)
+		t.Errorf("expected [42, 43], got %v", ret)
 	}
 
-	// a map
+	// a simple map
 	r = bytes.NewReader([]byte("d3:fooi42ee"))
 	retMap, _ := data.ParseBencoded(r).(map[string]interface{})
 	if retMap["foo"] != 42 {
 		t.Errorf("expected [42], got %v", retMap)
+	}
+
+	// a map with a list
+	r = bytes.NewReader([]byte("d3:fooli42eee"))
+	retMap, _ = data.ParseBencoded(r).(map[string]interface{})
+	retSlice = retMap["foo"].([]interface{})
+	if len(retSlice) != 1 && retSlice[0] != 42 {
+		t.Errorf("expected {'foo': [42]}, got %v", ret)
 	}
 }

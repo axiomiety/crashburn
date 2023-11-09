@@ -2,9 +2,7 @@ package data
 
 import (
 	"bufio"
-	"fmt"
 	"io"
-	"log"
 	"strconv"
 )
 
@@ -51,7 +49,6 @@ func (c *Container) obj() interface{} {
 func parse(container Container, reader *bufio.Reader) Container {
 	b, err := reader.ReadByte()
 	if err != nil {
-		log.Printf("end reached")
 		return container
 	}
 	switch b {
@@ -63,8 +60,16 @@ func parse(container Container, reader *bufio.Reader) Container {
 		val, err := strconv.Atoi(string(buff[:len(buff)-1]))
 		check(err)
 		container.add(val)
+		return parse(container, reader)
 	case 'l':
-		return parse(Container{List: make([]interface{}, 0)}, reader)
+		//TODO: we need the below for nested lists
+		c := parse(Container{List: make([]interface{}, 0)}, reader)
+		if container.List != nil || container.Dict != nil {
+			container.add(c.List)
+		} else {
+			container = c
+		}
+		return parse(container, reader)
 	case 'd':
 		return parse(Container{Dict: make(map[string]interface{})}, reader)
 	case '0', '1', '2', '3', '4', '5', '6', '7', '8', '9':
@@ -91,6 +96,6 @@ func ParseBencoded(r io.Reader) interface{} {
 	reader := bufio.NewReader(r)
 
 	container := parse(Container{}, reader)
-	fmt.Printf("%v\n", container)
+	//fmt.Printf("%v\n", container)
 	return container.obj()
 }
