@@ -1,0 +1,71 @@
+---
+title: "3.4 with Insurance dataset"
+output: html_notebook
+---
+
+[Link](https://www.kaggle.com/datasets/mirichoi0218/insurance/) to dataset.
+
+Need to be aware of that a 0 coeff does on categorical variables (it changes the meaning of the intercept)
+
+```{r}
+df <- read.csv("insurance.csv")
+# clean things up so summary works as expected
+df$sex = as.factor(df$sex)
+df$smoker = as.factor(df$smoker)
+df$region = as.factor(df$region)
+summary(df)
+```
+Data set is roughly equal gender-wise and per region, thought the southeast is a little bit more represented.
+
+Median charges is 9382 but max is 63770 indicating we have a few large ones.
+
+## Q1: Is there a relationship between charges and the factors presented here?
+
+We do this by:
+ 1. fitting a multiple linear regression model
+ 2. and testing the null hypothesis (that all coefficients are 0)
+ 
+We can then use the F-statistic and corresponding p-value to decide.
+
+```{r}
+lm.fit <- lm(charges ~ ., data=df)
+summary(lm.fit)
+```
+
+So `F-statistic: 500.8 on 8 and 1329 DF,  p-value: < 2.2e-16` which indicates we can safely reject the null hypothesis.
+
+## Q2: How strong is the relationship?
+
+RSE is 6062! Versus the mean charge of 13270 - that's about 46%. How does that help?
+
+R^2 tells us the predictors explain about 75% of the variance we're seeing.
+
+## Q3: Which predictors are associated with charges?
+
+Interestingly, neither gender nor children nor region seem to have much of an impact.
+
+It'd be worth re-running without the above
+
+## Q4: How large is the association between each (significant) predictor and charges?
+
+```{r}
+confint(lm.fit)
+```
+Large intervals can be signs of collinearity. Let's compute the VIF for each var:
+
+Might be worth ignoring also if they contain 0 it seems.
+
+
+
+## Q5: How accurately can we predict future charges?
+
+Here we need a *prediction** interval.
+
+## Q6: Is the relationhsip linear
+
+```{r}
+> r <- resid(lm.fit)
+> plot(fitted(lm.fit), r)
+```
+
+## Q7: Is there synergy among the predictors?
