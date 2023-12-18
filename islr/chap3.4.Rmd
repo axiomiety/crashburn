@@ -1,6 +1,8 @@
 ---
 title: "3.4 with Insurance dataset"
-output: html_notebook
+output:
+  html_document:
+    df_print: paged
 ---
 
 [Link](https://www.kaggle.com/datasets/mirichoi0218/insurance/) to dataset.
@@ -44,28 +46,70 @@ R^2 tells us the predictors explain about 75% of the variance we're seeing.
 
 Interestingly, neither gender nor children nor region seem to have much of an impact.
 
-It'd be worth re-running without the above
+It'd be worth re-running without the above？
 
 ## Q4: How large is the association between each (significant) predictor and charges?
 
 ```{r}
 confint(lm.fit)
 ```
-Large intervals can be signs of collinearity. Let's compute the VIF for each var:
+Large intervals containing zero can be signs of collinearity. Let's compute the VIF for each var:
 
-Might be worth ignoring also if they contain 0 it seems.
+```{r}
+library(car)
+vif(lm.fit)
+```
+VIF is relatively low, around 1. In a previous passage it was mentioned that anything above 5 would indicate some collinearity.
 
+We can also do separate linear regressions:
 
+```{r}
+lm.fitAge <- lm(charges ~ age, data=df)
+summary(lm.fitAge)
+```
+
+Let's do gender:
+
+```{r}
+lm.fitSex <- lm(charges ~ sex, data=df)
+summary(lm.fitSex)
+```
 
 ## Q5: How accurately can we predict future charges?
 
-Here we need a *prediction** interval.
+Here we need a *prediction** interval for an individual response, or a *confidence* interval for an average response.
 
 ## Q6: Is the relationhsip linear
 
+Let's plot the residuals:
+
 ```{r}
-> r <- resid(lm.fit)
-> plot(fitted(lm.fit), r)
+r <- resid(lm.fit)
+plot(fitted(lm.fit), r)
+```
+There are 3 distinct clusters - with one larger one. This indicates some non-linear effect!
+
+For argument's sake, let's do a `pplot` on correlation and we can make a guess:
+
+```{r}
+library(GGally)
+ggpairs(df)
 ```
 
+Let's try with a transformation of `bmi`:
+
+```{r}
+lm.fitBmiExp <- lm(charges ~ bmi + I(bmi^2) + I(bmi^3), data=df)
+summary(lm.fitBmiExp)
+```
+Meh. Maybe `bmi` isn't such a great indicator of charges?
+
 ## Q7: Is there synergy among the predictors?
+
+Let's try an interaction term!
+
+```{r}
+lm.fitInter <- lm(charges ~ age + bmi + age*bmi, data=df)
+summary(lm.fitInter)
+```
+No dice either?
