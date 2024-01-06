@@ -1,0 +1,59 @@
+---
+title: "3.7 - Applied Exercises"
+output: html_notebook
+---
+
+# 8
+
+## a
+
+```{r}
+library(ISLR2)
+lm.fit <- lm(mpg ~ horsepower, data=Auto)
+summary(lm.fit)
+```
+
+### Is there a relationship between the predictor and the response?
+
+About 60% of the variance in `mpg` can be attributed to `horsepower` - and the F-statistic is such that we'd reject the null hypothesis (that is, there is no relationship)
+
+### How strong is the relationship between the predictor and the response?
+
+I'm not sure how to qualify "strong" - is that the slope? Because if so it isn't.
+
+### Is the relationship between the predictor and the response positive or negative?
+
+Negative - an increase in `horsepower` lowers `mpg`
+
+### What is the predicted mpg associated with a horsepower of 98? What are the associated 95 % confidence and prediction intervals?
+
+```{r}
+predict(lm.fit, data.frame(horsepower=c(98)), interval = 'confidence')
+predict(lm.fit, data.frame(horsepower=c(98)), interval = 'prediction')
+```
+As expected, the `prediction` interval is larger.
+
+## b
+
+```{r ggplot}
+ggplot(Auto, aes(x=horsepower, y=mpg)) + geom_point(size=2, shape=23) + geom_abline(intercept = lm.fit$coefficients[1], slope = lm.fit$coefficients[2], color="red")
+```
+
+## c
+
+```{r plot}
+plot(lm.fit)
+```
+
+Potential issues:
+  - residuals aren't uniformly distributed, which suggests a non-linear relationship
+  - the residuals vs leverage plot identifies some points that would impact the regression line if they were removed
+  
+```{r}
+lm.fit2 <- lm(mpg ~ poly(horsepower, 2), data=Auto)
+summary(lm.fit2)
+```
+
+```{r plot2}
+plot(lm.fit2)
+```

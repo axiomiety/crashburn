@@ -1,0 +1,95 @@
+---
+title: "Linear Regression"
+output:
+  html_document:
+    df_print: paged
+---
+
+# 3.6.3
+
+Using the `Advertising` dataset:
+
+```{r}
+# download the Advertising datasest and clean it up
+Advertising <- read.csv("https://www.statlearning.com/s/Advertising.csv")
+rownames(Advertising) <- Advertising$X
+# remove the X col
+Advertisting <- subset(Advertising, select=-c(X))
+```
+
+Let's build a linear model across all 3 variables:
+```{r}
+lm.fit <- lm(sales ~ TV + radio + newspaper, data=Advertising)
+summary(lm.fit)
+```
+
+RSS, TSS and R2 (varation of sales explained by the model):
+```{r}
+rss1 <- sum(resid(lm.fit)^2)
+rss2 <- sum((Advertising$sales - predict(lm.fit, Advertising))^2) # same as rss1
+rss1
+rss2
+
+tss <- sum((Advertising$sales - mean(Advertising$sales))^2)
+tss
+
+rss <- rss1
+r2 <- 1-rss/tss
+r2
+summary(lm.fit)$r.squared
+```
+
+RSE:
+
+```{r}
+rss <- rss1
+n <- dim(Advertising)[1]
+p <- length(coef(lm.fit))-1
+rse1 <- sqrt(rss/(n-p-1))
+rse2 <- summary(lm.fit)$sigma
+rse1
+rse2
+```
+
+Computing the F-statistic:
+
+```{r}
+top <- (tss-rss)/p
+bottom <- rss/(n-p-1)
+f <- top/bottom
+f
+```
+
+## Forward selection
+
+```{r}
+lm.tv <- lm(sales ~ TV, data=Advertising)
+lm.radio <- lm(sales ~ radio, data=Advertising)
+lm.newspaper <- lm(sales ~ newspaper, data=Advertising)
+
+sum(resid(lm.tv)^2)
+sum(resid(lm.radio)^2)
+sum(resid(lm.newspaper)^2)
+```
+So we pick TV first and add radio
+
+```{r}
+lm.fwd <- lm(sales ~ TV + radio, data=Advertising)
+sum(resid(lm.fwd)^2)
+```
+
+Let's add newspaper:
+
+```{r}
+lm.fwd <- lm(sales ~ TV + radio + newspaper, data=Advertising)
+sum(resid(lm.fwd)^2)
+```
+
+# 3.6.4
+
+Interaction between terms:
+
+```{r}
+lmi.fit <- lm(sales ~ TV*radio, data=Advertising)
+summary(lmi.fit)
+```
