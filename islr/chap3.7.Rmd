@@ -1,6 +1,8 @@
 ---
 title: "3.7 - Applied Exercises"
-output: html_notebook
+output:
+  html_document:
+    df_print: paged
 ---
 
 # 8
@@ -36,6 +38,7 @@ As expected, the `prediction` interval is larger.
 ## b
 
 ```{r ggplot}
+library(ggplot2)
 ggplot(Auto, aes(x=horsepower, y=mpg)) + geom_point(size=2, shape=23) + geom_abline(intercept = lm.fit$coefficients[1], slope = lm.fit$coefficients[2], color="red")
 ```
 
