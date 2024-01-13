@@ -60,3 +60,66 @@ summary(lm.fit2)
 ```{r plot2}
 plot(lm.fit2)
 ```
+
+# 9
+
+## a
+
+```{r}
+library(GGally)
+ggpairs(subset(Auto, select=-c(name)), aes(colour=as.factor(origin)))
+```
+
+## b
+
+```{r}
+cor(subset(Auto, select=-c(name)))
+```
+
+## c
+
+```{r}
+lm.fit <- lm(mpg ~ ., data=subset(Auto, select=-c(name)))
+summary(lm.fit)
+```
+
+There's a clear relationship between predictors and the response, with R^2 explaining 82% of the variance. 
+Some predictors are not significant like `horsepower` or `acceleration`.
+`year` is statistically siginifcant given the p-value.
+
+## d
+
+```{r}
+plot(lm.fit)
+```
+The Residuals vs Leverage plot indicates a few observations with very high leverage.
+
+TThe Residuals vs Fitted plot isn't uniform, indicating the true relationship is unlikely to be linear.
+
+## e
+
+```{r}
+lm.fit_multi <- lm(mpg ~ .^2, data=subset(Auto, select=-c(name)))
+summary(lm.fit_multi)
+```
+
+Note the difference in `R` with `*` and `:` (the former is additive + interaction, the other is interaction only).
+
+Only acceleration and origin seem to be statistically significant?
+
+## f
+
+```{r}
+lm.fit <- lm(mpg ~ weight + acceleration + displacement, data=subset(Auto, select=-c(name)))
+summary(lm.fit)
+lm.fit1 <- lm(mpg ~ weight + acceleration + I(log(displacement)), data=subset(Auto, select=-c(name)))
+summary(lm.fit1)
+```
+
+`log` of displacement gives an increased R^2 - seems `acceleration` is fairly unsignificant!
+
+# 10
+
+
+
+
