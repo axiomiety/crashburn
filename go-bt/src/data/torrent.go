@@ -96,3 +96,10 @@ func ParseTorrentFile(fname string) Torrent {
 
 	return torrent
 }
+
+type BETorrent struct {
+	// Info         Info
+	// InfoHash     [20]byte
+	Announce     string   `bencode:"announce"`
+	AnnounceList []string `bencode:"annouce-list"`
+}

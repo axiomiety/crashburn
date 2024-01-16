@@ -120,6 +120,97 @@ summary(lm.fit1)
 
 # 10
 
+## a
 
+```{r}
+library(ISLR2)
+lm.fit <- lm(Sales ~ Price + Urban + US, data=Carseats)
+summary(lm.fit)
+```
 
+## b
 
+`Urban` and `US` are both qualitative.
+
+`Price` is negatively correlated with sales, indicating a higher price doesn't lead to higher sales.
+
+`US` is positive, indicating higher sales in US-based stores.
+
+## c
+
+$f(X) = 13.04 -0.54X_1 -0.022X_2 + 1.2X_3$
+
+## d
+
+We can reject the null hypothesis on all predictors except `Urban` as it's not statistically significant.
+
+```{r}
+summary(lm(Sales ~ Urban, data=Carseats))
+```
+
+## e
+
+```{r}
+lm.carseats2 <- lm(Sales ~ Price + US, data=Carseats)
+summary(lm.carseats2)
+```
+Smaller RSE than with `Urban`
+
+## f
+
+Very poorly! We only explain about 24% of the variance.
+
+## g
+
+```{r}
+confint(lm.carseats2)
+```
+## h
+
+```{r}
+plot(lm.carseats2)
+```
+There is some evidence of high leverage - but the Residuals vs Fitted plot is relatively uniform.
+
+# 11
+
+## a
+
+```{r}
+set.seed(1)
+x <- rnorm(100)
+y <- 2 * x + rnorm(100)
+lm.fit <- lm(y ~ 0 + x)
+summary(lm.fit)
+```
+
+## b
+
+```{r}
+set.seed(1)
+x <- rnorm(100)
+y <- 2 * x + rnorm(100)
+lm.fit <- lm(x ~ 0 + y)
+summary(lm.fit)
+```
+
+## c
+
+$R^2$ is identical to the other way around! Residuals are smaller though - RSE is very different! (though I recall reading it's scale-dependent, so whilst it does look significant it isn't)
+
+## d
+
+```{r}
+n <- length(x)
+top <- sqrt(n-1) * sum(x*y)
+bottom <- sqrt(sum(x^2)*sum(y^2)-sum(x*y)^2)
+top/bottom
+```
+
+## e
+
+## f
+
+# 12
+
+## a
