@@ -2,7 +2,9 @@ package data
 
 import (
 	"bufio"
+	"fmt"
 	"io"
+	"reflect"
 	"strconv"
 )
 
@@ -138,4 +140,54 @@ func ParseBencoded2(r io.Reader) interface{} {
 	// kick this off by passing an empty holder
 	container := parse2(&ValueHolder{}, reader)
 	return container.Obj()
+}
+
+func foo(o interface{}, d map[string]interface{}) {
+	structure := reflect.TypeOf(o).Elem()
+	//mutable := reflect.ValueOf(&structure)
+	for i := 0; i < structure.NumField(); i++ {
+		f := structure.Field(i)
+		tag := f.Tag.Get("bencode")
+		if val, ok := d[tag]; ok {
+			//fmt.Printf("val: %v\n", val)
+			if f.Type.Kind() != reflect.Struct {
+				fmt.Printf("%s\n", f.Tag)
+				bindat := reflect.ValueOf(val).Convert(f.Type)
+				fmt.Printf("%v, %v", bindat, reflect.TypeOf(o))
+				//mutable.Elem().FieldByName(f.Name).Set(bindat)
+				//mutable.Field(i).Set(bindat)
+				//structure.FieldByName(f.Name)
+				//reflect.ValueOf(o).Field(i).Set(bindat)
+				reflect.Value(&o)
+			} else {
+				//oo := f.Type.Elem()
+				//foo(oo, val.(map[string]interface{}))
+			}
+		}
+	}
+}
+
+func ParseTorrentFile2(r io.Reader) *BETorrent {
+	obj := ParseBencoded2(r)
+	d, ok := obj.(map[string]interface{})
+	if !ok {
+		panic("Unable to parse torrent")
+	}
+
+	betorrent := &BETorrent{}
+	foo(betorrent, d)
+	// st := reflect.TypeOf(betorrent)
+	// mutable := reflect.ValueOf(&betorrent).Elem()
+	// for i := 0; i < mutable.NumField(); i++ {
+	// 	f := st.Field(i)
+	// 	tag := f.Tag.Get("bencode")
+	// 	if val, ok := d[tag]; ok {
+	// 		if reflect.ValueOf(f).Kind() != reflect.Struct {
+	// 			bindat := reflect.ValueOf(val).Convert(f.Type)
+	// 			mutable.Field(i).Set(bindat)
+	// 		}
+	// 	}
+	// }
+	fmt.Printf("%#v", betorrent)
+	return betorrent
 }

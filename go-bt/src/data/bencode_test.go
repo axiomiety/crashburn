@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"go-bt/data"
 	"io"
+	"os"
 	"testing"
 )
 
@@ -66,4 +67,9 @@ func TestBencodeParsing(t *testing.T) {
 			t.Errorf("expected {'foo': [42]}, got %v", ret)
 		}
 	}
+}
+
+func TestBencodeStructTags(t *testing.T) {
+	file, _ := os.Open("testdata/ubuntu.torrent")
+	data.ParseTorrentFile2(file)
 }
