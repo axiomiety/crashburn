@@ -213,4 +213,191 @@ top/bottom
 
 # 12
 
+?
+
+# 13
+
 ## a
+
+```{r}
+set.seed(1)
+x <- rnorm(100)
+```
+
+## b
+
+```{r}
+eps <- rnorm(100, mean=0, sd=0.25)
+```
+
+## c
+
+```{r}
+y <- -1 + 0.5*x + eps
+length(y)
+```
+
+$\beta_0$ is -1, $\beta_1$ is 0.5.
+
+## d
+
+```{r}
+library(ggplot2)
+df <- data.frame(y=y, x=x)
+ggplot(df, aes(x=x, y=y)) + geom_point()
+```
+
+## e
+
+```{r}
+lm.fit <- lm(y~x)
+summary(lm.fit)
+```
+The coeffs are quite close!
+
+## f
+
+```{r}
+ggplot(df, aes(x=x, y=y)) + geom_point() +
+geom_abline(intercept=coef(lm.fit)[1], slope = coef(lm.fit)[2], colour="red")
+```
+
+## g
+
+```{r}
+lm.fit2 <- lm(y ~ poly(x, 2))
+summary(lm.fit2)
+```
+Fit is improved somewhat as noted by the modest increase in $R^2$.
+
+## h
+
+```{r}
+set.seed(2)
+eps2 <- rnorm(100, mean=0, sd=0.05)
+y_low <- -1 + 0.5*x + eps2
+lm.fit_low <- lm(y_low ~ x)
+df_low <- data.frame(y=y_low, x=x)
+ggplot(df_low, aes(x=x, y=y)) + geom_point() +
+geom_abline(intercept=coef(lm.fit_low)[1], slope = coef(lm.fit_low)[2], colour="red")
+```
+
+## i
+
+```{r}
+set.seed(2)
+eps3 <- rnorm(100, mean=0, sd=0.5)
+y_high <- -1 + 0.5*x + eps3
+lm.fit_high <- lm(y_high ~ x)
+df_high <- data.frame(y=y_high, x=x)
+ggplot(df_high, aes(x=x, y=y)) + geom_point() +
+geom_abline(intercept=coef(lm.fit_high)[1], slope = coef(lm.fit_high)[2], colour="red")
+```
+
+## j
+
+```{r}
+confint(lm.fit)
+confint(lm.fit_low)
+confint(lm.fit_high)
+```
+
+# 14
+
+## a
+
+```{r}
+set.seed(1)
+x1 <- runif (100)
+x2 <- 0.5 * x1 + rnorm(100) / 10
+y <- 2 + 2 * x1 + 0.3 * x2 + rnorm(100)
+```
+
+$\beta_0$ = 2, $\beta_1$ = 2, $\beta_2$ = 0.3
+
+## b
+
+```{r}
+library(ggplot2)
+df <- data.frame(y=x1, x=x2)
+ggplot(df, aes(x=x, y=y)) + geom_point()
+```
+
+## c
+
+```{r}
+lm.fit <- lm(y ~ x1+x2)
+summary(lm.fit)
+```
+The estimates for $\beta_1$ and $\beta_2$ are quite far off, and not statistically signficant.
+
+## d
+
+```{r}
+lm.fit_x1 <- lm(y ~ x1)
+summary(lm.fit_x1)
+```
+
+## e
+
+```{r}
+lm.fit_x2 <- lm(y ~ x2)
+summary(lm.fit_x2)
+```
+
+## f
+
+
+
+## g
+
+```{r}
+x1 <- c(x1, 0.1)
+x2 <- c(x2, 0.8)
+y <- c(y, 6)
+summary(lm(y~ x1+x2))
+summary(lm(y ~ x1))
+summary(lm(y ~ x2))
+```
+It's a high leverage point!
+
+# 15
+
+## a
+
+```{r}
+library(ISLR2)
+vars <- colnames(Boston)[-1]
+lm_results <- lapply(vars, function(col){
+    lm_formula <- as.formula(paste0("crim ~ ", col))
+    lm(lm_formula, data = Boston)
+})
+lapply(lm_results, function(x) summary(x))
+```
+
+They're mostly significant in all cases except `chas`.
+
+## b
+
+```{r}
+lm.fit <- lm(crim ~ ., data=Boston)
+summary(lm.fit)
+```
+
+Only 3 predictors show up as being significant.
+
+## c
+
+```{r}
+c_a <- coef(lm.fit)[-1]
+c_b <- unlist(lapply(lm_results, function(x) coef(x)[2]))
+df <- data.frame(x=c_b, y=c_a)
+ggplot(df, aes(x=c_b,y=c_a)) + geom_point()
+df
+```
+
+## d
+
+```{r}
+# use poly(x, 3)
+```
