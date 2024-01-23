@@ -144,24 +144,28 @@ func ParseBencoded2(r io.Reader) interface{} {
 
 func foo(o interface{}, d map[string]interface{}) {
 	structure := reflect.TypeOf(o).Elem()
+	fmt.Printf("structure is of type %s\n", reflect.TypeOf(o))
 	//mutable := reflect.ValueOf(&structure)
 	for i := 0; i < structure.NumField(); i++ {
 		f := structure.Field(i)
 		tag := f.Tag.Get("bencode")
+		fmt.Printf("tag: %v\n", tag)
 		if val, ok := d[tag]; ok {
-			//fmt.Printf("val: %v\n", val)
 			if f.Type.Kind() != reflect.Struct {
-				fmt.Printf("%s\n", f.Tag)
+				fmt.Printf("not-struct %s\n", f.Tag)
 				bindat := reflect.ValueOf(val).Convert(f.Type)
-				fmt.Printf("%v, %v", bindat, reflect.TypeOf(o))
-				//mutable.Elem().FieldByName(f.Name).Set(bindat)
-				//mutable.Field(i).Set(bindat)
-				//structure.FieldByName(f.Name)
-				//reflect.ValueOf(o).Field(i).Set(bindat)
-				reflect.Value(&o)
+				reflect.ValueOf(o).Elem().Field(i).Set(bindat)
 			} else {
-				//oo := f.Type.Elem()
-				//foo(oo, val.(map[string]interface{}))
+				oo := reflect.New(f.Type)
+				oo.Elem().Field(0).Set(reflect.ValueOf("abc"))
+				fmt.Printf("%#v\n", oo)
+				for k := range val.(map[string]interface{}) {
+					fmt.Printf("\tk:%s\n", k)
+				}
+				reflect.ValueOf(o).Elem().Field(i).Set(oo.Elem())
+				x := oo.Elem().Convert(f.Type).Interface()
+				fmt.Printf("type-of %s\n", reflect.TypeOf(x))
+				foo(&x, val.(map[string]interface{}))
 			}
 		}
 	}
@@ -173,7 +177,9 @@ func ParseTorrentFile2(r io.Reader) *BETorrent {
 	if !ok {
 		panic("Unable to parse torrent")
 	}
-
+	for k, _ := range d {
+		fmt.Printf("%s\n", k)
+	}
 	betorrent := &BETorrent{}
 	foo(betorrent, d)
 	// st := reflect.TypeOf(betorrent)
