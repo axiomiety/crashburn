@@ -142,14 +142,20 @@ func ParseBencoded2(r io.Reader) interface{} {
 	return container.Obj()
 }
 
-func foo(o interface{}, d map[string]interface{}) {
-	structure := reflect.TypeOf(o).Elem()
-	fmt.Printf("structure is of type %s\n", reflect.TypeOf(o))
+func fillStruct(o interface{}, d map[string]interface{}) {
+	var structure reflect.Type
+	if reflect.TypeOf(o).Kind() != reflect.Struct {
+		structure = reflect.TypeOf(o).Elem()
+		fmt.Printf("non-structure is of type %s, %s\n", reflect.TypeOf(o), structure)
+	} else {
+		structure = reflect.TypeOf(o)
+		fmt.Printf("structure is of type %s, %#v\n", structure, o)
+	}
 	//mutable := reflect.ValueOf(&structure)
 	for i := 0; i < structure.NumField(); i++ {
 		f := structure.Field(i)
 		tag := f.Tag.Get("bencode")
-		fmt.Printf("tag: %v\n", tag)
+		fmt.Printf("tag: %v, %s\n", tag, f.Name)
 		if val, ok := d[tag]; ok {
 			if f.Type.Kind() != reflect.Struct {
 				fmt.Printf("not-struct %s\n", f.Tag)
@@ -157,15 +163,16 @@ func foo(o interface{}, d map[string]interface{}) {
 				reflect.ValueOf(o).Elem().Field(i).Set(bindat)
 			} else {
 				oo := reflect.New(f.Type)
-				oo.Elem().Field(0).Set(reflect.ValueOf("abc"))
+				//oo.Elem().Field(0).Set(reflect.ValueOf("abc"))
 				fmt.Printf("%#v\n", oo)
 				for k := range val.(map[string]interface{}) {
 					fmt.Printf("\tk:%s\n", k)
 				}
 				reflect.ValueOf(o).Elem().Field(i).Set(oo.Elem())
-				x := oo.Elem().Convert(f.Type).Interface()
-				fmt.Printf("type-of %s\n", reflect.TypeOf(x))
-				foo(&x, val.(map[string]interface{}))
+				x := oo.Elem().Convert(f.Type)
+				fmt.Printf("type-of %s, %v\n", reflect.TypeOf(x.Interface()), reflect.Indirect(oo))
+				//z := x.Interface()
+				fillStruct(oo, val.(map[string]interface{}))
 			}
 		}
 	}
@@ -181,7 +188,7 @@ func ParseTorrentFile2(r io.Reader) *BETorrent {
 		fmt.Printf("%s\n", k)
 	}
 	betorrent := &BETorrent{}
-	foo(betorrent, d)
+	fillStruct(betorrent, d)
 	// st := reflect.TypeOf(betorrent)
 	// mutable := reflect.ValueOf(&betorrent).Elem()
 	// for i := 0; i < mutable.NumField(); i++ {
