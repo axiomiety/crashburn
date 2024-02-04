@@ -149,6 +149,7 @@ func fillStruct(o interface{}, d map[string]interface{}) {
 		fmt.Printf("non-structure is of type %s, %s\n", reflect.TypeOf(o), structure)
 	} else {
 		structure = reflect.TypeOf(o)
+
 		fmt.Printf("structure is of type %s, %#v\n", structure, o)
 	}
 	//mutable := reflect.ValueOf(&structure)
@@ -161,6 +162,9 @@ func fillStruct(o interface{}, d map[string]interface{}) {
 				fmt.Printf("not-struct %s\n", f.Tag)
 				bindat := reflect.ValueOf(val).Convert(f.Type)
 				reflect.ValueOf(o).Elem().Field(i).Set(bindat)
+				if tag == "name" {
+					fmt.Printf("name: %v\n%#v\n", bindat, o)
+				}
 			} else {
 				oo := reflect.New(f.Type)
 				//oo.Elem().Field(0).Set(reflect.ValueOf("abc"))
@@ -168,11 +172,9 @@ func fillStruct(o interface{}, d map[string]interface{}) {
 				for k := range val.(map[string]interface{}) {
 					fmt.Printf("\tk:%s\n", k)
 				}
+				fillStruct(oo.Interface(), val.(map[string]interface{}))
+				fmt.Printf("after: %#v\n", oo)
 				reflect.ValueOf(o).Elem().Field(i).Set(oo.Elem())
-				x := oo.Elem().Convert(f.Type)
-				fmt.Printf("type-of %s, %v\n", reflect.TypeOf(x.Interface()), reflect.Indirect(oo))
-				//z := x.Interface()
-				fillStruct(oo, val.(map[string]interface{}))
 			}
 		}
 	}
