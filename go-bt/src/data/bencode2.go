@@ -2,11 +2,14 @@ package data
 
 import (
 	"bufio"
+	"bytes"
 	"fmt"
 	"io"
 	"reflect"
 	"strconv"
 )
+
+// this is the interface that various containers implement
 
 type Holder interface {
 	Add(value interface{})
@@ -82,7 +85,6 @@ func (c *ValueHolder) Empty() bool {
 }
 
 // now let's do the actual parsing
-
 func parse2(container Holder, reader *bufio.Reader) Holder {
 	b, err := reader.ReadByte()
 	if err != nil {
@@ -146,34 +148,19 @@ func fillStruct(o interface{}, d map[string]interface{}) {
 	var structure reflect.Type
 	if reflect.TypeOf(o).Kind() != reflect.Struct {
 		structure = reflect.TypeOf(o).Elem()
-		fmt.Printf("non-structure is of type %s, %s\n", reflect.TypeOf(o), structure)
 	} else {
 		structure = reflect.TypeOf(o)
-
-		fmt.Printf("structure is of type %s, %#v\n", structure, o)
 	}
-	//mutable := reflect.ValueOf(&structure)
 	for i := 0; i < structure.NumField(); i++ {
 		f := structure.Field(i)
 		tag := f.Tag.Get("bencode")
-		fmt.Printf("tag: %v, %s\n", tag, f.Name)
 		if val, ok := d[tag]; ok {
 			if f.Type.Kind() != reflect.Struct {
-				fmt.Printf("not-struct %s\n", f.Tag)
 				bindat := reflect.ValueOf(val).Convert(f.Type)
 				reflect.ValueOf(o).Elem().Field(i).Set(bindat)
-				if tag == "name" {
-					fmt.Printf("name: %v\n%#v\n", bindat, o)
-				}
 			} else {
 				oo := reflect.New(f.Type)
-				//oo.Elem().Field(0).Set(reflect.ValueOf("abc"))
-				fmt.Printf("%#v\n", oo)
-				for k := range val.(map[string]interface{}) {
-					fmt.Printf("\tk:%s\n", k)
-				}
 				fillStruct(oo.Interface(), val.(map[string]interface{}))
-				fmt.Printf("after: %#v\n", oo)
 				reflect.ValueOf(o).Elem().Field(i).Set(oo.Elem())
 			}
 		}
@@ -186,23 +173,17 @@ func ParseTorrentFile2(r io.Reader) *BETorrent {
 	if !ok {
 		panic("Unable to parse torrent")
 	}
-	for k, _ := range d {
-		fmt.Printf("%s\n", k)
-	}
 	betorrent := &BETorrent{}
 	fillStruct(betorrent, d)
-	// st := reflect.TypeOf(betorrent)
-	// mutable := reflect.ValueOf(&betorrent).Elem()
-	// for i := 0; i < mutable.NumField(); i++ {
-	// 	f := st.Field(i)
-	// 	tag := f.Tag.Get("bencode")
-	// 	if val, ok := d[tag]; ok {
-	// 		if reflect.ValueOf(f).Kind() != reflect.Struct {
-	// 			bindat := reflect.ValueOf(val).Convert(f.Type)
-	// 			mutable.Field(i).Set(bindat)
-	// 		}
-	// 	}
-	// }
-	fmt.Printf("%#v", betorrent)
 	return betorrent
+}
+
+func Encode(buffer *bytes.Buffer, o interface{}) {
+	var val reflect.Value
+	val = reflect.ValueOf(o)
+	switch val.Interface().(type) {
+	case int:
+		fmt.Println("found int")
+	}
+
 }

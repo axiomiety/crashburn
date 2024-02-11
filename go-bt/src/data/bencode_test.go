@@ -69,7 +69,23 @@ func TestBencodeParsing(t *testing.T) {
 	}
 }
 
+func TestBencodeEncode(t *testing.T) {
+	var b bytes.Buffer
+	data.Encode(&b, 42)
+	expected := []byte("i42e")
+	if bb := b.Bytes(); !bytes.Equal(bb, expected) {
+		t.Errorf("expected %v, got %v", bb, expected)
+	}
+}
 func TestBencodeStructTags(t *testing.T) {
 	file, _ := os.Open("testdata/ubuntu.torrent")
-	data.ParseTorrentFile2(file)
+	btorrent := data.ParseTorrentFile2(file)
+
+	expectedName := "ubuntu-22.04.2-live-server-amd64.iso"
+	if btorrent.Info.Name != expectedName {
+		t.Errorf("expected %s, found %s", expectedName, btorrent.Info.Name)
+	}
+	if btorrent.Info.Length != 1975971840 {
+		t.Errorf("expected %d, found %d", 1975971840, btorrent.Info.Length)
+	}
 }
