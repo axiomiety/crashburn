@@ -3,7 +3,6 @@ package data
 import (
 	"bufio"
 	"bytes"
-	"fmt"
 	"io"
 	"reflect"
 	"strconv"
@@ -179,11 +178,15 @@ func ParseTorrentFile2(r io.Reader) *BETorrent {
 }
 
 func Encode(buffer *bytes.Buffer, o interface{}) {
-	var val reflect.Value
-	val = reflect.ValueOf(o)
+	val := reflect.ValueOf(o)
 	switch val.Interface().(type) {
 	case int:
-		fmt.Println("found int")
+		buffer.WriteByte('i')
+		// it's an int, so it'd better be okay!
+		if i, ok := o.(int); ok {
+			buffer.WriteString(strconv.Itoa(i))
+		}
+		buffer.WriteByte('e')
 	}
 
 }

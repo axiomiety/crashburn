@@ -74,7 +74,7 @@ func TestBencodeEncode(t *testing.T) {
 	data.Encode(&b, 42)
 	expected := []byte("i42e")
 	if bb := b.Bytes(); !bytes.Equal(bb, expected) {
-		t.Errorf("expected %v, got %v", bb, expected)
+		t.Errorf("expected %v, got %v", expected, bb)
 	}
 }
 func TestBencodeStructTags(t *testing.T) {
