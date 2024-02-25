@@ -179,12 +179,19 @@ func ParseTorrentFile2(r io.Reader) *BETorrent {
 
 func Encode(buffer *bytes.Buffer, o interface{}) {
 	val := reflect.ValueOf(o)
-	switch val.Interface().(type) {
+	switch val := val.Interface().(type) {
 	case int:
 		buffer.WriteByte('i')
-		// it's an int, so it'd better be okay!
-		if i, ok := o.(int); ok {
-			buffer.WriteString(strconv.Itoa(i))
+		buffer.WriteString(strconv.Itoa(val))
+		buffer.WriteByte('e')
+	case string:
+		buffer.WriteString(strconv.Itoa(len(val)))
+		buffer.WriteString(":")
+		buffer.WriteString(val)
+	case []int:
+		buffer.WriteByte('l')
+		for _, val := range val {
+			Encode(buffer, val)
 		}
 		buffer.WriteByte('e')
 	}

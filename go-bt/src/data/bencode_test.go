@@ -76,6 +76,18 @@ func TestBencodeEncode(t *testing.T) {
 	if bb := b.Bytes(); !bytes.Equal(bb, expected) {
 		t.Errorf("expected %v, got %v", expected, bb)
 	}
+	b.Reset()
+	data.Encode(&b, "foobar")
+	expected = []byte("6:foobar")
+	if bb := b.Bytes(); !bytes.Equal(bb, expected) {
+		t.Errorf("expected %s, got %s", string(expected), string(bb))
+	}
+	b.Reset()
+	data.Encode(&b, []int{1, 2, 3})
+	expected = []byte("li1ei2ei3ee")
+	if bb := b.Bytes(); !bytes.Equal(bb, expected) {
+		t.Errorf("expected %v, got %v", expected, bb)
+	}
 }
 func TestBencodeStructTags(t *testing.T) {
 	file, _ := os.Open("testdata/ubuntu.torrent")
