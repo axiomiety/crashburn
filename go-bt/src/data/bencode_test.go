@@ -71,20 +71,45 @@ func TestBencodeParsing(t *testing.T) {
 
 func TestBencodeEncode(t *testing.T) {
 	var b bytes.Buffer
+	// int
 	data.Encode(&b, 42)
 	expected := []byte("i42e")
 	if bb := b.Bytes(); !bytes.Equal(bb, expected) {
 		t.Errorf("expected %v, got %v", expected, bb)
 	}
+
+	// string
 	b.Reset()
 	data.Encode(&b, "foobar")
 	expected = []byte("6:foobar")
 	if bb := b.Bytes(); !bytes.Equal(bb, expected) {
 		t.Errorf("expected %s, got %s", string(expected), string(bb))
+
 	}
+
+	// list of ints
 	b.Reset()
 	data.Encode(&b, []int{1, 2, 3})
 	expected = []byte("li1ei2ei3ee")
+	if bb := b.Bytes(); !bytes.Equal(bb, expected) {
+		t.Errorf("expected %v, got %v", expected, bb)
+	}
+
+	// list of strings
+	b.Reset()
+	data.Encode(&b, []string{"a", "bc", "def"})
+	expected = []byte("l1:a2:bc3:defe")
+	if bb := b.Bytes(); !bytes.Equal(bb, expected) {
+		t.Errorf("expected %v, got %v", expected, bb)
+	}
+
+	// dictionary
+	b.Reset()
+	m := map[string]int{}
+	m["def"] = 2
+	m["abc"] = 1
+	data.Encode(&b, m)
+	expected = []byte("d3:abci2e3:defi1ee")
 	if bb := b.Bytes(); !bytes.Equal(bb, expected) {
 		t.Errorf("expected %v, got %v", expected, bb)
 	}

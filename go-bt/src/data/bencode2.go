@@ -3,8 +3,10 @@ package data
 import (
 	"bufio"
 	"bytes"
+	"fmt"
 	"io"
 	"reflect"
+	"sort"
 	"strconv"
 )
 
@@ -178,8 +180,8 @@ func ParseTorrentFile2(r io.Reader) *BETorrent {
 }
 
 func Encode(buffer *bytes.Buffer, o interface{}) {
-	val := reflect.ValueOf(o)
-	switch val := val.Interface().(type) {
+	value := reflect.ValueOf(o)
+	switch val := value.Interface().(type) {
 	case int:
 		buffer.WriteByte('i')
 		buffer.WriteString(strconv.Itoa(val))
@@ -194,6 +196,25 @@ func Encode(buffer *bytes.Buffer, o interface{}) {
 			Encode(buffer, val)
 		}
 		buffer.WriteByte('e')
+	case map[string]interface{}:
+		buffer.WriteByte('d')
+		// keys need to be sorted alphabetically
+		keys := make([]string, 0, len(val))
+
+		for k := range val {
+			keys = append(keys, k)
+		}
+		sort.Strings(keys)
+
+		for _, key := range keys {
+			// first we write the key
+			Encode(buffer, key)
+			// then the value
+			Encode(buffer, val)
+		}
+		buffer.WriteByte('e')
+	default:
+		fmt.Printf("%T\n", value.Interface())
 	}
 
 }
