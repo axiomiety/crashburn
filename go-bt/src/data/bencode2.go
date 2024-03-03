@@ -181,27 +181,42 @@ func ParseTorrentFile2(r io.Reader) *BETorrent {
 
 func Encode(buffer *bytes.Buffer, o interface{}) {
 	value := reflect.ValueOf(o)
-	switch val := value.Interface().(type) {
-	case int:
+	switch value.Kind() {
+	case reflect.Int:
 		buffer.WriteByte('i')
-		buffer.WriteString(strconv.Itoa(val))
+		buffer.WriteString(strconv.Itoa(value.Interface().(int)))
 		buffer.WriteByte('e')
-	case string:
-		buffer.WriteString(strconv.Itoa(len(val)))
+	case reflect.String:
+		buffer.WriteString(strconv.Itoa(len(value.Interface().(string))))
 		buffer.WriteString(":")
-		buffer.WriteString(val)
-	case []int:
+		buffer.WriteString(value.Interface().(string))
+	case reflect.Slice:
 		buffer.WriteByte('l')
-		for _, val := range val {
+		// so this is a bit funky - we can't convert e.g. []int to []interface{}
+		// directly
+		temp := make([]interface{}, value.Len())
+
+		for i := 0; i < value.Len(); i++ {
+			temp[i] = value.Index(i).Interface()
+		}
+		for _, val := range temp {
 			Encode(buffer, val)
 		}
 		buffer.WriteByte('e')
-	case map[string]interface{}:
+	case reflect.Map:
 		buffer.WriteByte('d')
-		// keys need to be sorted alphabetically
-		keys := make([]string, 0, len(val))
+		temp := make(map[string]interface{}, value.Len())
 
-		for k := range val {
+		iter := value.MapRange()
+		for iter.Next() {
+			k := iter.Key()
+			v := iter.Value()
+			temp[k.Interface().(string)] = v.Interface()
+		}
+
+		// keys need to be sorted alphabetically
+		keys := make([]string, 0, len(temp))
+		for k := range temp {
 			keys = append(keys, k)
 		}
 		sort.Strings(keys)
@@ -210,7 +225,7 @@ func Encode(buffer *bytes.Buffer, o interface{}) {
 			// first we write the key
 			Encode(buffer, key)
 			// then the value
-			Encode(buffer, val)
+			Encode(buffer, temp[key])
 		}
 		buffer.WriteByte('e')
 	default:
