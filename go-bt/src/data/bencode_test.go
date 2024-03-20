@@ -95,6 +95,14 @@ func TestBencodeEncode(t *testing.T) {
 		t.Errorf("expected %v, got %v", expected, bb)
 	}
 
+	// ditto, but uint16
+	b.Reset()
+	data.Encode(&b, []uint16{1, 2, 3})
+	expected = []byte("li1ei2ei3ee")
+	if bb := b.Bytes(); !bytes.Equal(bb, expected) {
+		t.Errorf("expected %v, got %v", expected, bb)
+	}
+
 	// list of strings
 	b.Reset()
 	data.Encode(&b, []string{"a", "bc", "def"})
@@ -109,11 +117,34 @@ func TestBencodeEncode(t *testing.T) {
 	m["def"] = 2
 	m["abc"] = 1
 	data.Encode(&b, m)
-	expected = []byte("d3:abci2e3:defi1ee")
+	// note the alphabetical order
+	expected = []byte("d3:abci1e3:defi2ee")
 	if bb := b.Bytes(); !bytes.Equal(bb, expected) {
-		t.Errorf("expected %v, got %v", expected, bb)
+		t.Errorf("expected %v, got %s", expected, bb)
 	}
+
+	// dictionary with nested list
+	b.Reset()
+	m2 := map[string]any{}
+	m2["def"] = []int{1, 2, 3}
+	m2["abc"] = "foo"
+	data.Encode(&b, m2)
+	expected = []byte("d3:abc3:foo3:defli1ei2ei3eee")
+	if bb := b.Bytes(); !bytes.Equal(bb, expected) {
+		t.Errorf("expected %v, got %s", expected, bb)
+	}
+
+	// floats are *not* supported!
+	defer func() {
+		if err := recover(); err == nil {
+			t.Errorf("expected a panic!")
+		}
+	}()
+
+	b.Reset()
+	data.Encode(&b, 3.44)
 }
+
 func TestBencodeStructTags(t *testing.T) {
 	file, _ := os.Open("testdata/ubuntu.torrent")
 	btorrent := data.ParseTorrentFile2(file)

@@ -182,9 +182,13 @@ func ParseTorrentFile2(r io.Reader) *BETorrent {
 func Encode(buffer *bytes.Buffer, o interface{}) {
 	value := reflect.ValueOf(o)
 	switch value.Kind() {
-	case reflect.Int:
+	case reflect.Int, reflect.Int16, reflect.Int32, reflect.Int64:
 		buffer.WriteByte('i')
-		buffer.WriteString(strconv.Itoa(value.Interface().(int)))
+		buffer.WriteString(strconv.Itoa(int(value.Int())))
+		buffer.WriteByte('e')
+	case reflect.Uint, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		buffer.WriteByte('i')
+		buffer.WriteString(strconv.Itoa(int(value.Uint())))
 		buffer.WriteByte('e')
 	case reflect.String:
 		buffer.WriteString(strconv.Itoa(len(value.Interface().(string))))
@@ -207,6 +211,7 @@ func Encode(buffer *bytes.Buffer, o interface{}) {
 		buffer.WriteByte('d')
 		temp := make(map[string]interface{}, value.Len())
 
+		// we need a map[string]interface{}
 		iter := value.MapRange()
 		for iter.Next() {
 			k := iter.Key()
@@ -229,7 +234,7 @@ func Encode(buffer *bytes.Buffer, o interface{}) {
 		}
 		buffer.WriteByte('e')
 	default:
-		fmt.Printf("%T\n", value.Interface())
+		panic(fmt.Sprintf("can't handle type %s", value.Kind()))
 	}
 
 }
