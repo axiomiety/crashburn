@@ -1,0 +1,40 @@
+---
+title: "ISLR chap5.3"
+output: html_notebook
+---
+
+### 5.3.1 Validation Approach
+
+```{r}
+library(ISLR2)
+set.seed(1)
+train <- sample(392, 196)
+lm.fit <- lm(mpg ~ horsepower, data = Auto, subset = train)
+summary(lm.fit)
+```
+Compute the MSE:
+```{r}
+attach(Auto)
+mean((mpg - predict(lm.fit, Auto))[-train]^2)
+```
+Try a `poly` - quadratic and cubic:
+```{r}
+lm.fit2 <- lm(mpg ~ poly(horsepower, 2), data = Auto, subset = train)
+mean((mpg - predict(lm.fit2, Auto))[-train]^2)
+lm.fit3 <- lm(mpg ~ poly(horsepower, 3), data = Auto, subset = train)
+mean((mpg - predict(lm.fit3, Auto))[-train]^2)
+```
+
+We can repeat for a differt `seed` which would lead to different estimates - but it still shows evidence for a quadratic model (vs a linear one), and little benefit for a cubic.
+
+### 5.3.2 LOOCV
+
+`glm` performs linear regression by default (and logistic when `family='binomial'`) 
+```{r}
+glm.fit <- glm(mpg ~ horsepower, data = Auto)
+coef(glm.fit)
+lm.fit <- lm(mpg ~ horsepower, data = Auto)
+coef(lm.fit)
+```
+
+
