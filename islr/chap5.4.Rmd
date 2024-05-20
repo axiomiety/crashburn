@@ -1,0 +1,74 @@
+---
+title: "ISLR chap5.4"
+output: html_notebook
+---
+
+### 5.4.1
+
+Find the value for $\alpha$ that minimises $Var(αX + (1 − α)Y)$.
+
+$$Var(αX + (1 − α)Y) = Var(\alpha X) + Var((1-\alpha)Y) + 2Cov(\alpha X, (1-\alpha)Y)\\
+ = \alpha^2\sigma_X^2 + (1-\alpha)^2\sigma_Y^2+2\alpha(1-\alpha)\sigma_{XY} \\
+ = \alpha^2\sigma_X^2 + \sigma_Y^2 - 2\alpha\sigma_Y^2+\alpha^2\sigma_Y^2+2\alpha\sigma_{XY}-2\alpha^2\sigma_{XY}
+$$
+Taking the first derivative:
+$$
+f'(\alpha) = 2\alpha\sigma_X^2-2\sigma_Y^2+2\alpha\sigma_Y^2+2\sigma_{XY}-4\alpha\sigma_{XY}
+$$
+Setting it to zero:
+$$
+0 = 2\alpha\sigma_X^2-2\sigma_Y^2+2\alpha\sigma_Y^2+2\sigma_{XY}-4\alpha\sigma_{XY} \\
+= \alpha\sigma_X^2-\sigma_Y^2+\alpha\sigma_Y^2+\sigma_{XY}-2\alpha\sigma_{XY} \\
+\sigma_Y^2-\sigma_{XY} = \alpha(\sigma_X^2+\sigma_Y^2-2\sigma_{XY}) \\
+\alpha = \frac{\sigma_Y^2-\sigma_{XY}}{\sigma_X^2+\sigma_Y^2-2\sigma_{XY}}
+$$
+
+### 5.4.2
+
+(a) $P(X\ne x_j)=1-P(X=x_j) = 1-\frac{1}{n} = \frac{n-1}{n}$
+(b) Given probabilities are indepdent (due to sampling with replacement): $\left(\frac{n-1}{n}\right)^2$
+(c) By induction?
+(d) If $n=5$:
+```{r}
+jprob <- function(n)
+  (1-1/n)^2
+1-jprob(5)
+```
+
+(e) 
+```{r}
+1-jprob(100)
+```
+
+(f) 
+```{r}
+1-jprob(10000)
+```
+
+(g)
+```{r}
+x <- seq(1,100000)
+y <- sapply(x, jprob)
+plot(x,y)
+```
+
+(h)
+```{r}
+store <- rep(NA, 10000)
+for(i in 1:10000) {
+  store[i] <- sum(sample(1:100, rep=TRUE) == 4) > 0
+}
+mean(store)
+```
+
+### 5.4.3
+
+(a) Disjoint set of $k$ observations, average the results out
+(b) (i) $k$-fold is more accurate (you don't miss out on observations), you eventually use the whole training set for training the model so every observation is used once to generate a model.
+(ii) It's much faster than LOOCV which is essentially $k$-fold with $k$ being n-1 - but there's also the bias-variance trade-off.
+
+### 5.4.4
+
+  - Take $q$ samples of $p$ observations
+  - Generate $sq$ statistics $s(\bf{x}_i)$ based on each set of $p$ observations
+  - Bootstrap estimate of the standard error of the statistic is the stdev of the $p$ $s(\bf{x}_i)$ statistics

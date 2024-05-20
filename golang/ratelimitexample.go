@@ -31,7 +31,7 @@ func main() {
         go func(ctx context.Context, idx int) {
             defer wg.Done()
             client := &http.Client{}
-            req, _ := http.NewRequest("GET", "https://api.exchange.coinbase.com/currencies", nil)
+            req, _ := http.NewRequest("GET", "https://api.exchange.coinbase.com/products/ETH-USD/book?level=2", nil)
             req.Header.Add("Content-Type", "application/json")
             
             for {
@@ -48,10 +48,14 @@ func main() {
                     res, _ := client.Do(req)
                     body,_ := ioutil.ReadAll(res.Body)
 <<<<<<< HEAD
+<<<<<<< HEAD
                     print(string(body)[:32])
 =======
                     fmt.Printf("%s\n", string(body)[:32])
 >>>>>>> c3149bf ([golang] playing with rate limits)
+=======
+                    fmt.Printf("%s\n", string(body)[:64])
+>>>>>>> 38c692e (islr: chap5.4)
                     defer res.Body.Close()
                 }
 
