@@ -1,71 +1,52 @@
 package main
 
 import (
-    "net/http"
-    "context"
-    "log"
-<<<<<<< HEAD
-=======
-    "fmt"
->>>>>>> c3149bf ([golang] playing with rate limits)
-    "sync"
-    "time"
-    "io/ioutil"
+	"context"
+	"io/ioutil"
+	"log"
+    "encoding/json"
+	"net/http"
+	"sync"
+	"time"
+    "flag"
 )
 
 func main() {
-<<<<<<< HEAD
-    ctx, cancel := context.WithTimeout(context.Background(),2*time.Second)
-    defer cancel()
+    var numWorkers = flag.Int("w", 20, "number of workers")
+    flag.Parse()
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
 
-    var wg sync.WaitGroup
-    for i:=0;i<4;i++ {
-=======
-    ctx, cancel := context.WithTimeout(context.Background(),10*time.Second)
-    defer cancel()
+	var wg sync.WaitGroup
+	for i := 0; i < *numWorkers; i++ {
 
-    var wg sync.WaitGroup
-    for i:=0;i<10;i++ {
->>>>>>> c3149bf ([golang] playing with rate limits)
-        wg.Add(1)
-        go func(ctx context.Context, idx int) {
-            defer wg.Done()
-            client := &http.Client{}
-            req, _ := http.NewRequest("GET", "https://api.exchange.coinbase.com/products/ETH-USD/book?level=2", nil)
-            req.Header.Add("Content-Type", "application/json")
-            
-            for {
-                select {
-                case <- ctx.Done():
-<<<<<<< HEAD
-                    break
-=======
-                    log.Printf("coroutine %d exiting...", i)
-                    return
->>>>>>> c3149bf ([golang] playing with rate limits)
-                default:
-                    log.Printf("worker[%d] fetching URL\n", i)
-                    res, _ := client.Do(req)
-                    body,_ := ioutil.ReadAll(res.Body)
-<<<<<<< HEAD
-<<<<<<< HEAD
-                    print(string(body)[:32])
-=======
-                    fmt.Printf("%s\n", string(body)[:32])
->>>>>>> c3149bf ([golang] playing with rate limits)
-=======
-                    fmt.Printf("%s\n", string(body)[:64])
->>>>>>> 38c692e (islr: chap5.4)
-                    defer res.Body.Close()
-                }
+		go func(ctx context.Context, idx int) {
+		    wg.Add(1)
+			defer wg.Done()
+			client := &http.Client{}
+			req, _ := http.NewRequest("GET", "https://api.exchange.coinbase.com/products/ETH-USD/book?level=2", nil)
+			req.Header.Add("Content-Type", "application/json")
 
-            }
-<<<<<<< HEAD
-            log.Printf("coroutine exiting...")
-=======
->>>>>>> c3149bf ([golang] playing with rate limits)
-        }(ctx, i)
-    }
-    wg.Wait()
-    log.Println("done")
+			for {
+				select {
+				case <-ctx.Done():
+					return
+				default:
+					log.Printf("worker[%d] fetching URL\n", idx)
+					res, _ := client.Do(req)
+					body, _ := ioutil.ReadAll(res.Body)
+                    var data map[string]any
+                    _ = json.Unmarshal(body, &data)
+                    if val, ok := data["message"]; ok {
+                        log.Println(val)
+                    }
+					defer res.Body.Close()
+				}
+
+			}
+			log.Printf("coroutine exiting...")
+		}(ctx, i)
+	}
+	wg.Wait()
+	log.Println("done")
 }
