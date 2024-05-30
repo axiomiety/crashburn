@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"flag"
+	"golang.org/x/time/rate"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -19,6 +20,7 @@ func main() {
 	defer cancel()
 
 	var wg sync.WaitGroup
+    limiter := rate.NewLimiter(10, 15)
 	for i := 0; i < *numWorkers; i++ {
 
 		go func(ctx context.Context, idx int) {
@@ -33,6 +35,11 @@ func main() {
 				case <-ctx.Done():
 					return
 				default:
+					if err := limiter.Wait(ctx); err != nil {
+                        // if we get there, waiting would exceed the context's deadline
+                        // so let's assume we're done
+                        break
+					}
 					log.Printf("worker[%d] fetching URL\n", idx)
 					res, _ := client.Do(req)
 					body, _ := ioutil.ReadAll(res.Body)
