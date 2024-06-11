@@ -12,6 +12,23 @@ import (
 	"time"
 )
 
+func rateLogger(ctx context.Context, countChan <-chan struct{}) {
+    ticker := time.NewTicker(time.Second)
+    count := 0
+    defer ticker.Stop()
+    for {
+        select {
+        case <- ctx.Done():
+            break
+        case <- countChan:
+            count += 1
+        case <- ticker.C:
+            log.Printf("requests/second: %d ", count);
+            count = 0
+        }
+    }
+}
+
 func main() {
 	var numWorkers = flag.Int("w", 20, "number of workers")
 	var timeout = flag.Int("t", 5, "timeout, in seconds")
@@ -21,9 +38,11 @@ func main() {
 
 	var wg sync.WaitGroup
     limiter := rate.NewLimiter(10, 15)
-	for i := 0; i < *numWorkers; i++ {
+    countChan := make(chan struct{}, 100)
+    go rateLogger(ctx, countChan)
+    for i := 0; i < *numWorkers; i++ {
 
-		go func(ctx context.Context, idx int) {
+		go func(ctx context.Context, idx int, countChan chan<- struct{}) {
 			wg.Add(1)
 			defer wg.Done()
 			client := &http.Client{}
@@ -40,9 +59,11 @@ func main() {
                         // so let's assume we're done
                         break
 					}
-					log.Printf("worker[%d] fetching URL\n", idx)
+					//log.Printf("worker[%d] fetching URL\n", idx)
 					res, _ := client.Do(req)
 					body, _ := ioutil.ReadAll(res.Body)
+                    // we completed a request! let the counter know
+                    countChan <- struct{}{}
 					var data map[string]any
 					_ = json.Unmarshal(body, &data)
 					if val, ok := data["message"]; ok {
@@ -53,7 +74,7 @@ func main() {
 
 			}
 			log.Printf("coroutine exiting...")
-		}(ctx, i)
+		}(ctx, i, countChan)
 	}
 	wg.Wait()
 	log.Println("done")

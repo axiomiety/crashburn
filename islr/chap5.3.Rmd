@@ -6,7 +6,7 @@ output: html_notebook
 ### 5.3.1 Validation Approach
 
 ```{r}
-library(ISLR2)
+library(ISLR2)c
 set.seed(1)
 train <- sample(392, 196)
 lm.fit <- lm(mpg ~ horsepower, data = Auto, subset = train)

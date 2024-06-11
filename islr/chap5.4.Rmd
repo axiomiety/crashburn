@@ -72,3 +72,251 @@ mean(store)
   - Take $q$ samples of $p$ observations
   - Generate $sq$ statistics $s(\bf{x}_i)$ based on each set of $p$ observations
   - Bootstrap estimate of the standard error of the statistic is the stdev of the $p$ $s(\bf{x}_i)$ statistics
+
+
+### 5.4.5
+
+```{r}
+library(ISLR2)
+attach(Default)
+```
+
+(a) logistic regression model
+```{r}
+lm.fit <- glm(default ~ income + balance, data=Default, family="binomial")
+summary(lm.fit)
+```
+(b) use half for training, half for validation (there are better splits for sure)
+```{r}
+set.seed(1)
+train.size <- floor(nrow(Default)*0.7)
+train <- sample(nrow(Default), train.size)
+```
+
+fit using the training set
+```{r}
+lm.fit.train <- glm(default ~ income + balance, data = Default, subset = train, family="binomial")
+summary(lm.fit.train)
+```
+classify each in the validation set
+```{r}
+lm.pred <- predict(lm.fit.train, Default)[-train]
+lm.pred.cl <- ifelse(lm.pred > 0.5, "Yes", "No")
+
+table(lm.pred.cl, Default$default[-train])
+mean(lm.pred.cl != Default$default[-train])
+```
+
+(c)
+```{r}
+set.seed(2)
+analyse <- function() {
+  train.size <- floor(nrow(Default)*0.7)
+  train <- sample(nrow(Default), train.size)
+  lm.fit.train <- glm(default ~ income + balance, data = Default, subset = train, family="binomial")
+  lm.pred <- predict(lm.fit.train, Default)[-train]
+  lm.pred.cl <- ifelse(lm.pred > 0.5, "Yes", "No")
+
+  table(lm.pred.cl, Default$default[-train])
+  # error rate
+  print(mean(lm.pred.cl != Default$default[-train]))
+}
+for (i in 1:3) {
+  analyse()
+}
+
+```
+
+results are pretty consistent
+
+(d) introduce a dummy variable
+
+```{r}
+set.seed(2)
+analyse <- function() {
+  train.size <- floor(nrow(Default)*0.7)
+  train <- sample(nrow(Default), train.size)
+  # is this how you add a dummy variable??
+  lm.fit.train <- glm(default ~ income + balance + I(student), data = Default, subset = train, family="binomial")
+  lm.pred <- predict(lm.fit.train, Default)[-train]
+  lm.pred.cl <- ifelse(lm.pred > 0.5, "Yes", "No")
+
+  table(lm.pred.cl, Default$default[-train])
+  # error rate
+  print(mean(lm.pred.cl != Default$default[-train]))
+}
+analyse()
+```
+
+doesn't seem to make a difference!
+
+### 5.4.6
+
+(a) using everything
+```{r}
+lm.fit <- glm(default ~ income + balance, data = Default, family="binomial")
+summary(lm.fit)$coef
+```
+
+(b) `boot.fn`
+
+```{r}
+boot.fn <- function(dataset, indexes) {
+  lm.fit <- glm(default ~ income + balance, data = dataset, subset=indexes, family="binomial")
+  summary(lm.fit)$coef[,1][-1]
+}
+```
+
+(c) using bootstrap
+
+```{r}
+library(boot)
+set.seed(1)
+boot(Default, boot.fn, R=5000)
+```
+
+(d) some discrepancies vs the `glm` estimates but overall quite close!
+
+### 5.4.7
+
+TODO: what's `predict(..., type="response")` for?
+
+```{r}
+attach(Weekly)
+```
+
+(a) 
+```{r}
+lm.fit <- glm(Direction ~ Lag1 + Lag2, data=Weekly, family="binomial")
+summary(lm.fit)
+```
+
+(b) as above, without the first observation
+```{r}
+lm.fit.nofirst <- glm(Direction ~ Lag1 + Lag2, data=Weekly[-1,], family="binomial")
+summary(lm.fit.nofirst)
+```
+(c) predicting the direction of the first obs - it's predicted correctly (!)
+
+```{r}
+observation = Weekly[1,-9]
+ifelse(predict(lm.fit.nofirst, newdata=observation, type="response") > 0.5, "Up", "Down")
+print(Weekly[1,9])
+```
+(d) loopy days - i didn't have `type="response"` in my call to `predict` earlier, which got me the wrong results
+
+```{r}
+results <- rep(0,nrow(Weekly))
+for (i in 1:nrow(Weekly)) {
+  lm.fit.noi <- glm(Direction ~ Lag1 + Lag2, data=Weekly[-i,], family="binomial")
+  results[i] <- as.integer(ifelse(predict(lm.fit.noi, newdata=Weekly[i,-9], type="response") > 0.5, "Up", "Down") != Weekly[i,9])
+}
+# number of errors
+mean(results)
+```
+
+### 5.4.8
+
+(a) $n=100$ 
+```{r}
+set.seed(1)
+x <- rnorm(100)
+y <- x - 2 * x^2 + rnorm(100)
+```
+
+In equation form we have $y = x-2x^2 + \frac{1}{\sqrt{2\pi}}e^{\frac{-x^2}{2}}$
+
+(b) scatter plot
+```{r}
+plot(x,y)
+```
+
+(c) using `cv.glm` due to in-built optimisations
+
+```{r}
+df <- data.frame(x,y)
+f <- function(s) {
+  set.seed(s)
+  for (i in 1:4) {
+    print(cv.glm(df, glm(y ~ poly(x, i)))$delta)
+  }
+}
+f(1)
+```
+
+(d) as above, but with a different seed
+
+```{r}
+f(2)
+```
+
+results are identical - the seed doesn't matter, we're using the same subset of observations across all models
+
+(e) lowest error was given by the quadratic polynomial - which makes sense given how the data generated is itself quadratic in $x$
+
+(f) using least squares for each of the polynomial models
+
+```{r}
+for (i in 1:4) {
+  print(summary(glm(y ~ poly(x, i)))$coefficients)
+}
+```
+
+we note that the coefficient of the polynomial with degree 2 (the quadratic term) is the most statistically significant!
+
+### 5.4.9
+
+```{r}
+attach(Boston)
+```
+
+(a)
+
+```{r}
+muhat <- mean(Boston$medv)
+```
+
+(b)
+
+```{r}
+errest <- sd(Boston$medv) / sqrt(nrow(Boston))
+errest
+```
+
+(c) it's so close!
+```{r}
+b <- boot(Boston$medv, function(data, indices) { mean(data[indices]) }, R=100000)
+sd(b$t)
+```
+
+(d) 95% conf int - very close indeed to the t-test
+```{r}
+serr <- sd(b$t)
+muhat-2*serr
+muhat+2*serr
+t.test(Boston$medv)
+```
+
+(e) median
+
+```{r}
+medhat <- median(Boston$medv)
+medhat
+```
+
+(f) estimate the above using bootstrap
+```{r}
+bb <- boot(Boston$medv, function(data, indices) {median(data[indices])}, R=10000)
+sd(bb$t)
+```
+
+(g)
+```{r}
+quantile(bb$t, probs=c(0.1))
+```
+
+(h) err... similar to the above?
+```{r}
+bbb <- boot(bb$t, function(data, indices) {quantile(data[indices], probs=c(0.1))}, R=10000)
+sd(bbb$t)
+```
