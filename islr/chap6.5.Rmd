@@ -1,0 +1,25 @@
+---
+title: "ISLR chap6.5."
+output: html_notebook
+---
+
+# 6.5.1 subset selection
+
+```{r}
+library(ISLR2)
+#View(Hitters)
+names(Hitters)
+dim(Hitters)
+sum(is.na(Hitters$Salary))
+```
+
+disregarding entries with no salary:
+```{r}
+Hitters2 <- na.omit(Hitters)
+dim(Hitters2)
+```
+
+subset selection using the `leaps` library:
+```{r}
+library(leaps)
+```
