@@ -148,3 +148,128 @@ plot(mean.cv.errors, type = "b")
 reg.best <- regsubsets(Salary ~ ., data = Hitters2, nvmax = 19)
 coef(reg.best, 10)
 ```
+
+# 6.5.2 Ridge Regression and the Lasso
+
+## Ridge Regression first
+
+Small transform due to how `glmnet` takes its inputs:
+```{r}
+x <- model.matrix(Salary ~ ., Hitters2)[, -1]
+y <- Hitters2$Salary
+```
+
+by default vars are standardised (remember Ridge isn't scale equivariant)
+```{r}
+library(glmnet)
+grid <- 10^seq(10, -2, length = 100)
+ridge.mod <- glmnet(x, y, alpha = 0, lambda = grid)
+```
+
+```{r}
+dim(coef(ridge.mod))
+doit <- function(idx) {
+  print(ridge.mod$lambda[idx])
+  print(coef(ridge.mod)[, idx])
+  # l2
+  sqrt(sum(coef(ridge.mod)[-1, idx]^2))
+}
+
+# 0 is the null model?
+doit(1)
+doit(50)
+```
+
+predict for a new value of $\lambda$:
+```{r}
+predict(ridge.mod, s = 50, type ="coefficients")[1:20, ]
+```
+
+we expect those values to be between of indicies 69 and 70 on our grid:
+```{r}
+ridge.mod$lambda[69]
+ridge.mod$lambda[70]
+```
+
+let's estimate the test error:
+```{r}
+set.seed(1)
+train <- sample(1:nrow(x), nrow(x) / 2)
+test <- (-train)
+y.test <- y[test]
+```
+
+now to evaluate the MSE on the test set using $\lambda=4$:
+```{r}
+# use the training set to build the model
+ridge.mod <- glmnet(x[train, ], y[train], alpha = 0, lambda = grid, thresh = 1e-12)
+# use predict
+ridge.pred <- predict(ridge.mod, s = 4, newx = x[test, ])
+mean((ridge.pred - y.test)^2)
+```
+
+using a model with only the intercept, we predict the mean for each value and compute the MSE as such:
+```{r}
+mean((mean(y[train]) - y.test)^2)
+```
+
+so ours with $\lambda=4$ is better! but let's compare to LS (which essentially is $\lambda=0).
+
+```{r}
+ridge.pred <- predict(ridge.mod, s = 0, newx = x[test, ], exact = T, x = x[train, ], y = y[train])
+mean((ridge.pred - y.test)^2)
+lm(y ~ x, subset = train)
+predict(ridge.mod, s = 0, exact = T, type = "coefficients",
+x = x[train, ], y = y[train])[1:20, ]
+```
+
+to choose the best $\lambda$, we can use cross-validation.
+```{r}
+set.seed(1)
+cv.out <- cv.glmnet(x[train, ], y[train], alpha = 0)
+# note the x-axis is in log scale!
+plot(cv.out)
+bestlam <- cv.out$lambda.min
+bestlam
+```
+
+corresponding MSE on our *test* sample is:
+```{r}
+ridge.pred <- predict(ridge.mod, s = bestlam, newx = x[test, ])
+mean((ridge.pred - y.test)^2)
+```
+
+refit on the whole data, none of the coefs are zero - no variable selection (expeced, _ridge regression_ doesn't do that):
+```{r}
+out <- glmnet(x, y, alpha = 0)
+predict(out, type = "coefficients", s = bestlam)[1:20, ]
+```
+
+## Now for the Lasso
+
+```{r}
+library(glmnet)
+lasso.mod <- glmnet(x[train, ], y[train], alpha = 1, lambda = grid)
+plot(lasso.mod)
+```
+why are we plotting coeffs vs L1 norm??
+
+```{r}
+set.seed(1)
+cv.out <- cv.glmnet(x[train, ], y[train], alpha = 1)
+plot(cv.out)
+bestlam <- cv.out$lambda.min
+lasso.pred <- predict(lasso.mod, s = bestlam,newx = x[test, ])
+mean((lasso.pred - y.test)^2)
+```
+
+?
+
+```{r}
+out <- glmnet(x, y, alpha = 1, lambda = grid)
+lasso.coef <- predict(out, type = "coefficients", s = bestlam)[1:20, ]
+lasso.coef
+lasso.coef[lasso.coef != 0]
+```
+
+### 6.5.3
