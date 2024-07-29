@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"io"
 	"reflect"
-	"sort"
+	"slices"
 	"strconv"
 )
 
@@ -15,7 +15,7 @@ import (
 type Holder interface {
 	Add(value interface{})
 	Obj() interface{}
-	Empty() bool
+	// Empty() bool
 }
 
 type ListHolder struct {
@@ -26,11 +26,6 @@ type DictHolder struct {
 	Dict map[string]interface{}
 	// tracks the current key
 	Key string
-}
-
-type DictItemHolder struct {
-	Key string
-	Val interface{}
 }
 
 type ValueHolder struct {
@@ -72,7 +67,7 @@ func (c *ValueHolder) Obj() interface{} {
 }
 
 // Empty methods
-
+/*
 func (c *ListHolder) Empty() bool {
 	return c.List == nil
 }
@@ -84,7 +79,7 @@ func (c *DictHolder) Empty() bool {
 func (c *ValueHolder) Empty() bool {
 	return c.Val == nil
 }
-
+*/
 // now let's do the actual parsing
 func parse2(container Holder, reader *bufio.Reader) Holder {
 	b, err := reader.ReadByte()
@@ -103,19 +98,19 @@ func parse2(container Holder, reader *bufio.Reader) Holder {
 		return parse2(container, reader)
 	case 'l':
 		c := parse2(&ListHolder{List: make([]interface{}, 0)}, reader)
-		if !container.Empty() {
-			container.Add(c.(*ListHolder).List)
-		} else {
-			container = c
-		}
+		// if !container.Empty() {
+		container.Add(c.(*ListHolder).List)
+		// } else {
+		// container = c
+		// }
 		return parse2(container, reader)
 	case 'd':
 		c := parse2(&DictHolder{Dict: make(map[string]interface{})}, reader)
-		if !container.Empty() {
-			container.Add(c.(*DictHolder).Dict)
-		} else {
-			container = c
-		}
+		// if !container.Empty() {
+		container.Add(c.(*DictHolder).Dict)
+		// } else {
+		// container = c
+		// }
 		return parse2(container, reader)
 	case '0', '1', '2', '3', '4', '5', '6', '7', '8', '9':
 		buff, err := reader.ReadBytes(':')
@@ -129,6 +124,7 @@ func parse2(container Holder, reader *bufio.Reader) Holder {
 		val := make([]byte, 0)
 		for i := 0; i < strLenInt; i++ {
 			b, err = reader.ReadByte()
+			check(err)
 			val = append(val, b)
 		}
 		container.Add(val)
@@ -224,7 +220,7 @@ func Encode(buffer *bytes.Buffer, o interface{}) {
 		for k := range temp {
 			keys = append(keys, k)
 		}
-		sort.Strings(keys)
+		slices.Sort(keys)
 
 		for _, key := range keys {
 			// first we write the key

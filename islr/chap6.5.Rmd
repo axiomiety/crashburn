@@ -273,3 +273,59 @@ lasso.coef[lasso.coef != 0]
 ```
 
 ### 6.5.3
+
+```{r}
+library(pls)
+library(ISLR2)
+set.seed(2)
+pcr.fit <- pcr(Salary ~ ., data = Hitters2, scale = TRUE, validation = "CV")
+summary(pcr.fit)
+```
+
+```{r}
+validationplot(pcr.fit, val.type = "MSEP")
+```
+
+evaluate perf on the training data:
+
+```{r}
+set.seed(1)
+pcr.fit <- pcr(Salary ~ ., data = Hitters2, subset = train, scale = TRUE , validation = "CV")
+validationplot(pcr.fit, val.type = "MSEP")
+```
+we can find the `ncomp` with the lowest CV using `min(MSEP(pcr.fit)$val)`
+
+calculate MSE:
+```{r}
+pcr.pred <- predict(pcr.fit, x[test, ], ncomp = 5)
+mean((pcr.pred - y.test)^2)
+```
+
+fit on the whole data:
+```{r}
+pcr.fit <- pcr(y ~ x, scale = TRUE, ncomp = 5)
+summary(pcr.fit)
+```
+
+#### Partial Least Square
+
+```{r}
+set.seed(1)
+pls.fit <- plsr(Salary ~ ., data = Hitters2, subset = train, scale= TRUE , validation = "CV")
+summary(pls.fit)
+```
+
+plot!
+```{r}
+validationplot(pls.fit, val.type = "MSEP")
+```
+Err - best with only 1 component!
+```{r}
+pls.pred <- predict(pls.fit, x[test, ], ncomp = 1)
+mean((pls.pred - y.test)^2)
+```
+
+```{r}
+pls.fit <- plsr(Salary ~ ., data = Hitters2, scale = TRUE, ncomp = 1)
+summary(pls.fit)
+```
