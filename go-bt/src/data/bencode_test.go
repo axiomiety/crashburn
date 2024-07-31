@@ -13,13 +13,14 @@ func TestBencodeDecode(t *testing.T) {
 	testCases := []struct {
 		data []byte
 	}{
-		// {[]byte("i-42e")},
+		{[]byte("i-42e")},
 		{[]byte("3:foo")},
-		// {[]byte("12:foobarraboof")},
-		// {[]byte("li42ee")},
-		// {[]byte("li42ei43ee")},
-		// {[]byte("d3:fooi42ee")},
-		// {[]byte("d3:fooli42eee")},
+		{[]byte("12:foobarraboof")},
+		{[]byte("li42ee")},
+		{[]byte("li42ei43ee")},
+		{[]byte("d3:fooi42ee")},
+		{[]byte("d3:fooli42eee")},
+		{[]byte("d3:fooi42e3:zari1ee")},
 	}
 
 	buf := &bytes.Buffer{}
@@ -30,7 +31,6 @@ func TestBencodeDecode(t *testing.T) {
 			t.Errorf("expected %s, got %s", testCase.data, buf.Bytes())
 		}
 	}
-
 }
 func TestBencodeRecursiveParser(t *testing.T) {
 
