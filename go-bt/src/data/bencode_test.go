@@ -225,7 +225,8 @@ func TestBencodeEncode(t *testing.T) {
 
 func TestBencodeStructTags(t *testing.T) {
 	file, _ := os.Open("testdata/ubuntu.torrent")
-	btorrent := data.ParseTorrentFile2(file)
+	defer file.Close()
+	btorrent := data.ParseFromReader[data.BETorrent](file)
 
 	expectedName := "ubuntu-22.04.2-live-server-amd64.iso"
 	if btorrent.Info.Name != expectedName {
@@ -233,5 +234,16 @@ func TestBencodeStructTags(t *testing.T) {
 	}
 	if btorrent.Info.Length != 1975971840 {
 		t.Errorf("expected %d, found %d", 1975971840, btorrent.Info.Length)
+	}
+	// if !reflect.DeepEqual(btorrent.AnnounceList, []string{}) {
+	// 	t.Errorf("%v", btorrent.AnnounceList)
+	// }
+
+	// do the same for a tracker response - plenty of nested structs
+	file2, _ := os.Open("testdata/tracker.response.beencoded")
+	defer file2.Close()
+	trackerResponse := data.ParseFromReader[data.BETrackerResponse](file2)
+	if len(trackerResponse.Peers) != 33 {
+		t.Errorf("expected 2 peers, got %d", len(trackerResponse.Peers))
 	}
 }

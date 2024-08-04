@@ -126,11 +126,35 @@ func fillStruct(o any, d map[string]any) {
 	} else {
 		structure = reflect.TypeOf(o)
 	}
+	log.Printf("structure is: %v", structure)
 	for i := 0; i < structure.NumField(); i++ {
 		f := structure.Field(i)
 		tag := f.Tag.Get("bencode")
+		// log.Printf("field is: %v, %v", f, d[tag])
 		if val, ok := d[tag]; ok {
-			if f.Type.Kind() != reflect.Struct {
+			if f.Type.Kind() == reflect.Slice {
+				s := reflect.ValueOf(val)
+				// reflect.ValueOf(o).Elem().Field(i).Set(reflect.ValueOf(reflect.MakeSlice(s.Type(), s.Len(), s.Len()).Convert(f.Type)))
+				valueSlice := reflect.MakeSlice(s.Type(), s.Len(), s.Len())
+				// oo := make([]BEPeer, 10)
+				// log.Printf("%s", f.Type.Elem())
+				temp := make([]BEPeer, s.Len())
+				reflect.ValueOf(o).Elem().Field(i).Set(reflect.ValueOf(temp))
+				for i := 0; i < s.Len(); i++ {
+					item := reflect.New(f.Type.Elem())
+					fillStruct(item.Interface(), s.Index(i).Interface().(map[string]any))
+					valueSlice = reflect.Append(valueSlice, item)
+					// valueSlice.Index(i).Set(oo)
+					log.Printf("%v, %+v", s.Index(i), item.Elem())
+					temp[i] = item.Elem().Interface().(BEPeer)
+					// oo = append(oo, reflect.ValueOf(item).(BEPeer))
+				}
+				log.Printf("%v ", reflect.ValueOf(reflect.ValueOf(o).Elem().Field(i)))
+				// reflect.ValueOf(o).Elem().Field(i).Set(reflect.ValueOf(oo))
+				// reflect.Copy(reflect.ValueOf(o).Elem().Field(i), valueSlice)
+				// reflect.ValueOf(o).Elem().Field(i).Set(valueSlice)
+				//reflect.ValueOf(o).Elem().Field(i).Index(1).Set(reflect.ValueOf(valueSlice))
+			} else if f.Type.Kind() != reflect.Struct {
 				bindat := reflect.ValueOf(val).Convert(f.Type)
 				reflect.ValueOf(o).Elem().Field(i).Set(bindat)
 			} else {
@@ -142,15 +166,15 @@ func fillStruct(o any, d map[string]any) {
 	}
 }
 
-func ParseTorrentFile2(r io.Reader) *BETorrent {
+func ParseFromReader[S BETorrent | BETrackerResponse](r io.Reader) *S {
 	obj := ParseBencoded2(r)
 	d, ok := obj.(map[string]any)
 	if !ok {
 		panic("Unable to parse torrent")
 	}
-	betorrent := &BETorrent{}
-	fillStruct(betorrent, d)
-	return betorrent
+	var s S
+	fillStruct(&s, d)
+	return &s
 }
 
 func Encode(buffer *bytes.Buffer, o any) {
