@@ -137,7 +137,7 @@ func fillStruct(o any, d map[string]any) {
 				// reflect.ValueOf(o).Elem().Field(i).Set(reflect.ValueOf(reflect.MakeSlice(s.Type(), s.Len(), s.Len()).Convert(f.Type)))
 				valueSlice := reflect.MakeSlice(s.Type(), s.Len(), s.Len())
 				// oo := make([]BEPeer, 10)
-				// log.Printf("%s", f.Type.Elem())
+				log.Printf("%s", f.Type.Elem())
 				temp := make([]BEPeer, s.Len())
 				reflect.ValueOf(o).Elem().Field(i).Set(reflect.ValueOf(temp))
 				for i := 0; i < s.Len(); i++ {
