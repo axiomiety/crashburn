@@ -1,0 +1,214 @@
+---
+title: "ISLR 6.6"
+output: html_notebook
+---
+
+### 6.6.8
+
+(a)
+```{r}
+set.seed(1)
+n <- 100
+x <- rnorm(n)
+noise <- rnorm(n)
+```
+
+(b)
+
+```{r}
+beta0 <- 0.5
+beta1 <- 1
+beta2 <- 2
+beta3 <- 3
+y <- beta0 + predictor*beta1 + predictor^2 *beta2 + predictor^3 *beta3 + noise
+df <- data.frame(y,x)
+```
+
+(c)
+
+```{r}
+library(leaps)
+regfit.full <- regsubsets(y ~ poly(x, 10, raw=TRUE), data=df, nvmax=10 )
+reg.summary <- summary(regfit.full)
+reg.summary$rsq
+```
+
+```{r}
+par(mfrow = c(2, 2))
+plot(reg.summary$rss, xlab = "Number of Variables",ylab = "RSS", type = "l")
+plot(reg.summary$adjr2, xlab = "Number of Variables",ylab = "Adjusted RSq", type = "l")
+num_r2 <- which.max(reg.summary$adjr2)
+points(num_r2, reg.summary$adjr2[num_r2], col = "red", cex = 2,pch = 20)
+
+plot(reg.summary$cp, xlab = "Number of Variables", ylab = "Cp", type = "l")
+num_cp <- which.min(reg.summary$cp)
+points(num_cp, reg.summary$cp[num_cp], col = "red", cex = 2,pch = 20)
+
+num_bic <- which.min(reg.summary$bic)
+plot(reg.summary$bic, xlab = "Number of Variables",
+ylab = "BIC", type = "l")
+points(num_bic, reg.summary$bic[num_bic], col = "red", cex = 2, pch = 20)
+```
+idk what these plots mean...
+
+```{r}
+plot(regfit.full, scale = "r2")
+plot(regfit.full, scale = "adjr2")
+plot(regfit.full, scale = "Cp")
+plot(regfit.full, scale = "bic")
+```
+
+(d)
+
+fwd selection
+```{r}
+doitall <- function(method) {
+  regfit <- regsubsets(y ~ poly(x, 10), data=df, nvmax=10, method=method)
+  reg.summary <- summary(regfit)
+  print(reg.summary$rsq)
+  par(mfrow = c(2, 2))
+  plot(reg.summary$rss, xlab = "Number of Variables",ylab = "RSS", type = "l")
+  plot(reg.summary$adjr2, xlab = "Number of Variables",ylab = "Adjusted RSq", type = "l")
+  num_r2 <- which.max(reg.summary$adjr2)
+  points(num_r2, reg.summary$adjr2[num_r2], col = "red", cex = 2,pch = 20)
+  
+  plot(reg.summary$cp, xlab = "Number of Variables", ylab = "Cp", type = "l")
+  num_cp <- which.min(reg.summary$cp)
+  points(num_cp, reg.summary$cp[num_cp], col = "red", cex = 2,pch = 20)
+  
+  num_bic <- which.min(reg.summary$bic)
+  plot(reg.summary$bic, xlab = "Number of Variables",
+  ylab = "BIC", type = "l")
+  points(num_bic, reg.summary$bic[num_bic], col = "red", cex = 2, pch = 20)
+}
+```
+
+forward!
+```{r}
+doitall("forward")
+```
+
+backwards!
+
+
+```{r}
+doitall("backward")
+```
+
+(e)
+
+lasso!
+```{r}
+library(glmnet)
+set.seed(1)
+x2 <- model.matrix(y ~ poly(x, 10, raw=TRUE), df)[, -1]
+train <- sample(1:nrow(x2), nrow(x2) / 2)
+test <- (-train)
+y.test <- y[test]
+grid <- 10^seq(10, -2, length = 100)
+lasso.mod <- glmnet(x2[train,], y[train], alpha = 1, lambda = grid)
+plot(lasso.mod)
+```
+
+```{r}
+cv.out <- cv.glmnet(x2[train, ], y[train], alpha = 1)
+plot(cv.out)
+bestlam <- cv.out$lambda.min
+print(bestlam)
+lasso.pred <- predict(lasso.mod, s = bestlam,newx = x2[test, ])
+mean((lasso.pred - y.test)^2)
+```
+
+```{r}
+out <- glmnet(x2, y, alpha = 1, lambda = grid)
+lasso.coef <- predict(out, type = "coefficients", s = bestlam)[1:11, ]
+lasso.coef
+```
+
+(f)
+
+```{r}
+set.seed(1)
+beta0 <- 0.5
+beta7 <- 2
+newy <- beta0 + beta7*x^7 + noise
+dff <- data.frame(newy, x)
+```
+
+best subset
+```{r}
+regfit.full <- regsubsets(newy ~ poly(x, 10, raw=TRUE), data=dff, nvmax=10 )
+reg.summary <- summary(regfit.full)
+reg.summary$rsq
+```
+
+lasso
+```{r}
+library(glmnet)
+set.seed(1)
+x2 <- model.matrix(newy ~ poly(x, 10, raw=TRUE), dff)[, -1]
+train <- sample(1:nrow(x2), nrow(x2) / 2)
+test <- (-train)
+y.test <- newy[test]
+grid <- 10^seq(10, -2, length = 100)
+lasso.mod <- glmnet(x2[train,], newy[train], alpha = 1, lambda = grid)
+plot(lasso.mod)
+```
+
+that plot is interesting - the norm tapers out at the actual value of the coefficient o_O
+
+### 6.6.9
+
+(a) Split the data set into a training set and a test set.
+```{r}
+library(ISLR2)
+set.seed(1)
+train <- sample(c(TRUE, FALSE), nrow(College), replace = TRUE)
+test <- (!train)
+```
+
+(b) Fit a linear model using least squares on the training set, and
+report the test error obtained.
+
+```{r}
+lm.fit = lm(Apps ~ ., data=College, subset=train)
+summary(lm.fit)
+y_pred = predict(lm.fit, newdata = College[test,])
+y_act = College$Apps[test]
+mean((y_pred-y_act)^2)
+```
+(c) Fit a ridge regression model on the training set, with λ chosen
+by cross-validation. Report the test error obtained.
+
+```{r}
+# we need a matrix for our model
+x <- model.matrix(Apps ~ ., College)[, -1]
+y <- College$Apps
+# create the linear space for lambda
+library(glmnet)
+grid <- 10^seq(10, -2, length = 100)
+ridge.mod <- glmnet(x[train,], y[train], alpha = 0, lambda = grid)
+cv.out <- cv.glmnet(x[train,], y[train], alpha = 0)
+plot(cv.out)
+bestlam <- cv.out$lambda.min
+bestlam
+ridge.pred <- predict(ridge.mod, newx=x[test,], s=bestlam)
+y.test <- College$Apps[test]
+mean((ridge.pred-y.test)^2)
+```
+
+MSE is better than Least Square.
+
+(d) Fit a lasso model on the training set, with λ chosen by cross- validation. Report the test error obtained, along with the num-
+ber of non-zero coefficient estimates.
+```{r}
+```
+
+(e) Fit a PCR model on the training set, with M chosen by cross-
+validation. Report the test error obtained, along with the value
+of M selected by cross-validation.
+(f) Fit a PLS model on the training set, with M chosen by cross-
+validation. Report the test error obtained, along with the value
+of M selected by cross-validation.
+(g) Comment on the results obtained. How accurately can we pre-
+dict the number of college applications received? Is there much difference among the test errors resulting from these five ap- proaches?
