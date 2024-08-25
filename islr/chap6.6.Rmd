@@ -3,6 +3,33 @@ title: "ISLR 6.6"
 output: html_notebook
 ---
 
+### 6.6.6
+
+(a)
+
+```{r}
+beta1 <- seq(-2,2,0.1)
+y1 <- 1
+lambda <- 2
+ys <- (y1-beta1)^2 + lambda*beta1^2
+plot(beta1, ys)
+minimisedBeta <- y1/(1+lambda)
+points(minimisedBeta, y1, col="red")
+```
+
+(b)
+
+```{r}
+beta1 <- seq(-3,3,0.1)
+y1 <- 1.5
+lambda <- 2
+ys <- (y1-beta1)^2 + lambda*abs(beta1)
+plot(beta1, ys)
+minimisedBeta1 <- y1-lambda/2
+minimisedBeta2 <- y1+lambda/2
+points(c(minimisedBeta1, minimisedBeta2,0), c(y1,y1,y1), col="red")
+```
+
 ### 6.6.8
 
 (a)
@@ -202,13 +229,261 @@ MSE is better than Least Square.
 (d) Fit a lasso model on the training set, with λ chosen by cross- validation. Report the test error obtained, along with the num-
 ber of non-zero coefficient estimates.
 ```{r}
+lasso.mod <- glmnet(x[train, ], y[train], alpha = 1, lambda = grid)
+plot(lasso.mod)
+cv.out <- cv.glmnet(x[train, ], y[train], alpha = 1)
+plot(cv.out)
+bestlam <- cv.out$lambda.min
+lasso.pred <- predict(lasso.mod, s = bestlam, newx = x[test, ])
+mean((lasso.pred - y.test)^2)
+```
+
+And... worse than the above Least Squares. It did drop some coefs though:
+```{r}
+out <- glmnet(x, y, alpha = 1, lambda = grid)
+lasso.coef <- predict(out, type = "coefficients", s = bestlam)
+lasso.coef
 ```
 
 (e) Fit a PCR model on the training set, with M chosen by cross-
 validation. Report the test error obtained, along with the value
 of M selected by cross-validation.
+```{r}
+library(pls)
+pcr.fit <- pcr(Apps ~ ., data = College, subset = train, scale = TRUE , validation = "CV")
+validationplot(pcr.fit, val.type = "MSEP")
+```
+
+Now use with the lowest $M$:
+```{r}
+pcr.pred <- predict(pcr.fit, x[test, ], ncomp = 16)
+mean((pcr.pred - y.test)^2)
+```
+
+Which looks huge!
+
 (f) Fit a PLS model on the training set, with M chosen by cross-
 validation. Report the test error obtained, along with the value
 of M selected by cross-validation.
-(g) Comment on the results obtained. How accurately can we pre-
-dict the number of college applications received? Is there much difference among the test errors resulting from these five ap- proaches?
+```{r}
+pls.fit <- plsr(Apps ~ ., data = College, subset = train, scale= TRUE , validation = "CV")
+validationplot(pls.fit, val.type = "MSEP")
+```
+
+So $M=6$:
+```{r}
+pls.pred <- predict(pls.fit, x[test, ], ncomp = 6)
+mean((pls.pred - y.test)^2)
+```
+Which is still much bigger!
+
+(g) Comment on the results obtained. How accurately can we predict the number of college applications received? Is there much difference among the test errors resulting from these five approaches?
+
+Sounds like in our example, ridge takes the cake.
+
+### 6.6.10
+
+(a)
+
+```{r}
+set.seed(1)
+n <- 1000
+p <- 20
+x <- matrix(rnorm(n*p),nrow = n, ncol=p)
+b <- runif(p)
+b[1] <- 0
+b[4] <- 0
+b[11] <- 0
+b[18] <- 0
+y <- x*b+rnorm(n)
+```
+
+(b) 100 training, 900 test
+```{r}
+set.seed(1)
+train <- sample(1:n, 100)
+test <- seq(1,n)[-train]
+```
+
+(c) Perform best subset selection on the training set, and plot the
+training set MSE associated with the best model of each size.
+
+```{r}
+library(leaps)
+df.train <- data.frame(y=y[train], x=x[train,])
+regfit.full <- regsubsets(y ~ ., data=df.train, nvmax=p)
+summary(regfit.full)
+```
+
+let's calculate the MSE on the train set for the best set for each model:
+```{r}
+train.mat <- model.matrix(y ~ ., data = df.train)
+val.errors <- rep(NA, p)
+for (i in 1:p) {
+  coefi <- coef(regfit.full, id = i)
+  pred <- train.mat[, names(coefi)] %*% coefi
+  val.errors[i] <- mean((y[train] - pred)^2)
+}
+val.errors
+which.min(val.errors)
+coef(regfit.full, 7)
+```
+
+plot:
+```{r}
+plot(val.errors, xlab="num preds")
+```
+
+(d) Plot the test set MSE associated with the best model of each
+
+let's calculate the MSE on the test set:
+```{r}
+df.test <- data.frame(y=y[test], x=x[test,])
+test.mat <- model.matrix(y ~ ., data = df.test)
+val.errors <- rep(NA, p)
+for (i in 1:p) {
+  coefi <- coef(regfit.full, id = i)
+  pred <- test.mat[, names(coefi)] %*% coefi
+  val.errors[i] <- mean((y[test] - pred)^2)
+}
+val.errors
+which.min(val.errors)
+```
+
+and do the plot:
+```{r}
+plot(val.errors, xlab="num preds")
+```
+
+So the best is just using 1 predictor o_O - which is essentially `b[1]` which was set to 0...
+
+(e) For which model size does the test set MSE take on its minimum
+value? Comment on your results. If it takes on its minimum value for a model containing only an intercept or a model containing all of the features, then play around with the way that you are generating the data in (a) until you come up with a scenario in which the test set MSE is minimized for an intermediate model size.
+
+Er... have to play around with the sample...
+
+```{r}
+# mess around with the sampling/seeds
+```
+
+(f) i'll need to regenerate things for this...
+
+(g)
+
+```{r}
+statistic <- rep(NA, p)
+for (i in 1:p) {
+  coefi <- coef(regfit.full, id = i)
+  statistic[i] <- sum((b[seq(1:i)]-coefi[-1])^2)
+}
+plot(statistic, xlab="p")
+```
+
+### 6.6.11
+
+(a) using `Boston`, trying out a variety of models.
+
+preliminaries
+
+```{r}
+attach(Boston)
+n <- nrow(Boston)
+set.seed(1)
+train <- sample(1:n, 100)
+test <- seq(1,n)[-train]
+x <- model.matrix(crim ~ ., Boston)[, -1]
+y <- Boston$crim
+p <- ncol(Boston)-1 # don't count crim!
+```
+
+using best subset:
+
+```{r}
+library(leaps)
+df.train <- data.frame(y=y[train], x=x[train,])
+regfit.full <- regsubsets(y ~ ., data=df.train, nvmax=p)
+summary(regfit.full)
+```
+
+```{r}
+train.mat <- model.matrix(y ~ ., data = df.train)
+val.errors <- rep(NA, p)
+for (i in 1:p) {
+  coefi <- coef(regfit.full, id = i)
+  pred <- train.mat[, names(coefi)] %*% coefi
+  val.errors[i] <- mean((y[train] - pred)^2)
+}
+val.errors
+min.idx <- which.min(val.errors)
+min.idx
+val.errors[min.idx]
+
+
+```
+ok so this uses all predictors!
+
+using lasso:
+
+```{r}
+lasso.mod <- glmnet(x[train, ], y[train], alpha = 1, lambda = grid)
+plot(lasso.mod)
+cv.out <- cv.glmnet(x[train, ], y[train], alpha = 1)
+plot(cv.out)
+bestlam <- cv.out$lambda.min
+lasso.coef <- predict(out, type = "coefficients", s = bestlam)
+lasso.coef
+lasso.pred.train <- predict(lasso.mod, s = bestlam, newx = x[train, ])
+mean((lasso.pred.train - Boston$crim[train])^2)
+
+lasso.pred <- predict(lasso.mod, s = bestlam, newx = x[test, ])
+mean((lasso.pred - y.test)^2)
+```
+the MSE is pretty good, comparable to best subset! some of the predictors have tiny values, very close to zero. the intercept is huge though...
+
+
+using ridge:
+
+```{r}
+library(glmnet)
+grid <- 10^seq(10, -2, length = 100)
+ridge.mod <- glmnet(x[train,], y[train], alpha = 0, lambda = grid)
+cv.out <- cv.glmnet(x[train,], y[train], alpha = 0)
+plot(cv.out)
+bestlam <- cv.out$lambda.min
+bestlam
+ridge.pred.train <- predict(ridge.mod, s = bestlam, newx = x[train,])
+mean((ridge.pred.train-Boston$crim[train])^2)
+
+ridge.pred <- predict(ridge.mod, newx=x[test,], s=bestlam)
+y.test <- Boston$crim[test]
+mean((ridge.pred-y.test)^2)
+```
+so the MSE is slightly higher than best subset.
+
+using PCR:
+
+```{r}
+library(pls)
+pcr.fit <- pcr(crim ~ ., data = Boston[train,], scale = TRUE, validation = "CV")
+summary(pcr.fit)
+validationplot(pcr.fit, val.type = "MSEP")
+```
+
+```{r}
+pcr.pred <- predict(pcr.fit, x[train, ], ncomp = 12)
+mean((pcr.pred - Boston$crim[train])^2)
+```
+it's identical to best subset! guess it makes sense since we're using all components
+
+(b) which models perform best on the test (not training) data?
+
+```{r}
+
+# PCR
+pcr.pred <- predict(pcr.fit, x[test, ], ncomp = 12)
+mean((pcr.pred - Boston$crim[test])^2)
+```
+
+(c) looking at the coefficients of the chosen model(s), how many features/predictors do they use?
+
+sadly all :(
