@@ -106,7 +106,7 @@ type BETorrent struct {
 
 type BEInfo struct {
 	Name        string `bencode:"name"`
-	PieceLength uint64 // bytes per piece
-	Pieces      string // byte string, 20-byte SHA1 for each piece
-	Length      uint64 `bencode:"length"` // of file(s), in bytes
+	PieceLength uint64 `bencode:"piece length"` // bytes per piece
+	Pieces      string `bencode:"pieces"`       // byte string, 20-byte SHA1 for each piece
+	Length      uint64 `bencode:"length"`       // of file(s), in bytes
 }
