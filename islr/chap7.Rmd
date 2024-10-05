@@ -3,6 +3,8 @@ title: "ISLR 7"
 output: html_notebook
 ---
 
+### 7.8.1
+
 ```{r}
 library(ISLR2)
 attach(Wage)
@@ -120,6 +122,105 @@ matlines(age.grid, se.bands, lwd = 1, col = "blue", lty = 3)
 table(cut(age, 4))
 fit <- lm(wage ~ cut(age, 4), data = Wage)
 coef(summary(fit))
+```
+
+?
+
+### 7.8.2
+
+TIL: `bs` stands for `B-splines`. the set of all cubic splines going through those notes is a vector space, and the basis of that vector space are b-splines. so by expressing splines using those basis functions we are uniquely expressing them.
+
+```{r}
+library(ISLR2)
+attach(Wage)
+library(splines)
+fit <- lm(wage ~ bs(age, knots = c(25, 40, 60)), data = Wage)
+pred <- predict(fit, newdata = list(age = age.grid), se = T)
+plot(age, wage, col = "gray")
+lines(age.grid, pred$fit, lwd = 2)
+lines(age.grid, pred$fit + 2 * pred$se, lty = "dashed")
+lines(age.grid, pred$fit - 2 * pred$se, lty = "dashed")
+```
+knots at uniformed quantiles:
+
+```{r}
+dim(bs(age, knots = c(25, 40, 60)))
+dim(bs(age, df = 6)) # 3 internal knots - k = df - degree
+attr(bs(age, df = 6), "knots")
+```
+
+use `ns` for natural splines (normal cubic splines are cubic outside of the knots on both ends, natural splines are constrained to be linear at the boundaries - meaning the cubic and quadratic coefs are zero):
+
+```{r}
+fit2 <- lm(wage ~ ns(age, df = 4), data = Wage)
+pred2 <- predict(fit2, newdata = list(age = age.grid), se = T)
+plot(age, wage, col = "gray")
+lines(age.grid, pred2$fit, col = "red", lwd = 2)
+```
+
+using smooth splines (those are the ones with a penality term):
+```{r}
+plot(age, wage, xlim = agelims, cex = .5, col = "darkgrey")
+title("Smoothing Spline")
+fit <- smooth.spline(age, wage, df = 16)
+fit2 <- smooth.spline(age, wage, cv = TRUE)
+lines(fit, col = "red", lwd = 2)
+lines(fit2, col = "blue", lwd = 2)
+legend("topright", legend = c("16 DF", "6.8 DF"),
+col = c("red", "blue"), lty = 1, lwd = 2, cex = .8)
+fit2$df
+```
+
+local regression - using a span of 20% and one of 50% (for the observations in the vicinity of $x_0$)
+```{r}
+plot(age, wage, xlim = agelims, cex = .5, col = "darkgrey") > title("Local Regression")
+fit <- loess(wage ~ age, span = .2, data = Wage)
+fit2 <- loess(wage ~ age, span = .5, data = Wage)
+lines(age.grid, predict(fit, data.frame(age = age.grid)), col = "red", lwd = 2)
+lines(age.grid, predict(fit2, data.frame(age = age.grid)), col = "blue", lwd = 2)
+legend("topright", legend = c("Span = 0.2", "Span = 0.5"), col = c("red", "blue"), lty = 1, lwd = 2, cex = .8)
+```
+
+### 7.9.3
+
+```{r}
+b0 <- 1
+b1 <- 1
+b2 <- -2
+set.seed(123)
+xs <- seq(-4,4,length=200)
+indic <- ifelse(xs>=1,1,0)
+y <- b0+b1*xs+b2*indic*((xs-1)^2)+rnorm(length(xs))
+ystraight <- b0+b1*xs
+
+plot(xs,ystraight, col="red",type="l",xlim=c(min(xs),max(xs)),ylim=c(min(y),max(y)))
+points(xs,y)
+abline(v=-2, col="blue")
+abline(v=2, col="blue")
+```
+
+### 7.9.6
+
+polynomial regression of `wage` vs `age`
+
+```{r}
+set.seed(45)
+numRows <- dim(Wage)[1]
+train <- sample(numRows, numRows*0.7)
+max_d <- 10
+
+mses <- rep(0, max_d)
+fits <- list()
+for (d in seq(1,max_d)) {
+  lm.fit <- lm(wage ~ poly(age, d), data = Wage, subset=train)
+  mses[d] <- mean((wage - predict(lm.fit, Wage))[-train]^2)
+  fits[[d]] <- lm.fit
+}
+
+bestDegree <- which.min(mses)
+bestDegree
+do.call("anova", fits)
+
 ```
 
 ?
