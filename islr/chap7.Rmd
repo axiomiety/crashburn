@@ -1,6 +1,8 @@
 ---
 title: "ISLR 7"
-output: html_notebook
+output:
+  html_document:
+    df_print: paged
 ---
 
 ### 7.8.1
@@ -201,7 +203,7 @@ abline(v=2, col="blue")
 
 ### 7.9.6
 
-polynomial regression of `wage` vs `age`
+(a) polynomial regression of `wage` vs `age`
 
 ```{r}
 set.seed(45)
@@ -217,10 +219,55 @@ for (d in seq(1,max_d)) {
   fits[[d]] <- lm.fit
 }
 
+
+
+fits <- lapply(1:max_d, function(i) lm(wage ~ poly(age, i), data = Wage, subset=train))
+
 bestDegree <- which.min(mses)
 bestDegree
 do.call("anova", fits)
 
 ```
 
-?
+plotting the one with the best degree:
+
+```{r}
+fit <- fits[bestDegree][[1]]
+agelims <- range(age)
+age.grid <- seq(from = agelims[1], to = agelims[2])
+preds <- predict(fit, newdata = list(age = age.grid), se = TRUE)
+se.bands <- cbind(preds$fit + 2 * preds$se.fit, preds$fit - 2 * preds$se.fit)
+par(mfrow = c(1, 2), mar = c(4.5, 4.5, 1, 1), oma = c(0, 0, 4, 0))
+plot(age, wage, xlim = agelims, cex = .5, col = "darkgrey")
+title("Degree-9 Polynomial", outer = T)
+lines(age.grid, preds$fit, lwd = 2, col = "blue")
+matlines(age.grid, se.bands, lwd = 1, col = "blue", lty = 3)
+```
+
+(b) using step functions
+
+```{r}
+table(cut(age, 4))
+fits <- lapply(2:max_d, function(d) lm(wage ~ cut(age, d), data = Wage, subset=train))
+mses <- rep(0, max_d-2)
+for (d in seq(1,max_d-1)) {
+  mses[d] <- mean((wage - predict(fits[[d]], Wage))[-train]^2)
+}
+
+bestDegree <- which.min(mses)
+bestDegree
+```
+
+same plot as above but with splines
+```{r}
+fit <- fits[bestDegree][[1]]
+agelims <- range(age)
+age.grid <- seq(from = agelims[1], to = agelims[2])
+preds <- predict(fit, newdata = list(age = age.grid), se = TRUE)
+se.bands <- cbind(preds$fit + 2 * preds$se.fit, preds$fit - 2 * preds$se.fit)
+par(mfrow = c(1, 2), mar = c(4.5, 4.5, 1, 1), oma = c(0, 0, 4, 0))
+plot(age, wage, xlim = agelims, cex = .5, col = "darkgrey")
+title("Degree-9 Polynomial", outer = T)
+lines(age.grid, preds$fit, lwd = 2, col = "blue")
+matlines(age.grid, se.bands, lwd = 1, col = "blue", lty = 3)
+```
