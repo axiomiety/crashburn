@@ -183,6 +183,59 @@ lines(age.grid, predict(fit2, data.frame(age = age.grid)), col = "blue", lwd = 2
 legend("topright", legend = c("Span = 0.2", "Span = 0.5"), col = c("red", "blue"), lty = 1, lwd = 2, cex = .8)
 ```
 
+### 7.8.3
+
+```{r}
+library(splines)
+library(gam)
+gam1 <- lm(wage ~ ns(year, 4) + ns(age, 5) + education, data = Wage)
+gam.m3 <- gam(wage ~ s(year, 4) + s(age, 5) + education, data = Wage)
+par(mfrow = c(1, 3))
+plot(gam.m3, se = TRUE, col = "blue")
+plot.Gam(gam1, se = TRUE, col = "red")
+```
+
+comparing the models:
+```{r}
+gam.m1 <- gam(wage ~ s(age, 5) + education, data = Wage)
+gam.m2 <- gam(wage ~ year + s(age, 5) + education, data = Wage)
+anova(gam.m1, gam.m2, gam.m3, test = "F")
+```
+preds:
+```{r}
+preds <- predict(gam.m2, newdata = Wage)
+gam.lo <- gam(
+  wage ~ s(year, df = 4) + lo(age, span = 0.7) + education,
+  data = Wage )
+plot(gam.lo, se = TRUE, col = "green")
+
+```
+2D-surface!
+```{r}
+library(akima)
+gam.lo.i <- gam(wage ~ lo(year, age, span = 0.5) + education, data = Wage)
+plot(gam.lo.i)
+```
+moar
+```{r}
+gam.lr <- gam(
+  I(wage > 250) ~ year + s(age, df = 5) + education,
+  family = binomial, data = Wage )
+par(mfrow = c(1, 3))
+plot(gam.lr, se = T, col = "green")
+```
+
+```{r}
+table(education , I(wage > 250))
+```
+all good finally:
+```{r}
+gam.lr.s <- gam(
+I(wage > 250) ~ year + s(age, df = 5) + education, family = binomial , data = Wage ,
+subset = (education != "1. < HS Grad")
+)
+plot(gam.lr.s, se = T, col = "green")
+```
 ### 7.9.3
 
 ```{r}
@@ -201,11 +254,36 @@ abline(v=-2, col="blue")
 abline(v=2, col="blue")
 ```
 
+### 7.9.4
+
+```{r}
+b0 <- 1
+b1 <- 1
+b2 <- -3
+set.seed(123)
+xs <- seq(-4,6,length=300)
+indic02 <- ifelse(0<=xs & xs<=2,1,0)
+indic12 <- ifelse(1<=xs & xs<=2,1,0)
+indic34 <- ifelse(3<=xs & xs<=4,1,0)
+indic45 <- ifelse(4<=xs & xs<=5,1,0)
+
+y <- b0+b1*(indic02+(xs-1)*indic12)+b2*(indic45+(xs-3)*indic34)+rnorm(length(xs))
+#ystraight <- b0+b1*xs
+
+#plot(xs,ystraight, col="red",type="l",xlim=c(min(xs),max(xs)),ylim=c(min(y),max(y)))
+plot(xs,y)
+points(xs,y)
+abline(v=-2, col="blue")
+abline(v=2, col="blue")
+```
+
 ### 7.9.6
 
 (a) polynomial regression of `wage` vs `age`
 
 ```{r}
+library(ISLR2)
+attach(Wage)
 set.seed(45)
 numRows <- dim(Wage)[1]
 train <- sample(numRows, numRows*0.7)
@@ -271,3 +349,132 @@ title("Degree-9 Polynomial", outer = T)
 lines(age.grid, preds$fit, lwd = 2, col = "blue")
 matlines(age.grid, se.bands, lwd = 1, col = "blue", lty = 3)
 ```
+
+do the same but for 
+
+### 7.9.7
+
+```{r}
+# let's try marit1 as a poly
+library(ggplot2)
+ggplot(Wage, aes(x=maritl, y=wage)) +  geom_boxplot(fill='green')
+ggplot(Wage, aes(x=jobclass, y=wage)) +  geom_boxplot(fill='red')
+ggplot(Wage, aes(x=education, y=wage)) +  geom_boxplot(fill='blue')
+
+fit.m2 <- lm(wage ~ poly(maritl,2), data=Wage, subset=train)
+fit.m3 <- lm(wage ~ poly(maritl,3), data=Wage, subset=train)
+fit.m4 <- lm(wage ~ poly(maritl,4), data=Wage, subset=train)
+anova(fit.m2,fit.m3,fit.m4)
+
+# fit.m3 explains most of the variance vs the other 2
+summary(fit.m3)
+```
+
+do the same for eduaction
+
+```{r}
+fit.e2 <- lm(wage ~ poly(education,2), data=Wage, subset=train)
+fit.e3 <- lm(wage ~ poly(education,3), data=Wage, subset=train)
+fit.e4 <- lm(wage ~ poly(education,4), data=Wage, subset=train)
+# can't because we have 5 levels - levels(Wage$education)
+#fit.e5 <- lm(wage ~ poly(education,5), data=Wage, subset=train)
+
+anova(fit.e2,fit.e3,fit.e4, fit.e5)
+```
+
+### 7.9.8
+
+Using the Auto data-set
+
+```{r}
+library(ggcorrplot)
+library(ISLR2)
+library(GGally)
+attach(Auto)
+auto.numeric <- subset(Auto, select=-c(name))
+corr <- round(cor(auto.numeric), 1)
+ggcorrplot(corr, hc.order = TRUE, type = "lower",
+   lab = TRUE)
+ggpairs(auto.numeric)
+```
+
+let's try mpg vs weight:
+```{r}
+ggplot(Auto, aes(y=mpg, x=weight)) + geom_point()
+```
+
+```{r}
+set.seed(456)
+numRows <- dim(Auto)[1]
+train <- sample(numRows, numRows*0.7)
+lm.w2 <- lm(mpg ~ poly(weight,2), data=Auto, subset=train)
+lm.w3 <- lm(mpg ~ poly(weight,3), data=Auto, subset=train)
+lm.w4 <- lm(mpg ~ poly(weight,4), data=Auto, subset=train)
+lm.w5 <- lm(mpg ~ poly(weight,5), data=Auto, subset=train)
+lm.w6 <- lm(mpg ~ poly(weight,6), data=Auto, subset=train)
+anova(lm.w2,lm.w3,lm.w4,lm.w5,lm.w6)
+```
+meh. maybe a combination of poly models?
+
+### 7.9.9
+
+(a) predicting `nox` using `dis
+
+```{r}
+attach(Boston)
+set.seed(45)
+numRows <- dim(Boston)[1]
+train <- sample(numRows, numRows*0.7)
+lm.fit <- lm(nox ~ poly(dis, 3), data = Boston, subset=train)
+summary(lm.fit)
+```
+
+predictions:
+
+```{r}
+preds <- predict(lm.fit, newdata=list(dis = Boston$dis[-train]))
+plot(Boston$dis[-train]~preds, col="red")
+points(Boston$nox[-train],Boston$dis[-train], type="p", pch=23, col="blue")
+```
+
+(b) plot polynomials up to 10, print sum of squares for each
+
+```{r}
+mad_d <- 11
+fits <- lapply(2:max_d, function(d) lm(nox ~ poly(dis, d), data = Boston, subset=train))
+mses <- rep(0, max_d-1)
+for (d in seq(1,max_d-1)) {
+  mses[d] <- mean((nox - predict(fits[[d]], Boston))[-train]^2)
+}
+which.min(mses)
+```
+
+now let's plot!
+
+```{r}
+library(reshape2)
+df <- data.frame(nox=Boston$nox[-train])
+for (d in seq(1,max_d-1)) {
+  df[paste("degree",d,sep="")] <- predict(fits[[d]], Boston)[-train]
+}
+df["actual"] <- Boston$dis[-train]
+#points(Boston$nox[-train],Boston$dis[-train], type="p", pch=23, col="blue")
+#ggplot(data=df, aes(x=actual,y=nox)) + geom_point()
+df <- melt(df ,  id.vars = 'nox', variable.name = 'dis')
+ggplot(df, aes(nox, value)) +
+  geom_point(aes(colour = dis, palette = "jco"))
+ggplot(df, aes(nox, value)) +
+  geom_line() +
+  facet_grid(dis ~ .)
+```
+
+(c) using CV for the best poly
+
+```{r}
+```
+
+(d) bs for splines. how do we choose the knots?
+
+(e) regression spline using a range of degrees of freedom
+
+(f) CV on regression
