@@ -437,15 +437,18 @@ plot(Boston$dis[-train]~preds, col="red")
 points(Boston$nox[-train],Boston$dis[-train], type="p", pch=23, col="blue")
 ```
 
-(b) plot polynomials up to 10, print sum of squares for each
+(b) plot polynomials up to 10, print mse for each on *unseen* data
 
 ```{r}
-mad_d <- 11
+max_d <- 11
 fits <- lapply(2:max_d, function(d) lm(nox ~ poly(dis, d), data = Boston, subset=train))
+mses_train <- rep(0, max_d-1)
 mses <- rep(0, max_d-1)
 for (d in seq(1,max_d-1)) {
+  mses_train[d] <- mean((nox - predict(fits[[d]], Boston))[train]^2)
   mses[d] <- mean((nox - predict(fits[[d]], Boston))[-train]^2)
 }
+which.min(mses_train)
 which.min(mses)
 ```
 
@@ -453,11 +456,13 @@ now let's plot!
 
 ```{r}
 library(reshape2)
-df <- data.frame(nox=Boston$nox[-train])
+df <- data.frame(nox=Boston$nox[train])
+mses <- rep(0, max_d-1)
 for (d in seq(1,max_d-1)) {
-  df[paste("degree",d,sep="")] <- predict(fits[[d]], Boston)[-train]
+  preds <- predict(fits[[d]], Boston)[train]
+  df[paste("degree",d,sep="")] <- preds
 }
-df["actual"] <- Boston$dis[-train]
+df["actual"] <- Boston$dis[train]
 #points(Boston$nox[-train],Boston$dis[-train], type="p", pch=23, col="blue")
 #ggplot(data=df, aes(x=actual,y=nox)) + geom_point()
 df <- melt(df ,  id.vars = 'nox', variable.name = 'dis')
@@ -470,11 +475,41 @@ ggplot(df, aes(nox, value)) +
 
 (c) using CV for the best poly
 
-```{r}
-```
+already done above with MSEs
 
 (d) bs for splines. how do we choose the knots?
 
+```{r}
+library(splines)
+dislims <- range(dis)
+dis.grid <- seq(from = dislims[1], to = dislims[2])
+fit <- lm(nox ~ bs(dis, df=4), data = Boston)
+preds <- predict(fit, newdata = list(dis = dis.grid), se = T)
+se.bands <- cbind(preds$fit + 2 * preds$se.fit,preds$fit - 2 * preds$se.fit)
+plot(dis, nox, xlim = dislims, cex = .5, col = "darkgrey")
+lines(dis.grid, preds$fit, lwd = 2, col = "blue")
+
+```
+
 (e) regression spline using a range of degrees of freedom
 
+```{r}
+fit.4 <- lm(nox ~ bs(dis, df=4), data = Boston)
+fit.5 <- lm(nox ~ bs(dis, df=5), data = Boston)
+fit.6 <- lm(nox ~ bs(dis, df=6), data = Boston)
+fit.7 <- lm(nox ~ bs(dis, df=7), data = Boston)
+
+preds.4 <- predict(fit.4, newdata = list(dis = dis.grid), se = T)
+preds.5 <- predict(fit.5, newdata = list(dis = dis.grid), se = T)
+preds.6 <- predict(fit.6, newdata = list(dis = dis.grid), se = T)
+preds.7 <- predict(fit.7, newdata = list(dis = dis.grid), se = T)
+
+plot(dis, nox, xlim = dislims, cex = .5, col = "darkgrey")
+lines(dis.grid, preds.4$fit, lwd = 2, col = "blue")
+lines(dis.grid, preds.5$fit, lwd = 2, col = "red")
+lines(dis.grid, preds.6$fit, lwd = 2, col = "green")
+lines(dis.grid, preds.7$fit, lwd = 2, col = "yellow")
+
+```
 (f) CV on regression
+
