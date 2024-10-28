@@ -277,6 +277,14 @@ abline(v=-2, col="blue")
 abline(v=2, col="blue")
 ```
 
+### 7.9.5
+
+3rd vs 4th derivative
+
+(a) $\lambda \to \inf$, smallest training RSS goes to
+(b) $\lambda \to \inf$, smallest test RSS goes to
+(c) $\lambda=0$, smallest training or test RSS goes to
+
 ### 7.9.6
 
 (a) polynomial regression of `wage` vs `age`
@@ -512,4 +520,43 @@ lines(dis.grid, preds.7$fit, lwd = 2, col = "yellow")
 
 ```
 (f) CV on regression
+
+### 7.9.10
+
+Using the `College` data set - response = out-of-state tuition ($Outstate)
+
+```{r}
+library(ISLR2)
+library(leaps)
+attach(College)
+set.seed(456)
+numRows <- dim(College)[1]
+train <- sample(numRows, numRows*0.5)
+
+# forward step-wise selection - c.f. chap6
+# we have 17 possible predictors
+regfit.fwd <- regsubsets(Outstate ~ ., data = College, subset=train, nvmax = 17, method = "forward")
+
+# now validate against test set
+test.mat <- model.matrix(Outstate~., data = College[test,])
+ al.errors <- rep(NA, 17)
+for(i in 1:17){
+    coefficients <- coef(regfit.fwd, id = i)
+    pred <- test_mat[,names(coefficients)]%*%coefficients
+    mses[i] <- mean((College$Outstate[test] - pred)^2)
+}
+
+which.min(mses)
+```
+
+looks like `Private` (tis'a binary var) dominates the other predictors.
+
+(b) fit GAM using the above
+
+```{r}
+library(gam)
+attach(College)
+gam.m4 <- gam(Outstate ~ s(Private,4), data = College, subset=train)
+# err... unordered factors cannot be used as smoothing variables
+```
 
