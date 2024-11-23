@@ -560,3 +560,66 @@ gam.m4 <- gam(Outstate ~ s(Private,4), data = College, subset=train)
 # err... unordered factors cannot be used as smoothing variables
 ```
 
+### 7.9.11
+
+(a)
+```{r}
+n <- 100
+x1 <- rnorm(n, 2, 5)
+x2 <- rnorm(n, 1, 8)
+y <- 8+ 5*x1 + 2*x2 + rnorm(n)
+```
+
+(b)
+```{r}
+beta1 <- 0.5
+```
+
+(c)
+```{r}
+a <- y - beta1 * x1
+beta2 <- lm(a ~ x2)$coef[2]
+beta2
+```
+
+(d)
+```{r}
+a <- y - beta2 * x2
+beta1 <- lm(a ~ x1)$coef[2]
+beta1
+```
+(e)
+```{r}
+num_iter <- 100
+beta0s <- rep(NA, num_iter)
+beta1s <- rep(NA, num_iter)
+beta2s <- rep(NA, num_iter)
+
+for (i in 1:num_iter) {
+  a <- y - beta1 * x1
+  beta2 <- lm(a ~ x2)$coef[2]
+  beta2s[i] <- beta2
+  a <- y - beta2 * x2
+  beta1 <- lm(a ~ x1)$coef[2]
+  beta1s[i] <- beta1
+  beta0s[i] <- mean(y-beta1*x1 - beta2*x2)
+}
+```
+
+plots:
+```{r}
+library(ggplot2)
+x <- seq(1,num_iter)
+df <- data.frame(x,beta0s,beta1s,beta2s)
+ggplot(df, aes(x=x, y=beta0s)) + geom_point()
+ggplot(df, aes(x=x, y=beta1s)) + geom_point()
+ggplot(df, aes(x=x, y=beta2s)) + geom_point()
+```
+
+(f)
+
+
+(g)
+
+### 7.9.12
+
