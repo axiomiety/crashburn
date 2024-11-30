@@ -181,5 +181,39 @@ now for a plot
 library(ggplot2)
 ggplot(df, aes(x=ntree,y=tmse,color=mtry)) + geom_point()
 ```
+# 8.4.8
+
+predicting `Sales` from `Carseats`
+
+(a) split the data
+```{r}
+set.seed(1)
+train <- sample(1:nrow(Carseats), nrow(Carseats) / 2)
+```
+
+(b) regression tree - inc MSE
+```{r}
+# seems we should be doing that with rpart!
+tree.carseats <- tree(Sales ~ ., Carseats, subset = train)
+summary(tree.carseats)
+plot(tree.carseats)
+text(tree.carseats, pretty = 0)
+```
+
+same thing with `rpart`:
+```{r}
+library(rpart)
+library(rpart.plot)
+tree.carseats2 <- rpart(Sales ~ ., data=Carseats, subset=train)
+rpart.plot(tree.carseats2, main = "Rpart FTW", type=3)
+```
+
+test MSE
+```{r}
+sales_hat <- predict(tree.carseats, newdata = Carseats[-train, ])
+sales.test <- Carseats[-train, "Sales"]
+mean((sales_hat - sales.test)^2)
+```
+(c) CV for tree pruning
 
 ?
