@@ -1,6 +1,8 @@
 ---
 title: "ISLR Chapter 8"
-output: html_notebook
+output:
+  html_document:
+    df_print: paged
 ---
 
 # 8.3.1
@@ -157,6 +159,29 @@ this gives an indication of how important certain variables are:
 importance(rf.boston)
 varImpPlot(rf.boston)
 ```
+# 8.3.4
+
+BART
+
+```{r}
+library(BART)
+x <- Boston[, 1:12]
+y <- Boston[, "medv"]
+xtrain <- x[train, ]
+ytrain <- y[train]
+xtest <- x[-train, ]
+ytest <- y[-train]
+set.seed(1)
+bartfit <- gbart(xtrain, ytrain, x.test = xtest)
+yhat.bart <- bartfit$yhat.test.mean
+mean((ytest - yhat.bart)^2)
+```
+
+```{r}
+ord <- order(bartfit$varcount.mean, decreasing = T)
+bartfit$varcount.mean[ord]
+```
+
 # 8.4.7
 
 test classification error / number of trees for mtry = 6, ntree = 25 and ntree = 500.
@@ -215,5 +240,69 @@ sales.test <- Carseats[-train, "Sales"]
 mean((sales_hat - sales.test)^2)
 ```
 (c) CV for tree pruning
+
+```{r}
+cv.carseats <- cv.tree(tree.carseats)
+plot(cv.carseats$size, cv.carseats$dev, type = "b")
+```
+optimal size is 3 - let's see what that means for the test MSE
+
+```{r}
+prune.carseats <- prune.tree(tree.carseats, best = 3)
+tree.pred <- predict(prune.carseats, Carseats[-train, ])
+mean((tree.pred - sales.test)^2)
+```
+
+improvement! the one above was 2.736873
+
+(d) now using bagging
+
+(this is the same as below with $m=p$)
+
+```{r}
+library(randomForest)
+proc <- function(mtry) {
+set.seed(1)
+bag.carseats <- randomForest(Sales ~ ., data = Carseats, subset = train, mtry = mtry, importance = TRUE)
+yhat.bag <- predict(bag.carseats, newdata = Carseats[-train, ])
+mean((yhat.bag - sales.test)^2)
+}
+proc(dim(Carseats)[2]-1)
+```
+
+
+(e) now using random forest
+
+```{r}
+proc(floor(sqrt(dim(Carseats)[2])))
+```
+
+it's getting lower!
+
+but let's see for various values of `mtry`:
+```{r}
+for (i in seq(2, dim(Carseats)[2]-1)) {
+  print(c(i,proc(i)))
+}
+```
+lowest MSE is when `mtry=4`
+
+(f) BART
+
+```{r}
+library(BART)
+x <- Carseats[, 2:12]
+y <- Carseats[, "Sales"]
+xtrain <- x[train, ]
+ytrain <- y[train]
+xtest <- x[-train, ]
+ytest <- y[-train]
+set.seed(1)
+bartfit <- gbart(xtrain, ytrain, x.test = xtest)
+yhat.bart <- bartfit$yhat.test.mean
+mean((ytest - yhat.bart)^2)
+```
+
+lowest of them all!
 
 ?
