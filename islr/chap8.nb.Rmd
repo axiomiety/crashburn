@@ -182,6 +182,34 @@ ord <- order(bartfit$varcount.mean, decreasing = T)
 bartfit$varcount.mean[ord]
 ```
 
+# 8.4.3
+
+we need to plot the Gini index, entropy and classification error rate for class 1 for each region
+
+```{r}
+tree.default <- rpart(default ~ ., Default)
+summary(tree.default)
+```
+tree looks like:
+```{r}
+rpart.plot(tree.default)
+```
+we need the details for each region:
+```{r}
+df <- tree.default$frame
+regions <- seq(1,7)
+pm1s <- ifelse(df$yval == 1, 1-df$dev/df$n, df$dev/df$n)
+entropies <- -(pm1s*log(pm1s) + (1-pm1s)*log(1-pm1s))
+gini <- pm1s*(1-pm1s)
+misclass.rate <- 1-pmax(pm1s,1-pm1s)
+```
+
+now plot
+```{r}
+data <- data.frame(regions=regions, entropy=entropies, gini=gini, mrate=misclass.rate)
+ggplot(data, aes(x=regions)) + geom_point(aes(y=entropy), color="red") + geom_point(aes(y=gini), color="blue") + geom_point(aes(y=mrate), color="green")
+```
+
 # 8.4.7
 
 test classification error / number of trees for mtry = 6, ntree = 25 and ntree = 500.
