@@ -305,4 +305,114 @@ mean((ytest - yhat.bart)^2)
 
 lowest of them all!
 
+### 8.4.9
+
+(a) train set with 800 observations
+```{r}
+library(ISLR2)
+set.seed(2)
+train <- sample(1:nrow(OJ), 800)
+```
+
+(b) fit a tree with `Purchase` as the predictor
+
+first using `rpart` 'cause it's cool:
+```{r}
+tree.OJ <- rpart(Purchase ~ ., data=OJ, subset=train)
+summary(tree.OJ)
+```
+then using `tree` 'cause that's what we need:
+```{r}
+tree.OJ2 <- tree(Purchase ~ ., OJ, subset = train)
+summary(tree.OJ2)
+```
+
+training error rate: 15.8%
+number of terminal nodes: 9
+
+`rpart` already does CV + best height!
+```{r}
+printcp(tree.OJ)
+```
+
+(c) tree obj, pick a node
+```{r}
+tree.OJ2
+```
+looking at node 9 for instance:
+```
+LoyalCH > 0.035047 116  106.60 MM ( 0.17241 0.82759 ) *
+```
+details are:
+  - it's a terminal node
+  - it contains 116 observations
+  - deviance is 106.6
+  - overall prediction is MM (Minute Maid)
+  - 17% take Citrus Hill, 83% take Minute Maid
+  
+
+(d) plot! this is just nicer with `rpart.plot`
+```{r}
+library(rpart.plot)
+rpart.plot(tree.OJ, main = "Rpart FTW", type=3)
+```
+
+(e) confusion matrix
+```{r}
+oj.test <- OJ[-train,]
+tree.pred <- predict(tree.OJ2, oj.test, type = "class")
+table(tree.pred, oj.test$Purchase)
+```
+```{r}
+(148+70)/dim(oj.test)[1]
+```
+So 80% accuracy on the test data
+
+(f) using `cv.tree` for optimal size
+```{r}
+tree.OJ2.cv <- cv.tree(tree.OJ2, FUN = prune.misclass)
+tree.OJ2.cv
+```
+tree of size 4 has the lowest cross-validation error.
+
+kind of lines up with `rpart`?
+```{r}
+printcp(tree.OJ)
+```
+
+(g) tree size on the x-axis and cross-validated classification error rate on the y-axis
+```{r}
+library(ggplot2)
+df <- data.frame(size=tree.OJ2.cv$size, dev=tree.OJ2.cv$dev)
+ggplot(df, aes(x=size,y=dev, color=dev)) + geom_point() + scale_x_continuous(breaks = seq(0, 10, by = 1))
+```
+
+(h) lowest cross-validated classification error rate
+that's for a tree of size 4
+
+(i) prune tree using the above
+```{r}
+prune.OJ2 <- prune.misclass(tree.OJ2, best = 4)
+```
+(j) compare pruned vs unpruned - training error rate
+```{r}
+tree.pred <- predict(prune.OJ2, OJ[train,], type = "class")
+table(tree.pred, OJ[train,]$Purchase)
+```
+training error rate on the pruned tree is:
+```{r}
+1-(455+210)/dim(OJ[train,])[1]
+```
+
+(k) compare pruned vs unpruned - test error rate
+```{r}
+tree.pred <- predict(prune.OJ2, oj.test, type = "class")
+table(tree.pred, oj.test$Purchase)
+```
+```{r}
+1-(149+65)/dim(oj.test)[1]
+```
+
+for a test error rate (pruned) of 21%
+
 ?
