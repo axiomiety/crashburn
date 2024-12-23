@@ -443,4 +443,15 @@ table(tree.pred, oj.test$Purchase)
 
 for a test error rate (pruned) of 21%
 
+### 8.4.10
+
+(a)
+```{r}
+attach(Hitters)
+H2 <- Hitters[!is.na(Hitters$Salary),]
+dim(Hitters)
+dim(H2)
+```
+(b)
+
 ?
