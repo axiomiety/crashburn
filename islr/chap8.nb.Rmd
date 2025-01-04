@@ -445,13 +445,70 @@ for a test error rate (pruned) of 21%
 
 ### 8.4.10
 
-(a)
+(a) clean-up and transform
 ```{r}
+library(ISLR2)
 attach(Hitters)
 H2 <- Hitters[!is.na(Hitters$Salary),]
 dim(Hitters)
 dim(H2)
+H2$Salary = log(H2$Salary)
 ```
-(b)
+(b) training set
+```{r}
+train <- seq(1,200)
+train.set <- H2[train,]
+test.set <- H2[-train,]
+```
+(c) boosting
+```{r}
+library(gbm)
+set.seed(1)
+lambdas <- seq(0, 0.1, 0.005)
+training_mses <- c()
+for (shrink in lambdas) {
+  boost.h2 <- gbm(Salary ~ ., data=train.set, n.trees=1000, shrinkage=shrink)
+  yhat.boost <- predict(boost.h2, data=train.set, n.trees=1000)
+  tmse <- mean (( yhat.boost - train.set$Salary)^2)
+  training_mses <- c(training_mses, tmse)
+}
+```
+now for the plot:
+```{r}
+library(ggplot2)
+df_train <- data.frame(lambdas=lambdas, training_mses=training_mses)
+ggplot(df_train, aes(x=lambdas,y=training_mses, color=training_mses)) + geom_point()
+```
+
+(d) now the same, for for test MSE
+```{r}
+testing_mses <- c()
+for (shrink in lambdas) {
+  boost.h2 <- gbm(Salary ~ ., data=train.set, n.trees=1000, shrinkage=shrink)
+  yhat.boost <- predict(boost.h2, newdata=test.set, n.trees=1000)
+  tmse <- mean (( yhat.boost - test.set$Salary)^2)
+  testing_mses <- c(testing_mses, tmse)
+}
+```
+
+```{r}
+df_test <- data.frame(lambdas=lambdas, testing_mses=testing_mses)
+ggplot(df_test, aes(x=lambdas,y=testing_mses, color=testing_mses)) + geom_point()
+```
+(e) vs 2 regression approaches in chap 3 and 6 - what are those?
+
+(f) ?
+
+(g) bagging
+
+```{r}
+library(randomForest)
+set.seed(1)
+bag.hitters <- randomForest(Salary ~ ., data=train.set)
+yhat.bag <- predict(bag.hitters , newdata = test.set)
+mean(( yhat.bag - test.set$Salary)^2)
+```
+
+for a test MSE of 22%
 
 ?
