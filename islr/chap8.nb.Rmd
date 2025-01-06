@@ -512,3 +512,39 @@ mean(( yhat.bag - test.set$Salary)^2)
 for a test MSE of 22%
 
 ?
+
+# 8.4.11
+
+(a) splitting the data
+```{r}
+library(ISLR2)
+attach(Caravan)
+Carav <- data.frame(Caravan)
+# that sucks
+Carav$Purchase <- as.numeric(Carav$Purchase)-1
+train.set <- Carav[seq(1,1000),]
+test.set <- Carav[seq(1000,dim(Caravan)[1]),]
+```
+(b) boostin'
+```{r}
+ntrees <- 1000
+shrinkage <- 0.01
+library(gbm)
+set.seed(1)
+boost.caravan <- gbm(Purchase ~ ., data=train.set, n.trees=ntrees, shrinkage=shrinkage)
+
+summary(boost.caravan)
+```
+
+most important predictors are 'em top 4 really.
+
+(c) estimating
+
+```{r}
+# i don't understand why my values are all over the place... instead of 0-1
+yhat.boost <- predict(boost.caravan, newdata=test.set)
+```
+
+
+
+?
