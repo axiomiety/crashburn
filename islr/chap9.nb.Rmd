@@ -1,0 +1,224 @@
+---
+title: "ISLR Chapter 9"
+output:
+  html_document:
+    df_print: paged
+---
+
+# 9.6.1
+
+a non linearly separable dataset:
+```{r}
+set.seed (1)
+x = matrix ( rnorm (20*2) , ncol =2)
+y = c ( rep ( -1 ,10) , rep (1 ,10) )
+x [ y ==1 ,]= x [ y ==1 ,] + 1
+plot (x , col =(3 - y ) )
+```
+using SVM:
+```{r}
+dat = data.frame ( x =x , y = as.factor ( y ) )
+library ( e1071 )
+svmfit = svm( y ~. , scale = FALSE, data = dat , kernel = "linear" , cost =10 )
+plot ( svmfit , dat )
+```
+support vectors:
+```{r}
+svmfit$index
+```
+there are 7 of them
+
+```{r}
+summary(svmfit)
+```
+so 4 for -1 and 3 for 1
+
+now the same but with a smaller cost, so margin is wider:
+```{r}
+svmfit2 = svm( y ~. , scale = FALSE, data = dat , kernel = "linear" , cost =0.1 )
+plot ( svmfit2 , dat )
+```
+tuning
+
+```{r}
+set.seed(1)
+tune.out = tune( svm , y~. , data = dat , kernel ="linear", ranges = list(cost=c(0.001 , 0.01 , 0.1 , 1 ,5 ,10 ,100)))
+summary(tune.out)
+```
+show the best model:
+```{r}
+bestmod = tune.out$best.model
+summary(bestmod)
+```
+
+```{r}
+set.seed(1)
+xtest = matrix ( rnorm (20*2) , ncol =2)
+ytest = sample ( c ( -1 ,1) , 20 , rep = TRUE )
+xtest [ ytest ==1 ,]= xtest [ ytest ==1 ,] + 1
+testdat = data.frame ( x = xtest , y = as.factor ( ytest ) )
+ypred = predict ( bestmod , testdat )
+table ( predict = ypred, truth=testdat$y)
+```
+different cost:
+```{r}
+svmfit = svm ( y~., data = dat , scale = FALSE, cost=0.01, kernel="linear")
+ypred = predict ( svmfit , testdat )
+table ( predict = ypred , truth=testdat$y)
+```
+plot:
+```{r}
+x[ y ==1 ,]= x [ y ==1 ,]+0.5
+plot (x , col =( y +5) /2 , pch =19)
+```
+
+obs are barely separable:
+```{r}
+dat = data.frame( x =x , y = as.factor ( y ) )
+svmfit = svm ( y~. , data = dat , kernel="linear", cost=1e+05)
+summary ( svmfit )
+plot(svmfit, dat)
+```
+now with a lower cost:
+
+```{r}
+svmfit=svm(y~., data=dat, kernel="linear", cost=1)
+summary(svmfit)
+plot(svmfit,dat)
+```
+
+# 9.6.2 Support Vector Machine
+
+```{r}
+set.seed (1)
+x = matrix ( rnorm (200*2) , ncol=2)
+x [1:100 ,]= x [1:100 ,]+2
+x [101:150 ,]= x [101:150 ,] -2
+y = c ( rep (1 ,150) , rep (2 ,50) )
+dat = data.frame ( x =x , y = as.factor ( y ) )
+plot(x,col=y)
+```
+split into test and train
+```{r}
+train = sample (200 ,100)
+svmfit=svm(y~., data = dat [ train ,] , kernel ="radial" , gamma =1 , cost=1)
+plot(svmfit, dat[train,])
+summary(svmfit)
+```
+
+```{r}
+svm ( y~. , cost=1e5, data = dat [ train ,] , kernel ="radial" , gamma =1)
+plot(svmfit, dat[train,])
+```
+
+cross-validation for gamma
+```{r}
+set.seed(1)
+tune.out <- tune(svm, y~., data=dat[train,], kernel="radial", ranges=list(cost=c(0.1,1,10,100,1000)), gamma=c(0.5,1,2,3,4))
+summary(tune.out)
+```
+
+table:
+```{r}
+table ( true = dat[ -train ,"y"], pred=predict(tune.out$best.model, newdata = dat[ -train ,]))
+```
+mis-classification stands at 8%
+
+# 9.6.3 ROC Curves
+
+```{r}
+library(ROCR)
+rocplot=function(prd, truth, ...) {
+  predob = predictin(pred, truth)
+  perf = performance(predob, "tpr", "fpr")
+  plot(perf, ...)
+}
+```
+
+we can obtain the fitted values:
+```{r}
+svmfit.opt=svm(y~., data=dat[train,], kernel="radial", gamma=2, cost=1, decision.values=T)
+fitted=attributes(predict(svmfit.opt,dat[train,],decision.values=True))$decision.values
+par(mfrow=c(1,2))
+rocplot(fitted, dat[train,"y"],main="training data")
+```
+
+we can change gamma:
+```{r}
+svmfit.flex=svm(y~.,data=dat[train,], kernel="radial", gamma=50,cost=1,decision.values=T)
+fitted=attributes(predict(svmfit.flex,dat[train,], decision.values=T))$decision.values
+rocplot(fitted,dat[train,"y"], add=T,col="red")
+```
+
+let's look at the level of prediction accuracy on the test data:
+```{r}
+fitted = attributes ( predict ( svmfit.opt , dat [ - train ,] , decision.values=T))$decision.values
+rocplot ( fitted , dat [ - train ," y "] , main =" Test Data ")
+fitted = attributes ( predict ( svmfit.flex , dat [ - train ,] , decision.values=T))$decision.values
+rocplot(fitted,dat[-train, "y"], add=T,col="red")
+```
+
+# 9.6.4 SVM with Multple Classes
+
+$y$ is defined in 9.6.2
+
+```{r}
+set.seed (1)
+xx=rbind(x,matrix(rnorm(50*2), ncol=2))
+yy=c(y,rep(0,50))
+xx[yy==0,2]=xx[yy==0,2]+2
+dat=data.frame(x=xx,y=as.factor(yy))
+par(mfrow=c(1,1))
+plot(xx,col=(yy+1))
+```
+
+fit:
+```{r}
+svmfit=svm(y~., data=dat, kernel="radial", cost=10, gamma=1)
+plot(svmfit, dat)
+```
+
+# 9.6.5 Applicaiton to Gene Expression Data
+
+Khan represents tissue samples, small round blue cell tumours
+
+```{r}
+library(ISLR)
+names(Khan)
+table(Khan$ytrain)
+table(Khan$ytest)
+```
+large number of features vs number of observations -> additional flexibility is unnecessary
+
+```{r}
+dat=data.frame(x=Khan$xtrain, y=as.factor(Khan$ytrain))
+out=svm(y~., data=dat, kernel="linear", cost=10)
+summary(out)
+table(out$fitted, dat$y)
+```
+
+zero training errors! large number of variables vs observations -> easy to find hyperplanes that fully separate classes
+
+on test obs:
+```{r}
+dat.te=data.frame(x=Khan$xtest, y=as.factor(Khan$ytest))
+pred.te=predict(out, newdata=dat.te)
+table(pred.te, dat.te$y)
+```
+
+# 9.7.4
+
+ - 2-class data with 100 observations and 2 features, non-linear separation
+ - svm using a polynomial kernel vs radial will outperform on training data
+ - what about the test data?
+ 
+```{r}
+set.seed (123)
+x <- matrix(rnorm(100*2), ncol=2)
+y <- c(rep(-1, 50), rep(1,50))
+x[y==1,1] = x[y==1,1] + 1
+x[y==1,2] = x[y==1,2] + 3
+plot(x, col =(3-y))
+```
+
+EOF

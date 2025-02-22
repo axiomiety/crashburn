@@ -521,7 +521,7 @@ library(ISLR2)
 attach(Caravan)
 Carav <- data.frame(Caravan)
 # that sucks
-Carav$Purchase <- as.numeric(Carav$Purchase)-1
+Carav$Purchase=ifelse(Carav$Purchase == "Yes",1,0)
 train.set <- Carav[seq(1,1000),]
 test.set <- Carav[seq(1000,dim(Caravan)[1]),]
 ```
@@ -531,7 +531,7 @@ ntrees <- 1000
 shrinkage <- 0.01
 library(gbm)
 set.seed(1)
-boost.caravan <- gbm(Purchase ~ ., data=train.set, n.trees=ntrees, shrinkage=shrinkage)
+boost.caravan <- gbm(Purchase ~ ., data=train.set, n.trees=ntrees, shrinkage=shrinkage, distribution="bernoulli")
 
 summary(boost.caravan)
 ```
@@ -542,9 +542,66 @@ most important predictors are 'em top 4 really.
 
 ```{r}
 # i don't understand why my values are all over the place... instead of 0-1
-yhat.boost <- predict(boost.caravan, newdata=test.set)
+yhat.boost <- predict(boost.caravan, newdata=test.set, n.trees = 1000, type="response")
+yhat.response=ifelse(yhat.boost>0.2,1,0)
+table(test.set$Purchase, yhat.response)
+```
+now for knn
+
+```{r}
+library(class)
+for (i in seq(1,9,2)) {
+knn.model <- knn(train = train.set, 
+                      test = test.set, 
+                      cl = train.set$Purchase, 
+                      k = i) 
+  print(table(test.set$Purchase, knn.model))
+}
+```
+so knn is better except for k=1
+
+# 8.4.12
+
+let's use the `Auto` dataset!
+```{r}
+n <- dim(Auto)[1]
+set.seed(1)
+ind <- sample(c(TRUE, FALSE), n, replace=TRUE, prob=c(0.5, 0.5))
+train.set <- subset(Auto[ind,], select=-c(name))
+test.set <- subset(Auto[!ind,], select=-c(name))
 ```
 
+boosting
+```{r}
+boost.auto <- gbm(mpg ~ ., data=train.set, n.trees=1000, shrinkage=0.01)
+yhat.boost <- predict(boost.auto, data=train.set, n.trees=1000)
+mean((yhat.boost - train.set$mpg)^2)
+```
+bagging
+```{r}
+library(randomForest)
+set.seed(1)
+bag.auto <- randomForest(mpg ~ ., data=train.set)
+yhat.bag <- predict(bag.auto , newdata = test.set)
+mean((yhat.bag - test.set$mpg)^2)
+```
+random forest - isn't that the same?
+```{r}
 
+```
+BART
+```{r}
+library(BART)
+xtrain <- train.set[, -1]
+ytrain <- train.set[, "mpg"]
+xtest <- test.set[, -1]
+ytest <- test.set[, "mpg"]
+set.seed(1)
+bartfit <- gbart(xtrain, ytrain, x.test = xtest)
+yhat.bart <- bartfit$yhat.test.mean
+mean((ytest - yhat.bart)^2)
+```
+
+worse overall?
 
 ?
