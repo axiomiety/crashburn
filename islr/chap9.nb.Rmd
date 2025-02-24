@@ -128,8 +128,8 @@ mis-classification stands at 8%
 
 ```{r}
 library(ROCR)
-rocplot=function(prd, truth, ...) {
-  predob = predictin(pred, truth)
+rocplot=function(pred, truth, ...) {
+  predob = prediction(pred, truth)
   perf = performance(predob, "tpr", "fpr")
   plot(perf, ...)
 }
@@ -137,23 +137,27 @@ rocplot=function(prd, truth, ...) {
 
 we can obtain the fitted values:
 ```{r}
-svmfit.opt=svm(y~., data=dat[train,], kernel="radial", gamma=2, cost=1, decision.values=T)
-fitted=attributes(predict(svmfit.opt,dat[train,],decision.values=True))$decision.values
+svmfit.opt <- svm(y~., data = dat[train , ], kernel = "radial", gamma = 2, cost = 1, decision.values = T)
+fitted=attributes(predict(svmfit.opt,dat[train,],decision.values=T))$decision.values
 par(mfrow=c(1,2))
 rocplot(fitted, dat[train,"y"],main="training data")
+# changing the gamma - this must be done in the same block, otherwise i get a plot.new hasn't been called error
+svmfit.flex=svm(y~.,data=dat[train,], kernel="radial", gamma=50,cost=1,decision.values=T)
+fitted=attributes(predict(svmfit.flex,dat[train,], decision.values=T))$decision.values
+rocplot(-fitted,dat[train,"y"], add=T,col="red")
 ```
 
 we can change gamma:
 ```{r}
 svmfit.flex=svm(y~.,data=dat[train,], kernel="radial", gamma=50,cost=1,decision.values=T)
 fitted=attributes(predict(svmfit.flex,dat[train,], decision.values=T))$decision.values
-rocplot(fitted,dat[train,"y"], add=T,col="red")
+rocplot(-fitted,dat[train,"y"], add=T,col="red")
 ```
 
 let's look at the level of prediction accuracy on the test data:
 ```{r}
 fitted = attributes ( predict ( svmfit.opt , dat [ - train ,] , decision.values=T))$decision.values
-rocplot ( fitted , dat [ - train ," y "] , main =" Test Data ")
+rocplot ( fitted , dat [ - train ,"y"] , main =" Test Data ")
 fitted = attributes ( predict ( svmfit.flex , dat [ - train ,] , decision.values=T))$decision.values
 rocplot(fitted,dat[-train, "y"], add=T,col="red")
 ```
@@ -213,12 +217,40 @@ table(pred.te, dat.te$y)
  - what about the test data?
  
 ```{r}
-set.seed (123)
+set.seed (13)
 x <- matrix(rnorm(100*2), ncol=2)
 y <- c(rep(-1, 50), rep(1,50))
-x[y==1,1] = x[y==1,1] + 1
+x[y==1,1] = x[y==1,1] + 3
 x[y==1,2] = x[y==1,2] + 3
+# now shift some of the obs down
+x[y==1,2] = ifelse(x[y==1,1] > 2, x[y==1,2]-1, x[y==1,2])
 plot(x, col =(3-y))
+```
+training data:
+
+```{r}
+train = sample (100,40)
+dat = data.frame ( x =x , y = as.factor ( y ) )
+svmfit.linear <- svm(y~., data=dat[train,], kernel="linear", cost=1)
+# polynomial of deg 3 wasn't too great
+#svmfit.radial <- svm(y~., data=dat[train,] ,kernel ="polynomial", degree=3, gamma =1 , cost=1)
+svmfit.radial <- svm(y~., data=dat[train,] ,kernel ="radial", gamma =1 , cost=1)
+summary(svmfit.linear)
+table ( true = dat[ train ,"y"], pred=predict(svmfit.linear, newdata = dat[ train ,]))
+summary(svmfit.radial)
+table ( true = dat[ train ,"y"], pred=predict(svmfit.radial, newdata = dat[ train ,]))
+```
+
+plots:
+```{r}
+plot(svmfit.linear, dat[train,])
+plot(svmfit.radial, dat[train,])
+```
+
+on test data:
+```{r}
+table ( true = dat[ -train ,"y"], pred=predict(svmfit.linear, newdata = dat[ -train ,]))
+table ( true = dat[ -train ,"y"], pred=predict(svmfit.radial, newdata = dat[ -train ,]))
 ```
 
 EOF
