@@ -253,4 +253,188 @@ table ( true = dat[ -train ,"y"], pred=predict(svmfit.linear, newdata = dat[ -tr
 table ( true = dat[ -train ,"y"], pred=predict(svmfit.radial, newdata = dat[ -train ,]))
 ```
 
+# 9.7.5
+
+(a)
+```{r}
+set.seed(123)
+x1 = runif (500) -0.5
+x2 = runif (500) -0.5
+y =1*( x1 ^2 - x2 ^2 > 0)
+```
+
+(b)
+```{r}
+plot(x1,x2, col=3-y)
+```
+or
+```{r}
+library(ggplot2)
+ggplot(data,
+       aes(x1, x2, color = factor(y))) +
+  geom_point()
+```
+(c) logistic reg
+```{r}
+data <- data.frame(x1,x2,y)
+linreg.linear.fit<- glm(y ~ ., family="binomial", data=data)
+summary(model.fit)
+```
+
+(d) 
+```{r}
+# we have 200 observations
+#train = sample (200,120)
+preds <- predict(linreg.linear.fit, data.frame(x1,x2), type="response")
+preds_to_classes <- ifelse(preds > 0.5, 1, 0)
+ggplot(data,
+       aes(x1, x2, color = factor(preds_to_classes))) +
+  geom_point()
+```
+
+(e) logistic reg, non-linear fns of X_1 and X_2
+```{r}
+linreg.nonlinear.fit<- glm(y ~ poly(x1,2)+x1*x2+poly(x2,2), family=binomial(), data=data)
+```
+
+(f) 
+```{r}
+preds2 <- predict(linreg.nonlinear.fit, data, type="response")
+preds2_to_classes <- ifelse(preds2 > 0.5, 1, 0)
+ggplot(data,
+       aes(x1, x2, color = factor(preds2_to_classes))) +
+  geom_point()
+```
+
+(g) support vector classifier - which is an SVM with a linear kernel
+```{r}
+library(e1071)
+svm.linear.fit <- svm(y~., data=data, kernel='linear')
+svm.linear.pred <- predict(svm.linear.fit, data, type='response')
+preds3_to_classes <- ifelse(svm.linear.pred > 0.5, 1, 0)
+ggplot(data,
+       aes(x1, x2, color = factor(preds3_to_classes))) +
+  geom_point()
+
+```
+(h) SVM, non-linear kernel
+```{r}
+svm.nonlinear.fit <- svm(y~., data=data, kernel='radial')
+svm.nonlinear.pred <- predict(svm.nonlinear.fit, data, type='response')
+preds4_to_classes <- ifelse(svm.nonlinear.pred > 0.5, 1, 0)
+ggplot(data,
+       aes(x1, x2, color = factor(preds4_to_classes))) +
+  geom_point()
+
+```
+(i) commentary!
+
+heh
+
+# 9.7.6
+
+(a)
+```{r}
+set.seed(456)
+x1 <- runif(500)-0.5
+x2 <- runif(500)-0.5
+y <- ifelse(x1+x2 > 0, 1, 2)
+data <- data.frame(x1,x2,y)
+ggplot(data,
+       aes(x1, x2, color = factor(y))) +
+  geom_point()
+
+```
+
+(b)
+```{r}
+costs <- c(0.001 , 0.01 , 0.1 , 0.5,  1 ,5 ,10 ,20,40,80)
+tune.out = tune(svm , y~. , data = data , kernel ="linear", ranges = list(cost=costs))
+summary(tune.out)
+```
+
+(c)
+```{r}
+perf <- tune.out$performances
+#ggplot(perf, aes(x=cost, y=error)) + 
+#  geom_bar()
+plot(tune.out$performances[,c(1,2)],type='l')
+cc <- function(cost) {
+  svmfit = svm ( y~., data = data , scale = FALSE, cost=cost, kernel="linear")
+  ypred = predict( svmfit , data, type="response")
+  sum(ypred!=data$y)/dim(data)[1]
+}
+
+lapply(costs, cc)
+```
+
+(d)
+```{r}
+print("nothing")
+```
+
+# 9.7.7
+
+(a) binary var
+```{r}
+library(ISLR)
+data <- Auto
+med <- median(Auto$mpg)
+# it's a binary classification
+data$binvar <- as.factor(ifelse(Auto$mpg > med, 1, 0))
+# deleting columns we won't be using
+data$mpg <- NULL
+data$name <- NULL
+table(data$binvar)
+```
+
+as expected, half is above the median, the other below.
+
+(b) svc
+```{r}
+require(e1071)
+costs <- c(0.00001,0.0001,0.001,0.01,0.1,1,10,100)
+# gammas <- 10^(-5:-1)
+tune.out <- tune(svm, binvar ~ ., ranges=list(costs=costs), kernel="linear", data=data, scale=FALSE)
+summary(tune.out)
+plot(tune.out$best.model, data, weight~horsepower)
+```
+(c) again but with different gammas too, and various degrees if kernel type = "polynomial"
+```{r}
+ctrl <- tune.control(
+  sampling='cross',   # Do cross-validation (the default)
+  cross=10,            # Num folds (default = 10)
+  nrepeat=1)          # Num repeats (default is 1) 
+
+train.grid <- list(cost=2^(-2:5), gamma=10^(-5:-1), degrees=(2:5))
+
+tuned <- tune(svm, binvar~., data=a, kernel='polynomial',
+              ranges = train.grid, tunecontrol = ctrl, scale=FALSE)
+summary(tuned)
+plot(tuned$best.model, data, weight~horsepower)
+```
+
+best was a quadratic polynomial!
+```{r}
+tuned$best.parameters
+```
+let's try with radial:
+```{r}
+train.grid <- list(cost=2^(-2:5), gamma=10^(-5:-1))
+
+tuned <- tune(svm, binvar~., data=a, kernel='radial',
+              ranges = train.grid, tunecontrol = ctrl)
+summary(tuned)
+```
+and the best - different cost, same gamma (there's no degree used in radia)
+```{r}
+tuned$best.parameters
+```
+(d) adding some plots
+```{r}
+plot(tuned$best.model, data, weight~horsepower)
+```
+
+# 9.7.8
+
 EOF
