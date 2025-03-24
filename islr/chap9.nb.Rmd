@@ -404,7 +404,9 @@ plot(tune.out$best.model, data, weight~horsepower)
 ctrl <- tune.control(
   sampling='cross',   # Do cross-validation (the default)
   cross=10,            # Num folds (default = 10)
-  nrepeat=1)          # Num repeats (default is 1) 
+
+  
+    nrepeat=1)          # Num repeats (default is 1) 
 
 train.grid <- list(cost=2^(-2:5), gamma=10^(-5:-1), degrees=(2:5))
 
@@ -436,5 +438,67 @@ plot(tuned$best.model, data, weight~horsepower)
 ```
 
 # 9.7.8
+
+(a) OJ data
+```{r}
+library(ISLR)
+set.seed(89)
+attach(OJ)
+train <- sample(nrow(OJ), 800)
+```
+
+(b) fit a support vector classifier (linear)
+```{r}
+library(e1071)
+svm.fit <- svm(Purchase ~ ., kernel="linear", cost=0.01, data=OJ[train,], scale=FALSE, method="class")
+summary(svm.fit)
+```
+(c) training/testing errors
+```{r}
+library(caret)
+training_pred <- predict(svm.fit, newdata=OJ[train,], type="class")
+confusionMatrix(training_pred,OJ[train,]$Purchase)
+testing_pred <- predict(svm.fit, newdata=OJ[-train,], type="class")
+confusionMatrix(testing_pred,OJ[-train,]$Purchase)
+```
+(d) using `tune` for optimal cost
+```{r}
+costs <- 10^seq(-2, 1, by = 0.5)
+tune.out <- tune(svm, Purchase ~ ., ranges=list(costs=costs), kernel="linear", data=OJ[train,], scale=FALSE, method="class")
+tune.out$best.parameters
+```
+
+(e) same as above, but using the optimal cost - which incidentally is what we had?
+```{r}
+svm.fit <- svm(Purchase ~ ., kernel="linear", cost=tune.out$best.parameters$costs, data=OJ[train,], scale=FALSE, method="class")
+training_pred <- predict(svm.fit, newdata=OJ[train,], type="class")
+confusionMatrix(training_pred,OJ[train,]$Purchase)
+testing_pred <- predict(svm.fit, newdata=OJ[-train,], type="class")
+confusionMatrix(testing_pred,OJ[-train,]$Purchase)
+```
+
+(f) using radial
+```{r}
+tune.out <- tune(svm, Purchase ~ ., ranges=list(costs=costs), kernel="radial", data=OJ[train,], scale=FALSE, method="class")
+tune.out$best.parameters
+svm.fit <- svm(Purchase ~ ., kernel="radial", cost=tune.out$best.parameters$costs, data=OJ[train,], scale=FALSE, method="class")
+training_pred <- predict(svm.fit, newdata=OJ[train,], type="class")
+confusionMatrix(training_pred,OJ[train,]$Purchase)
+testing_pred <- predict(svm.fit, newdata=OJ[-train,], type="class")
+confusionMatrix(testing_pred,OJ[-train,]$Purchase)
+```
+
+(g) using polynomial of degree 2
+```{r}
+tune.out <- tune(svm, Purchase ~ ., ranges=list(costs=costs), kernel="polynomial", degree=2, data=OJ[train,], scale=FALSE, method="class")
+tune.out$best.parameters
+svm.fit <- svm(Purchase ~ ., kernel="polynomial", degree=2, cost=tune.out$best.parameters$costs, data=OJ[train,], scale=FALSE, method="class")
+training_pred <- predict(svm.fit, newdata=OJ[train,], type="class")
+confusionMatrix(training_pred,OJ[train,]$Purchase)
+testing_pred <- predict(svm.fit, newdata=OJ[-train,], type="class")
+confusionMatrix(testing_pred,OJ[-train,]$Purchase)
+```
+
+(h) best overall
 
 EOF
