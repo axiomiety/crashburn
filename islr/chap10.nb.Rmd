@@ -70,3 +70,75 @@ pred:
 npred <- predict(modnn, x[testid,])
 mean(abs(y[testid]-npred))
 ```
+
+# 10.9.2
+
+load the data
+```{r}
+mnist <- dataset_mnist()
+x_train <- mnist$train$x
+g_train <- mnist$train$y
+x_test <- mnist$test$x
+g_test <- mnist$test$y
+dim(x_train)
+dim(x_test)
+```
+
+one-hot encoding of the class label. note that 784 is 28x28, which is the size (in pixels) of the images
+```{r}
+x_train <- array_reshape(x_train, c(nrow(x_train), 784))
+x_test <- array_reshape(x_test, c(nrow(x_test), 784))
+y_train <- to_categorical(g_train, 10)
+y_test <- to_categorical(g_test, 10)
+```
+
+scaling by 255 as that's the 8-bit representing grayscale
+```{r}
+x_train <- x_train / 255
+x_test <- x_test / 255
+```
+
+NN fit:
+```{r}
+modelnn <- keras_model_sequential()
+modelnn %>%
+  layer_dense(units=256, activation="relu", input_shape = c(784)) %>%
+  layer_dropout(rate=0.4) %>%
+  layer_dense(units = 128, activation="relu") %>%
+  layer_dropout(rate=0.3) %>%
+  layer_dense(units=10, activation="softmax")
+summary(modelnn)
+```
+fitting algo, + go go go!
+```{r}
+modelnn %>% compile(loss = "categorical_crossentropy", optimizer = optimizer_rmsprop(), metrics=c("accuracy"))
+
+system.time(
+  history <- modelnn %>%
+    fit(x_train, y_train, epochs=30, batch_size = 128, validation_split = 0.2)
+
+)
+plot(history, smooth=FALSE)
+```
+
+accuracy:
+```{r}
+  accuracy <- function(pred, truth) {
+    mean(drop(as.numeric(pred)) == drop(truth))
+  }
+modelnn %>% predict(x_test) %>% k_argmax() %>% accuracy(g_test)
+```
+
+multiclass logistic regression:
+```{r}
+modellr <- keras_model_sequential() %>%
+  layer_dense(input_shape = 784, units=10, activation="softmax")
+summary(modellr)
+```
+fit:
+```{r}
+modellr %>% compile(loss = "categorical_crossentropy", optimizer=optimizer_rmsprop(), metrics=c("accuracy"))
+modellr %>% fit(x_train, y_train, epochs=30, batch_size = 128, validation_split = 0.2)
+modellr %>% predict(x_test) %>% k_argmax() %>% accuracy((g_test))
+```
+EOF
