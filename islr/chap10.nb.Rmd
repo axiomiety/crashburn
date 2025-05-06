@@ -229,11 +229,181 @@ pred6 <- model%>% predict(x) %>% imagenet_decode_predictions(top=3)
 names(pred6) <- image_names
 print(pred6)
 ```
+# 10.9.5
 
+IMDb doc classification
+
+```{r}
+max_features <- 10000
+imdb <- dataset_imdb(num_words = max_features)
+# unpack
+c(c(x_train , y_train), c(x_test , y_test)) %<-% imdb
+```
+
+encoding - note the special values
+```{r}
+x_train[[1]][1:12]
+```
+
+decoder ring:
+```{r}
+word_index <- dataset_imdb_word_index()
+decode_review <- function(text, word_index) {
+ word <- names(word_index)
+ idx <- unlist(word_index , use.names = FALSE )
+ word <- c("<PAD >","<START >","<UNK >","<UNUSED >", word)
+ idx <- c(0:3 , idx + 3)
+ words <- word[match(text , idx , 2)]
+ paste(words , collapse = " ")
+}
+decode_review(x_train[[1]][1:12], word_index)
+```
+
+```{r}
+library(Matrix)
+one_hot <- function(sequences, dimension) {
+  seqlen <- sapply(sequences , length )
+  n <- length(seqlen)
+  rowind <- rep (1:n, seqlen)
+  colind <- unlist( sequences )
+  sparseMatrix (i = rowind , j = colind ,
+      dims = c(n, dimension ))
+}
+```
+
+encode the data:
+```{r}
+x_train_1h <- one_hot(x_train, max_features)
+x_test_1h <- one_hot(x_test, max_features)
+dim(x_train_1h)
+nnzero(x_train_1h) / (25000*max_features)
+```
+
+create a validation set:
+```{r}
+set.seed(3)
+ival <- sample(seq(along=y_train), 2000)
+```
+
+fit a lasso logistic reg:
+```{r}
+library(glmnet)
+fitlm <- glmnet(x_train_1h[-ival , ], y_train[-ival], family= "binomial", standardize =FALSE)
+classlmv <- predict(fitlm , x_train_1h[ival , ]) > 0
+acclmv <- apply(classlmv , 2, accuracy , y_train[ival] > 0)
+```
+
+plot:
+```{r}
+par(mar=c(4,4,4,4), mfrow=c(1,1))
+plot(-log(fitlm$lambda), acclmv)
+```
+
+now for a NN wih 2 hidden layers, 16 units/layer, ReLU
+```{r}
+model <- keras_model_sequential() %>%
+ layer_dense(units = 16, activation = "relu", input_shape = c(max_features)) %>%
+ layer_dense(units = 16, activation = "relu") %>%
+ layer_dense(units = 1, activation = "sigmoid")
+model %>% compile( optimizer = "rmsprop",
+                   loss = "binary_crossentropy", metrics = c("accuracy"))
+history <- model %>% fit(x_train_1h[-ival , ], y_train[-ival], epochs = 20, batch_size =512, validation_data = list(x_train_1h[ival , ], y_train[ival ]))
+```
+```{r}
+history
+```
+
+test accuracy
+```{r}
+history_test <- model %>% fit(x_train_1h[-ival , ], y_train[-ival], epochs = 20,
+batch_size = 512, validation_data = list(x_test_1h, y_test))
+history_test
+```
+
+# 10.9.6
+
+RNN
+
+```{r}
+# wc for word count
+wc <- sapply(x_train, FUN=length)
+median(wc)
+sum(wc <= 500) / length(wc)
+```
+
+for RNN, we need everything to have the same length - so padding here we gooooo!
+```{r}
+maxlen <- 500
+x_train <- pad_sequences(x_train , maxlen = maxlen)
+x_test <- pad_sequences(x_test , maxlen = maxlen)
+dim(x_train)
+dim(x_test)
+x_train[1, 490:500]
+```
+
+creating the model. note the embedding layer, from 10000 dimensions down to 32
+```{r}
+model <- keras_model_sequential() %>%
+  layer_embedding ( input_dim = 10000 , output_dim = 32) %>%
+  layer_lstm(units = 32) %>%
+  layer_dense(units = 1, activation = "sigmoid")
+```
+
+compile & plot
+```{r}
+model %>% compile( optimizer = "rmsprop", loss = "binary_crossentropy", metrics =c("acc"))
+history <- model %>% fit(x_train , y_train , epochs = 10, batch_size = 128, validation_data = list(x_test , y_test))
+plot(history)
+predy <- predict(model, x_test) > 0.5
+mean(abs(y_est == as.numeric(predy)))
+```
+
+now for time series
+```{r}
+```
+
+```{r}
+```
+
+```{r}
+```
+
+```{r}
+```
+
+```{r}
+```
 # 10.10.1
 
+(a) c.f. paper
+(b)
+#$$f(X) = \sigma(\sigma(\sum_{i=1}^3(x_iw_i^{[2]}+b_i^{[2]}))$$
+$$f(X) = \sigma(A^{[2]}), A^{[2]}=\sigma(W^{[2]}A^{[1]}+b^{[2]}), A^{[1]} = \sigma(W^{[1]}X+b^{[1]})$$
+(c) we can initialise all the weights to 1 - heh
+
+(d)
 $p=4$, 2 units in the first hidden layer = 4*2 + 4 (biases)
 3 units in the second hidden layer = 2*3 + 2 (biases)
-1 output
+1 output (no bias)
+
+# 10.10.2
+
+(a) add a constant $c$ to each of the $z_l$, probs are unchanged
+$$f_m(X) = \text{Pr}(Y=m|X) = \frac{e^{Z_m}}{\sum_{\ell=0}^9e^{Z_\ell}}$$
+if we define $g_m(X)$ as using $Z'_m$ which contains the constants, $e^{Z'_m}$ is just $e^ce^{Z_m}$ - and $e^c$ cancels out.
+
+(b) similarly to the above - we have a factor of $$e^{c_0+\sum_{i=1}^pc_ix_i}$$
+
+and for the denomiator, that's $K$ times the above - so every probability is scaled by $\frac{1}{K-1}$. when computing the log odds this stays the same.
+
+# 10.10.3
+
+$M=2$ implies the negative multionmial log-liklihood (10.14) is equivalent to the negative log of the likelihood (4.5)
+
+$$-\sum_{i=1}^n\sum_{m=0}^1y_{im}\log(f_m(x_i))$$
+vs
+
+$$\ell(\beta_0,\beta_1) = \prod_{i:y_i=1}p(x_i) \prod_{i':y_i'=0}(1-p(x_{i'}))$$
+negative log of the above turns this into a summation - and given $f_m$ behaves like a probability, we... pattern match?
 
 EOF
