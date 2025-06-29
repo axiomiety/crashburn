@@ -127,8 +127,27 @@ mssold <- mean (( scale(Xna , xbar , FALSE)[! ismiss ]) ^2)
 mss0 <- mean(Xna [! ismiss ]^2)
 ```
 
-relative error will be `(mssold - mss) / mss0`
+relative error will be `(mssold - mss) / mss0` - we'll continue until it's below `thresh`.
 
+```{r}
+while(rel_err > thresh) {
+  iter <- iter + 1
+  # Step 2(a)
+  Xapp <- fit.svd(Xhat , M = 1)
+  # Step 2(b)
+  Xhat[ismiss] <- Xapp[ismiss]
+  # Step 2(c)
+  mss <- mean ((( Xna - Xapp)[! ismiss ]) ^2)
+  rel_err <- (mssold - mss) / mss0
+  mssold <- mss
+  cat("Iter:", iter , "MSS:", mss ,
+  "Rel. Err:", rel_err , "\n")
+}
+```
+correlation of the 20 imputed values vs actual:
+```{r}
+cor(Xapp[ismiss], X[ismiss ])
+```
 # 12.5.3 Clustering
 
 k-means
@@ -139,7 +158,33 @@ x <- matrix(rnorm(50*2), ncol=2)
 x[1:25,1] <- x[1:25, 1] + 3
 x[1:25,1] <- x[1:25, 1] - 4
 ```
-EOF
+
+```{r}
+km.out <- kmeans(x, 2, nstart=20)
+km.out$cluster
+```
+
+plotting:
+```{r}
+par(mfrow=c(1,2))
+plot(x, col=(km.out$cluster+1),
+     main="k-means clustering results with k=2",
+     xlab="", ylab="", pch=20, cex=2
+     )
+```
+with K=3
+```{r}
+set.seed(4)
+km.out <- kmeans(x, 3, nstart = 20)
+km.out
+```
+plot!
+```{r}
+plot(x, col=(km.out$cluster+1),
+     main="k-means clustering results with k=3",
+     xlab = "", ylab = "", pch = 20, cex = 2
+     )
+```
 
 # 12.5.4 NCI60
 
